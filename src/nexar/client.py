@@ -12,7 +12,7 @@ from .exceptions import (
     RiotAPIError,
     UnauthorizedError,
 )
-from .models import RiotAccount, Summoner
+from .models import Match, RiotAccount, Summoner
 
 
 class NexarClient:
@@ -130,21 +130,20 @@ class NexarClient:
         )
         return Summoner.from_api_response(data)
 
-    def get_summoner_by_name(
-        self, summoner_name: str, region: RegionV4 | None = None
-    ) -> Summoner:
-        """Get a summoner by summoner name.
+    # Match API
+    def get_match(self, match_id: str, region: RegionV5 | None = None) -> Match:
+        """Get match details by match ID.
 
         Args:
-            summoner_name: The summoner's name
+            match_id: The match ID
             region: Region to use (defaults to client's default)
 
         Returns:
-            Summoner with summoner information
+            Match with detailed match information
         """
-        region = region or self.default_v4_region
+        region = region or self.default_v5_region
         data = self._make_api_call(
-            f"/lol/summoner/v4/summoners/by-name/{summoner_name}",
+            f"/lol/match/v5/matches/{match_id}",
             region=region,
         )
-        return Summoner.from_api_response(data)
+        return Match.from_api_response(data)

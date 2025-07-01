@@ -4,6 +4,7 @@ import pytest
 
 from nexar import (
     ForbiddenError,
+    Match,
     NexarClient,
     NotFoundError,
     RateLimitError,
@@ -78,19 +79,36 @@ class TestNexarClient:
         assert result.id == "test-summoner-id"
         assert result.summoner_level == 150
 
-    def test_get_summoner_by_name_success(
-        self, client, requests_mock_obj, mock_summoner_response
-    ):
-        """Test successful summoner retrieval by name."""
+    def test_get_match_success(self, client, requests_mock_obj, mock_match_response):
+        """Test successful match retrieval by match ID."""
         requests_mock_obj.get(
-            "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-name/TestPlayer",
-            json=mock_summoner_response,
+            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_4567890123",
+            json=mock_match_response,
         )
 
-        result = client.get_summoner_by_name("TestPlayer")
+        result = client.get_match("NA1_4567890123")
 
-        assert isinstance(result, Summoner)
-        assert result.id == "test-summoner-id"
+        assert isinstance(result, Match)
+        assert result.metadata.match_id == "NA1_4567890123"
+        assert result.info.game_mode == "CLASSIC"
+        assert result.info.queue_id == 420
+        assert len(result.info.participants) == 1
+        assert len(result.info.teams) == 1
+
+        # Test participant data
+        participant = result.info.participants[0]
+        assert participant.puuid == "test-puuid-1"
+        assert participant.champion_name == "Annie"
+        assert participant.kills == 5
+        assert participant.deaths == 2
+        assert participant.assists == 8
+        assert participant.win is True
+
+        # Test team data
+        team = result.info.teams[0]
+        assert team.team_id == 100
+        assert team.win is True
+        assert len(team.bans) == 1
 
     def test_unauthorized_error(self, client, requests_mock_obj):
         """Test handling of 401 Unauthorized error."""
