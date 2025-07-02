@@ -1,5 +1,7 @@
 """Tests for domain models."""
 
+from datetime import datetime
+
 import pytest
 
 from nexar.enums import RegionV4
@@ -47,7 +49,7 @@ class TestSummoner:
             id="test-summoner-id",
             puuid="test-puuid",
             profile_icon_id=1234,
-            revision_date=1609459200000,
+            revision_date=datetime.fromtimestamp(1609459200),
             summoner_level=150,
         )
 
@@ -72,7 +74,7 @@ class TestSummoner:
             id="test-summoner-id",
             puuid="test-puuid",
             profile_icon_id=1234,
-            revision_date=1609459200000,
+            revision_date=datetime.fromtimestamp(1609459200),
             summoner_level=150,
         )
 

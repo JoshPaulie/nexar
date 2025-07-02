@@ -10,7 +10,7 @@ from .exceptions import (
     RiotAPIError,
     UnauthorizedError,
 )
-from .models import Match, RiotAccount, Summoner
+from .models import Match, RiotAccount, Summoner, TeamInfo, TeamsInfo
 
 __version__ = "0.1.0"
 
@@ -22,6 +22,8 @@ __all__ = [
     "Tier",
     "Division",
     "Match",
+    "TeamInfo",
+    "TeamsInfo",
     "RiotAccount",
     "Summoner",
     "NexarError",
