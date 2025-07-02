@@ -141,7 +141,6 @@ class Participant:
     objectives_stolen_assists: int
 
     # Game state
-    bounty_level: int
     champ_experience: int
     champion_transform: int
     consumables_purchased: int
@@ -162,6 +161,9 @@ class Participant:
     # Riot ID
     riot_id_game_name: str | None = None
     riot_id_tagline: str | None = None
+
+    # Game state (optional)
+    bounty_level: int | None = None
 
     # Player scores (from missions)
     player_score_0: int | None = None
@@ -312,7 +314,7 @@ class Participant:
             objectives_stolen=data["objectivesStolen"],
             objectives_stolen_assists=data["objectivesStolenAssists"],
             # Game state
-            bounty_level=data["bountyLevel"],
+            bounty_level=data.get("bountyLevel"),
             champ_experience=data["champExperience"],
             champion_transform=data["championTransform"],
             consumables_purchased=data["consumablesPurchased"],
