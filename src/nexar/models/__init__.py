@@ -1,6 +1,7 @@
 """Domain models for Riot API responses."""
 
 from .account import RiotAccount, Summoner
+from .league import LeagueEntry, MiniSeries
 from .match import (
     Ban,
     Challenges,
@@ -24,6 +25,9 @@ __all__ = [
     # Account models
     "RiotAccount",
     "Summoner",
+    # League models
+    "LeagueEntry",
+    "MiniSeries",
     # Match models
     "Match",
     "MatchInfo",

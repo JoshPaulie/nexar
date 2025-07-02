@@ -13,7 +13,7 @@ from .exceptions import (
     RiotAPIError,
     UnauthorizedError,
 )
-from .models import Match, RiotAccount, Summoner
+from .models import LeagueEntry, Match, RiotAccount, Summoner
 
 
 class NexarClient:
@@ -130,6 +130,26 @@ class NexarClient:
             region=region,
         )
         return Summoner.from_api_response(data)
+
+    # League API
+    def get_league_entries_by_puuid(
+        self, puuid: str, region: RegionV4 | None = None
+    ) -> list[LeagueEntry]:
+        """Get league entries by PUUID.
+
+        Args:
+            puuid: The summoner's PUUID
+            region: Region to use (defaults to client's default)
+
+        Returns:
+            List of league entries for the summoner
+        """
+        region = region or self.default_v4_region
+        data = self._make_api_call(
+            f"/lol/league/v4/entries/by-puuid/{puuid}",
+            region=region,
+        )
+        return [LeagueEntry.from_api_response(entry) for entry in data]
 
     # Match API
     def get_match(self, match_id: str, region: RegionV5 | None = None) -> Match:
