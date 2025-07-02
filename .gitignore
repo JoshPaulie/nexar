@@ -13,6 +13,10 @@ wheels/
 .pytest_cache/
 .coverage
 htmlcov/
+playground*.py
 
 # Environment setter
 riot-key.sh
+
+# Copilot instructions for writing tests
+.github/copilot-instructions.md
