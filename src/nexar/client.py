@@ -1,10 +1,11 @@
 """Main client for the Nexar SDK."""
 
+from datetime import datetime
 from typing import Any
 
 import requests
 
-from .enums import RegionV4, RegionV5
+from .enums import MatchType, QueueId, RegionV4, RegionV5
 from .exceptions import (
     ForbiddenError,
     NotFoundError,
@@ -147,3 +148,79 @@ class NexarClient:
             region=region,
         )
         return Match.from_api_response(data)
+
+    def get_match_ids_by_puuid(
+        self,
+        puuid: str,
+        *,
+        start_time: int | datetime | None = None,
+        end_time: int | datetime | None = None,
+        queue: QueueId | int | None = None,
+        match_type: MatchType | str | None = None,
+        start: int = 0,
+        count: int = 20,
+        region: RegionV5 | None = None,
+    ) -> list[str]:
+        """Get match IDs by PUUID with optional filters.
+
+        Args:
+            puuid: The player's PUUID
+            start_time: Epoch timestamp in seconds or datetime for match start filter
+            end_time: Epoch timestamp in seconds or datetime for match end filter
+            queue: Queue ID filter (int or QueueId enum)
+            match_type: Match type filter (str or MatchType enum)
+            start: Start index (0-based)
+            count: Number of match IDs to return (0-100)
+            region: Region to use (defaults to client's default)
+
+        Returns:
+            List of match IDs
+        """
+        if not 0 <= count <= 100:
+            raise ValueError("count must be between 0 and 100")
+
+        region = region or self.default_v5_region
+
+        # Convert datetime objects to epoch timestamps
+        start_timestamp = None
+        if start_time is not None:
+            start_timestamp = (
+                int(start_time.timestamp())
+                if isinstance(start_time, datetime)
+                else start_time
+            )
+
+        end_timestamp = None
+        if end_time is not None:
+            end_timestamp = (
+                int(end_time.timestamp())
+                if isinstance(end_time, datetime)
+                else end_time
+            )
+
+        # Build query parameters
+        params = []
+        if start_timestamp is not None:
+            params.append(f"startTime={start_timestamp}")
+        if end_timestamp is not None:
+            params.append(f"endTime={end_timestamp}")
+        if queue is not None:
+            queue_id = queue.value if isinstance(queue, QueueId) else queue
+            params.append(f"queue={queue_id}")
+        if match_type is not None:
+            type_value = (
+                match_type.value if isinstance(match_type, MatchType) else match_type
+            )
+            params.append(f"type={type_value}")
+        if start != 0:
+            params.append(f"start={start}")
+        if count != 20:
+            params.append(f"count={count}")
+
+        # Build endpoint with query string
+        endpoint = f"/lol/match/v5/matches/by-puuid/{puuid}/ids"
+        if params:
+            endpoint += "?" + "&".join(params)
+
+        data = self._make_api_call(endpoint, region=region)
+        return data

@@ -1,7 +1,7 @@
 """Nexar: A simple, Pythonic SDK for Riot's League of Legends API."""
 
 from .client import NexarClient
-from .enums import Division, Queue, RegionV4, RegionV5, Tier
+from .enums import Division, MatchType, Queue, QueueId, RegionV4, RegionV5, Tier
 from .exceptions import (
     ForbiddenError,
     NexarError,
@@ -19,6 +19,8 @@ __all__ = [
     "RegionV4",
     "RegionV5",
     "Queue",
+    "QueueId",
+    "MatchType",
     "Tier",
     "Division",
     "Match",

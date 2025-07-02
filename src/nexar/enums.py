@@ -63,3 +63,26 @@ class Division(Enum):
     TWO = "II"
     THREE = "III"
     FOUR = "IV"
+
+
+class QueueId(Enum):
+    """Queue IDs for different game modes."""
+
+    RANKED_SOLO_5x5 = 420
+    RANKED_FLEX_SR = 440
+    BLIND_PICK = 430
+    DRAFT_PICK = 400
+    ARAM = 450
+    CLASH = 700
+    BOT_INTERMEDIATE = 830
+    BOT_INTRO = 840
+    BOT_BEGINNER = 850
+
+
+class MatchType(Enum):
+    """Match types for filtering match lists."""
+
+    RANKED = "ranked"
+    NORMAL = "normal"
+    TOURNEY = "tourney"
+    TUTORIAL = "tutorial"
