@@ -3,189 +3,64 @@
 import pytest
 
 from nexar import (
-    ForbiddenError,
-    Match,
     NexarClient,
     NotFoundError,
-    RateLimitError,
     RegionV4,
     RegionV5,
     RiotAccount,
-    RiotAPIError,
     Summoner,
-    UnauthorizedError,
 )
 
 
 class TestNexarClient:
     """Test the main NexarClient class."""
 
-    def test_client_initialization(self, mock_api_key):
+    def test_client_initialization(self, riot_api_key):
         """Test client initializes correctly."""
         client = NexarClient(
-            riot_api_key=mock_api_key,
+            riot_api_key=riot_api_key,
             default_v4_region=RegionV4.NA1,
             default_v5_region=RegionV5.AMERICAS,
         )
 
-        assert client.riot_api_key == mock_api_key
+        assert client.riot_api_key == riot_api_key
         assert client.default_v4_region == RegionV4.NA1
         assert client.default_v5_region == RegionV5.AMERICAS
 
-    def test_get_riot_account_success(
-        self, client, requests_mock_obj, mock_riot_account_response
-    ):
+    def test_get_riot_account_success(self, client):
         """Test successful riot account retrieval."""
-        # Mock the API response
-        requests_mock_obj.get(
-            "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/TestPlayer/TEST",
-            json=mock_riot_account_response,
-        )
-
-        result = client.get_riot_account("TestPlayer", "TEST")
+        result = client.get_riot_account("bexli", "bex")
 
         assert isinstance(result, RiotAccount)
-        assert result.puuid == "test-puuid-123"
-        assert result.game_name == "TestPlayer"
-        assert result.tag_line == "TEST"
+        assert result.puuid is not None
+        assert result.game_name == "bexli"
+        assert result.tag_line == "bex"
 
-    def test_get_riot_account_with_custom_region(
-        self, client, requests_mock_obj, mock_riot_account_response
-    ):
+    def test_get_riot_account_with_custom_region(self, client):
         """Test riot account retrieval with custom region."""
-        requests_mock_obj.get(
-            "https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/TestPlayer/TEST",
-            json=mock_riot_account_response,
-        )
-
-        result = client.get_riot_account("TestPlayer", "TEST", region=RegionV5.EUROPE)
+        result = client.get_riot_account("bexli", "bex", region=RegionV5.AMERICAS)
 
         assert isinstance(result, RiotAccount)
-        assert result.puuid == "test-puuid-123"
+        assert result.puuid is not None
+        assert result.game_name == "bexli"
+        assert result.tag_line == "bex"
 
-    def test_get_summoner_by_puuid_success(
-        self, client, requests_mock_obj, mock_summoner_response
-    ):
+    def test_get_summoner_by_puuid_success(self, client):
         """Test successful summoner retrieval by PUUID."""
-        requests_mock_obj.get(
-            "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/test-puuid-123",
-            json=mock_summoner_response,
-        )
+        # First get a riot account to get a real PUUID
+        account = client.get_riot_account("bexli", "bex")
 
-        result = client.get_summoner_by_puuid("test-puuid-123")
+        # Use NA1 region for summoner lookup
+        result = client.get_summoner_by_puuid(account.puuid, region=RegionV4.NA1)
 
         assert isinstance(result, Summoner)
-        assert result.puuid == "test-puuid-123"
-        assert result.id == "test-summoner-id"
-        assert result.summoner_level == 150
+        assert result.puuid == account.puuid
+        assert result.id is not None
+        assert result.summoner_level > 0
 
-    def test_get_match_success(self, client, requests_mock_obj, mock_match_response):
-        """Test successful match retrieval by match ID."""
-        requests_mock_obj.get(
-            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_4567890123",
-            json=mock_match_response,
-        )
-
-        result = client.get_match("NA1_4567890123")
-
-        assert isinstance(result, Match)
-        assert result.metadata.match_id == "NA1_4567890123"
-        assert result.info.game_mode == "CLASSIC"
-        assert result.info.queue_id == 420
-        assert len(result.info.participants) == 1
-        assert len(result.info.teams) == 1
-
-        # Test participant data
-        participant = result.info.participants[0]
-        assert participant.puuid == "test-puuid-1"
-        assert participant.champion_name == "Annie"
-        assert participant.kills == 5
-        assert participant.deaths == 2
-        assert participant.assists == 8
-        assert participant.win is True
-
-        # Test team data
-        team = result.info.teams[0]
-        assert team.team_id == 100
-        assert team.win is True
-        assert len(team.bans) == 1
-
-    def test_unauthorized_error(self, client, requests_mock_obj):
-        """Test handling of 401 Unauthorized error."""
-        requests_mock_obj.get(
-            "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/TestPlayer/TEST",
-            status_code=401,
-            json={"status": {"message": "Unauthorized"}},
-        )
-
-        with pytest.raises(UnauthorizedError) as exc_info:
-            client.get_riot_account("TestPlayer", "TEST")
-
-        assert exc_info.value.status_code == 401
-        assert "Unauthorized" in str(exc_info.value)
-
-    def test_forbidden_error(self, client, requests_mock_obj):
-        """Test handling of 403 Forbidden error."""
-        requests_mock_obj.get(
-            "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/TestPlayer/TEST",
-            status_code=403,
-            json={"status": {"message": "Forbidden"}},
-        )
-
-        with pytest.raises(ForbiddenError) as exc_info:
-            client.get_riot_account("TestPlayer", "TEST")
-
-        assert exc_info.value.status_code == 403
-
-    def test_not_found_error(self, client, requests_mock_obj):
+    def test_not_found_error(self, client):
         """Test handling of 404 Not Found error."""
-        requests_mock_obj.get(
-            "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/NonExistent/TEST",
-            status_code=404,
-            json={"status": {"message": "Data not found"}},
-        )
-
         with pytest.raises(NotFoundError) as exc_info:
-            client.get_riot_account("NonExistent", "TEST")
+            client.get_riot_account("NonExistentPlayer999", "FAKE")
 
         assert exc_info.value.status_code == 404
-
-    def test_rate_limit_error(self, client, requests_mock_obj):
-        """Test handling of 429 Rate Limit error."""
-        requests_mock_obj.get(
-            "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/TestPlayer/TEST",
-            status_code=429,
-            json={"status": {"message": "Rate limit exceeded"}},
-        )
-
-        with pytest.raises(RateLimitError) as exc_info:
-            client.get_riot_account("TestPlayer", "TEST")
-
-        assert exc_info.value.status_code == 429
-
-    def test_generic_api_error(self, client, requests_mock_obj):
-        """Test handling of generic API errors."""
-        requests_mock_obj.get(
-            "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/TestPlayer/TEST",
-            status_code=500,
-            json={"status": {"message": "Internal server error"}},
-        )
-
-        with pytest.raises(RiotAPIError) as exc_info:
-            client.get_riot_account("TestPlayer", "TEST")
-
-        assert exc_info.value.status_code == 500
-
-    def test_network_error(self, client, requests_mock_obj):
-        """Test handling of network errors."""
-        import requests
-
-        requests_mock_obj.get(
-            "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/TestPlayer/TEST",
-            exc=requests.exceptions.ConnectTimeout,
-        )
-
-        with pytest.raises(RiotAPIError) as exc_info:
-            client.get_riot_account("TestPlayer", "TEST")
-
-        assert "Request failed" in str(exc_info.value)

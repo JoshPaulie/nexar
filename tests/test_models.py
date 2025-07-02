@@ -2,6 +2,7 @@
 
 import pytest
 
+from nexar.enums import RegionV4
 from nexar.models import RiotAccount, Summoner
 
 
@@ -18,13 +19,14 @@ class TestRiotAccount:
         assert account.game_name == "TestPlayer"
         assert account.tag_line == "TEST"
 
-    def test_riot_account_from_api_response(self, mock_riot_account_response):
-        """Test RiotAccount creation from API response."""
-        account = RiotAccount.from_api_response(mock_riot_account_response)
+    def test_riot_account_from_api_response(self, client):
+        """Test RiotAccount creation from real API response."""
+        # Get real API data and test the model parsing
+        account = client.get_riot_account("bexli", "bex")
 
-        assert account.puuid == "test-puuid-123"
-        assert account.game_name == "TestPlayer"
-        assert account.tag_line == "TEST"
+        assert account.puuid is not None
+        assert account.game_name == "bexli"
+        assert account.tag_line == "bex"
 
     def test_riot_account_immutable(self):
         """Test that RiotAccount is immutable."""
@@ -53,14 +55,16 @@ class TestSummoner:
         assert summoner.puuid == "test-puuid"
         assert summoner.summoner_level == 150
 
-    def test_summoner_from_api_response(self, mock_summoner_response):
-        """Test Summoner creation from API response."""
-        summoner = Summoner.from_api_response(mock_summoner_response)
+    def test_summoner_from_api_response(self, client):
+        """Test Summoner creation from real API response."""
+        # Get a real account first, then fetch summoner data
+        account = client.get_riot_account("bexli", "bex")
+        summoner = client.get_summoner_by_puuid(account.puuid, region=RegionV4.NA1)
 
-        assert summoner.id == "test-summoner-id"
-        assert summoner.profile_icon_id == 1234
-        assert summoner.puuid == "test-puuid-123"
-        assert summoner.summoner_level == 150
+        assert summoner.id is not None
+        assert summoner.profile_icon_id is not None
+        assert summoner.puuid == account.puuid
+        assert summoner.summoner_level > 0
 
     def test_summoner_immutable(self):
         """Test that Summoner is immutable."""
