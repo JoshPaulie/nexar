@@ -59,13 +59,13 @@ class TestSummoner:
 
     def test_summoner_from_api_response(self, client):
         """Test Summoner creation from real API response."""
-        # Get a real account first, then fetch summoner data
-        account = client.get_riot_account("bexli", "bex")
-        summoner = client.get_summoner_by_puuid(account.puuid, region=RegionV4.NA1)
+        # Use hardcoded PUUID to reduce API calls during testing
+        test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
+        summoner = client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
 
         assert summoner.id is not None
         assert summoner.profile_icon_id is not None
-        assert summoner.puuid == account.puuid
+        assert summoner.puuid == test_puuid
         assert summoner.summoner_level > 0
 
     def test_summoner_immutable(self):

@@ -8,11 +8,11 @@ class TestLeagueEntries:
 
     def test_get_league_entries_by_puuid_success(self, client):
         """Test successful league entries retrieval by PUUID."""
-        # First get a riot account to get a real PUUID
-        account = client.get_riot_account("bexli", "bex")
+        # Use hardcoded PUUID to reduce API calls during testing
+        test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 
         # Get league entries for the account
-        result = client.get_league_entries_by_puuid(account.puuid)
+        result = client.get_league_entries_by_puuid(test_puuid)
 
         # Should return a list of league entries
         assert isinstance(result, list)
@@ -21,7 +21,7 @@ class TestLeagueEntries:
         if result:
             for entry in result:
                 assert isinstance(entry, LeagueEntry)
-                assert entry.puuid == account.puuid
+                assert entry.puuid == test_puuid
                 assert entry.league_id is not None
                 assert entry.queue_type is not None
                 assert entry.tier is not None

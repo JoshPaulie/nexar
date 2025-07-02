@@ -47,14 +47,14 @@ class TestNexarClient:
 
     def test_get_summoner_by_puuid_success(self, client):
         """Test successful summoner retrieval by PUUID."""
-        # First get a riot account to get a real PUUID
-        account = client.get_riot_account("bexli", "bex")
+        # Use hardcoded PUUID to reduce API calls during testing
+        test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 
         # Use NA1 region for summoner lookup
-        result = client.get_summoner_by_puuid(account.puuid, region=RegionV4.NA1)
+        result = client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
 
         assert isinstance(result, Summoner)
-        assert result.puuid == account.puuid
+        assert result.puuid == test_puuid
         assert result.id is not None
         assert result.summoner_level > 0
 

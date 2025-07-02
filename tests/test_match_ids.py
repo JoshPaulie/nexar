@@ -10,9 +10,8 @@ class TestGetMatchIdsByPuuid:
 
     @pytest.fixture
     def test_puuid(self, client):
-        """Get PUUID for test account bexli#bex."""
-        account = client.get_riot_account("bexli", "bex")
-        return account.puuid
+        """Get PUUID for test account - using hardcoded value to reduce API calls."""
+        return "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 
     def test_get_match_ids_by_puuid_basic(self, client, test_puuid):
         """Test basic functionality of get_match_ids_by_puuid."""
