@@ -15,8 +15,13 @@ class MatchMetadata:
     """Represents match metadata."""
 
     data_version: str
+    """API data version for this match."""
+
     match_id: str
-    participants: list[str]  # List of PUUIDs
+    """Unique identifier for the match."""
+
+    participants: list[str]
+    """List of participant PUUIDs in the match."""
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "MatchMetadata":
@@ -33,24 +38,54 @@ class MatchInfo:
     """Represents match info."""
 
     # Core match data
-    game_creation: datetime  # When the game is created on the game server
-    game_duration: int  # Game length (milliseconds pre-11.20, seconds post-11.20)
+    game_creation: datetime
+    """When the game was created on the game server."""
+
+    game_duration: int
+    """Game length in milliseconds (pre-11.20) or seconds (post-11.20)."""
+
     game_id: int
+    """Unique game identifier."""
+
     game_mode: str
-    game_start_timestamp: datetime  # When match starts on the game server
+    """Game mode (e.g., CLASSIC, ARAM, etc.)."""
+
+    game_start_timestamp: datetime
+    """When the match started on the game server."""
+
     game_type: str
-    game_version: str  # First two parts determine the patch
+    """Game type (e.g., MATCHED_GAME, CUSTOM_GAME, etc.)."""
+
+    game_version: str
+    """Game version - first two parts determine the patch."""
+
     map_id: int
-    platform_id: str  # Platform where the match was played
+    """Map identifier (e.g., 11 for Summoner's Rift)."""
+
+    platform_id: str
+    """Platform where the match was played."""
+
     queue_id: int
-    participants: list["Participant"]  # List of participants
-    teams: list["Team"]  # List of teams
+    """Queue identifier."""
+
+    participants: list["Participant"]
+    """List of all participants in the match."""
+
+    teams: list["Team"]
+    """List of team data (usually 2 teams)."""
 
     # Optional fields
-    game_end_timestamp: datetime | None = None  # When match ends on the game server
+    game_end_timestamp: datetime | None = None
+    """When the match ended on the game server, if available."""
+
     game_name: str | None = None
-    tournament_code: str | None = None  # Tournament code used to generate the match
-    end_of_game_result: str | None = None  # Indicates if game ended in termination
+    """TODO"""
+
+    tournament_code: str | None = None
+    """Tournament code used to generate the match, if applicable."""
+
+    end_of_game_result: str | None = None
+    """Indicates if game ended in termination or other special condition."""
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "MatchInfo":
@@ -90,7 +125,10 @@ class Match:
     """Represents a complete match."""
 
     metadata: MatchMetadata
+    """Match metadata including match ID and participant list."""
+
     info: MatchInfo
+    """Detailed match information including participants and teams."""
 
     @property
     def participants(self) -> list["Participant"]:

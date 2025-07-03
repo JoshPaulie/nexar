@@ -14,183 +14,443 @@ class Participant:
 
     # Core participant data
     puuid: str
+    """Player's universally unique identifier."""
+
     summoner_name: str
+    """Player's summoner name at the time of the match."""
+
     champion_id: int
+    """Unique identifier for the champion played."""
+
     champion_name: str
+    """Name of the champion played."""
+
     team_id: int
+    """Team identifier (100 for blue side, 200 for red side)."""
+
     participant_id: int
+    """Participant's position in the match (1-10)."""
 
     # Basic stats
     kills: int
+    """Number of enemy champions killed."""
+
     deaths: int
+    """Number of times the participant died."""
+
     assists: int
+    """Number of assists on enemy champion kills."""
+
     champion_level: int
+    """Final champion level achieved."""
+
     gold_earned: int
+    """Total gold earned during the match."""
+
     gold_spent: int
+    """Total gold spent on items."""
+
     vision_score: int
+    """Vision score based on wards placed, cleared, etc."""
+
     win: bool
+    """Whether the participant's team won the match."""
 
     # Items
     item_0: int
+    """Item in slot 0 (item ID, 0 if empty)."""
+
     item_1: int
+    """Item in slot 1 (item ID, 0 if empty)."""
+
     item_2: int
+    """Item in slot 2 (item ID, 0 if empty)."""
+
     item_3: int
+    """Item in slot 3 (item ID, 0 if empty)."""
+
     item_4: int
+    """Item in slot 4 (item ID, 0 if empty)."""
+
     item_5: int
+    """Item in slot 5 (item ID, 0 if empty)."""
+
     item_6: int
+    """Trinket item (item ID, 0 if empty)."""
 
     # Position and role
     individual_position: str
+    """Individual position assignment (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY)."""
+
     team_position: str
+    """Team-based position assignment (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY)."""
+
     lane: str
+    """Lane assignment during the match."""
+
     role: str
+    """Role assignment during the match."""
 
     # Ping stats
     all_in_pings: int
+    """Number of 'all in' pings used."""
+
     assist_me_pings: int
+    """Number of 'assist me' pings used."""
+
     command_pings: int
+    """Number of command pings used."""
+
     enemy_missing_pings: int
+    """Number of 'enemy missing' pings used."""
+
     enemy_vision_pings: int
+    """Number of 'enemy vision' pings used."""
+
     get_back_pings: int
+    """Number of 'get back' pings used."""
+
     hold_pings: int
+    """Number of 'hold' pings used."""
+
     need_vision_pings: int
+    """Number of 'need vision' pings used."""
+
     on_my_way_pings: int
+    """Number of 'on my way' pings used."""
+
     push_pings: int
+    """Number of 'push' pings used."""
+
     vision_cleared_pings: int
+    """Number of 'vision cleared' pings used."""
 
     # Kill stats
     baron_kills: int
+    """Number of Baron kills."""
+
     double_kills: int
+    """Number of double kills achieved."""
+
     dragon_kills: int
+    """Number of Dragon kills."""
+
     inhibitor_kills: int
+    """Number of inhibitor kills."""
+
     killing_sprees: int
+    """Number of killing sprees achieved."""
+
     largest_killing_spree: int
+    """Largest killing spree achieved."""
+
     largest_multi_kill: int
+    """Largest multi-kill achieved."""
+
     nexus_kills: int
+    """Number of Nexus kills."""
+
     penta_kills: int
+    """Number of penta kills achieved."""
+
     quadra_kills: int
+    """Number of quadra kills achieved."""
+
     triple_kills: int
+    """Number of triple kills achieved."""
+
     turret_kills: int
+    """Number of turret kills."""
+
     unreal_kills: int
+    """TODO"""
 
     # Damage stats
     damage_dealt_to_buildings: int
+    """Total damage dealt to buildings."""
+
     damage_dealt_to_objectives: int
+    """Total damage dealt to objectives (Baron, Dragon, etc.)."""
+
     damage_dealt_to_turrets: int
+    """Total damage dealt to turrets."""
+
     damage_self_mitigated: int
+    """Total damage mitigated by shields, resistances, etc."""
+
     largest_critical_strike: int
+    """Largest critical strike damage dealt."""
+
     magic_damage_dealt: int
+    """Total magic damage dealt."""
+
     magic_damage_dealt_to_champions: int
+    """Magic damage dealt to enemy champions."""
+
     magic_damage_taken: int
+    """Total magic damage taken."""
+
     physical_damage_dealt: int
+    """Total physical damage dealt."""
+
     physical_damage_dealt_to_champions: int
+    """Physical damage dealt to enemy champions."""
+
     physical_damage_taken: int
+    """Total physical damage taken."""
+
     total_damage_dealt: int
+    """Total damage dealt (all types combined)."""
+
     total_damage_dealt_to_champions: int
+    """Total damage dealt to enemy champions (all types combined)."""
+
     total_damage_shielded_on_teammates: int
+    """Total damage shielded on teammates."""
+
     total_damage_taken: int
+    """Total damage taken (all types combined)."""
+
     true_damage_dealt: int
+    """Total true damage dealt."""
+
     true_damage_dealt_to_champions: int
+    """True damage dealt to enemy champions."""
+
     true_damage_taken: int
+    """Total true damage taken."""
 
     # Minion and jungle stats
     neutral_minions_killed: int
+    """Number of neutral minions (jungle monsters) killed."""
+
     total_ally_jungle_minions_killed: int
+    """Number of allied jungle minions killed."""
+
     total_enemy_jungle_minions_killed: int
+    """Number of enemy jungle minions killed."""
+
     total_minions_killed: int
+    """Total number of minions killed (CS - creep score)."""
 
     # Healing and support stats
     total_heal: int
+    """Total healing done."""
+
     total_heals_on_teammates: int
+    """Total healing done on teammates."""
+
     total_units_healed: int
+    """Total number of units healed."""
 
     # Time stats
     longest_time_spent_living: int
+    """Longest time spent alive in seconds."""
+
     time_ccing_others: int
+    """Time spent crowd controlling enemies in seconds."""
+
     time_played: int
+    """Total time played in the match in seconds."""
+
     total_time_cc_dealt: int
+    """Total crowd control time dealt in seconds."""
+
     total_time_spent_dead: int
+    """Total time spent dead in seconds."""
 
     # Ward and vision stats
     detector_wards_placed: int
+    """Number of detector wards (control wards) placed."""
+
     sight_wards_bought_in_game: int
+    """Number of sight wards bought."""
+
     vision_wards_bought_in_game: int
+    """Number of vision wards bought."""
+
     wards_killed: int
+    """Number of enemy wards destroyed."""
+
     wards_placed: int
+    """Total number of wards placed."""
 
     # Spell casts
     spell_1_casts: int
+    """Number of times ability Q was cast."""
+
     spell_2_casts: int
+    """Number of times ability W was cast."""
+
     spell_3_casts: int
+    """Number of times ability E was cast."""
+
     spell_4_casts: int
+    """Number of times ability R (ultimate) was cast."""
+
     summoner_1_casts: int
+    """Number of times first summoner spell was cast."""
+
     summoner_1_id: int
+    """ID of the first summoner spell."""
+
     summoner_2_casts: int
+    """Number of times second summoner spell was cast."""
+
     summoner_2_id: int
+    """ID of the second summoner spell."""
 
     # Structure stats
     inhibitor_takedowns: int
+    """Number of inhibitor takedowns participated in."""
+
     inhibitors_lost: int
+    """Number of allied inhibitors lost."""
+
     nexus_takedowns: int
+    """Number of Nexus takedowns participated in."""
+
     nexus_lost: int
+    """Number of allied Nexus lost."""
+
     turret_takedowns: int
+    """Number of turret takedowns participated in."""
+
     turrets_lost: int
+    """Number of allied turrets lost."""
 
     # Objectives
     objectives_stolen: int
+    """Number of objectives stolen from enemies."""
+
     objectives_stolen_assists: int
+    """Number of assists on stolen objectives."""
 
     # Game state
     champ_experience: int
+    """Total champion experience gained."""
+
     champion_transform: int
+    """TODO"""
+
     consumables_purchased: int
+    """Number of consumable items purchased."""
+
     eligible_for_progression: bool
+    """Whether the participant is eligible for progression."""
+
     first_blood_assist: bool
+    """Whether the participant assisted in first blood."""
+
     first_blood_kill: bool
+    """Whether the participant got first blood."""
+
     first_tower_assist: bool
+    """Whether the participant assisted in first tower kill."""
+
     first_tower_kill: bool
+    """Whether the participant got first tower kill."""
+
     game_ended_in_early_surrender: bool
+    """Whether the game ended in an early surrender."""
+
     game_ended_in_surrender: bool
+    """Whether the game ended in a surrender."""
+
     items_purchased: int
+    """Total number of items purchased."""
+
     placement: int
+    """Final placement in the match."""
+
     profile_icon: int
+    """Profile icon ID used by the participant."""
+
     summoner_id: str
+    """Summoner ID of the participant."""
+
     summoner_level: int
+    """Summoner level at the time of the match."""
+
     team_early_surrendered: bool
+    """Whether the participant's team early surrendered."""
 
     # Riot ID
     riot_id_game_name: str | None = None
+    """Riot ID game name, if available."""
+
     riot_id_tagline: str | None = None
+    """Riot ID tagline, if available."""
 
     # Game state (optional)
     bounty_level: int | None = None
+    """Current bounty level, if applicable."""
 
     # Player scores (from missions)
     player_score_0: int | None = None
+    """Mission score 0, if applicable."""
+
     player_score_1: int | None = None
+    """Mission score 1, if applicable."""
+
     player_score_2: int | None = None
+    """Mission score 2, if applicable."""
+
     player_score_3: int | None = None
+    """Mission score 3, if applicable."""
+
     player_score_4: int | None = None
+    """Mission score 4, if applicable."""
+
     player_score_5: int | None = None
+    """Mission score 5, if applicable."""
+
     player_score_6: int | None = None
+    """Mission score 6, if applicable."""
+
     player_score_7: int | None = None
+    """Mission score 7, if applicable."""
+
     player_score_8: int | None = None
+    """Mission score 8, if applicable."""
+
     player_score_9: int | None = None
+    """Mission score 9, if applicable."""
+
     player_score_10: int | None = None
+    """Mission score 10, if applicable."""
+
     player_score_11: int | None = None
+    """Mission score 11, if applicable."""
 
     # Player augments (for specific game modes)
     player_augment_1: int | None = None
+    """Player augment 1, if applicable (mode-specific)."""
+
     player_augment_2: int | None = None
+    """Player augment 2, if applicable (mode-specific)."""
+
     player_augment_3: int | None = None
+    """Player augment 3, if applicable (mode-specific)."""
+
     player_augment_4: int | None = None
+    """Player augment 4, if applicable (mode-specific)."""
+
     player_subteam_id: int | None = None
+    """Player subteam ID, if applicable (mode-specific)."""
+
     subteam_placement: int | None = None
+    """Subteam placement, if applicable (mode-specific)."""
 
     # Complex nested objects
     perks: "Perks | None" = None
+    """Rune and perk information."""
+
     challenges: "Challenges | None" = None
+    """Challenge completion data."""
+
     missions: "Missions | None" = None
+    """Mission completion data."""
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "Participant":

@@ -13,7 +13,10 @@ class Ban:
     """Represents a champion ban."""
 
     champion_id: int
+    """ID of the banned champion."""
+
     pick_turn: int
+    """The pick/ban turn number when this ban occurred."""
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "Ban":
@@ -29,7 +32,10 @@ class Objective:
     """Represents an objective (baron, dragon, etc.)."""
 
     first: bool
+    """Whether this objective was taken first by the team."""
+
     kills: int
+    """Number of times this objective was taken by the team."""
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "Objective":
@@ -45,12 +51,25 @@ class Objectives:
     """Represents team objectives."""
 
     baron: Objective
+    """Baron Nashor objective stats."""
+
     champion: Objective
+    """Champion takedown objective stats."""
+
     dragon: Objective
+    """Dragon objective stats."""
+
     horde: Objective
+    """TODO"""
+
     inhibitor: Objective
+    """Inhibitor objective stats."""
+
     rift_herald: Objective
+    """Rift Herald objective stats."""
+
     tower: Objective
+    """Tower objective stats."""
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "Objectives":
@@ -71,9 +90,16 @@ class Team:
     """Represents a team in a match."""
 
     team_id: int
+    """Team identifier (100 for blue, 200 for red)."""
+
     win: bool
+    """Whether this team won the match."""
+
     bans: list[Ban]
+    """List of champion bans for this team."""
+
     objectives: Objectives
+    """Objectives taken by this team."""
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "Team":
@@ -91,10 +117,19 @@ class TeamInfo:
     """Enhanced team information with participants and aggregated stats."""
 
     team_id: int
+    """Team identifier (100 for blue, 200 for red)."""
+
     win: bool
+    """Whether this team won the match."""
+
     bans: list[Ban]
+    """List of champion bans for this team."""
+
     objectives: Objectives
+    """Objectives taken by this team."""
+
     participants: list["Participant"]
+    """List of participants on this team."""
 
     @property
     def total_damage(self) -> int:
@@ -137,7 +172,10 @@ class TeamsInfo:
     """Container for blue and red team information."""
 
     blue: TeamInfo
+    """Information for the blue side team (team_id=100)."""
+
     red: TeamInfo
+    """Information for the red side team (team_id=200)."""
 
     def __iter__(self) -> Iterator[TeamInfo]:
         """Allow iteration over teams."""
