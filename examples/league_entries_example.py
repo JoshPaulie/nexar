@@ -20,9 +20,7 @@ client = NexarClient(
 # Get PUUID from a riot account (using test account as example)
 account = client.get_riot_account("bexli", "bex")
 puuid = account.puuid
-print(
-    f"Found account: {account.game_name}#{account.tag_line} (PUUID: {puuid[:8]}...)\n"
-)
+print(f"Found account: {account.game_name}#{account.tag_line}\n")
 
 # Get league entries for the player
 league_entries = client.get_league_entries_by_puuid(puuid)
@@ -33,15 +31,11 @@ else:
     print(f"Found {len(league_entries)} ranked queue(s):\n")
 
     for entry in league_entries:
-        print(f"Queue: {entry.queue_type}")
-        print(f"Rank: {entry.tier} {entry.rank}")
+        print(f"Queue: {entry.queue_type.value}")
+        print(f"Rank: {entry.tier.value} {entry.rank.value}")
         print(f"League Points: {entry.league_points} LP")
         print(f"Win/Loss: {entry.wins}W / {entry.losses}L")
-
-        # Calculate win rate
-        total_games = entry.wins + entry.losses
-        win_rate = (entry.wins / total_games * 100) if total_games > 0 else 0
-        print(f"Win Rate: {win_rate:.1f}%")
+        print(f"Win Rate: {entry.win_rate:.1f}%")
 
         # Display player status flags
         status_flags = []

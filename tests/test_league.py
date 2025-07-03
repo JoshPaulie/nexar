@@ -1,6 +1,7 @@
 """Tests for league-related functionality."""
 
 from nexar import LeagueEntry, MiniSeries
+from nexar.enums import Division, Queue, Tier
 
 
 class TestLeagueEntries:
@@ -78,9 +79,9 @@ class TestLeagueModels:
 
         assert entry.league_id == "test-league-id"
         assert entry.puuid == "test-puuid"
-        assert entry.queue_type == "RANKED_SOLO_5x5"
-        assert entry.tier == "GOLD"
-        assert entry.rank == "III"
+        assert entry.queue_type == Queue.RANKED_SOLO_5x5
+        assert entry.tier == Tier.GOLD
+        assert entry.rank == Division.THREE
         assert entry.league_points == 75
         assert entry.wins == 50
         assert entry.losses == 30
@@ -112,9 +113,9 @@ class TestLeagueModels:
 
         assert entry.league_id == "test-league-id"
         assert entry.puuid == "test-puuid"
-        assert entry.queue_type == "RANKED_SOLO_5x5"
-        assert entry.tier == "SILVER"
-        assert entry.rank == "I"
+        assert entry.queue_type == Queue.RANKED_SOLO_5x5
+        assert entry.tier == Tier.SILVER
+        assert entry.rank == Division.ONE
         assert entry.league_points == 85
         assert entry.wins == 25
         assert entry.losses == 20
@@ -129,3 +130,71 @@ class TestLeagueModels:
         assert entry.mini_series.progress == "WW"
         assert entry.mini_series.target == 3
         assert entry.mini_series.wins == 2
+
+    def test_league_entry_win_rate_calculation(self):
+        """Test LeagueEntry win rate calculation."""
+        api_data = {
+            "leagueId": "test-league-id",
+            "puuid": "test-puuid",
+            "queueType": "RANKED_SOLO_5x5",
+            "tier": "GOLD",
+            "rank": "II",
+            "leaguePoints": 50,
+            "wins": 60,
+            "losses": 40,
+            "hotStreak": False,
+            "veteran": False,
+            "freshBlood": False,
+            "inactive": False,
+        }
+
+        entry = LeagueEntry.from_api_response(api_data)
+
+        # 60 wins out of 100 total games = 60% win rate
+        assert entry.win_rate == 60.0
+
+    def test_league_entry_win_rate_no_games(self):
+        """Test LeagueEntry win rate with no games played."""
+        api_data = {
+            "leagueId": "test-league-id",
+            "puuid": "test-puuid",
+            "queueType": "RANKED_SOLO_5x5",
+            "tier": "IRON",
+            "rank": "IV",
+            "leaguePoints": 0,
+            "wins": 0,
+            "losses": 0,
+            "hotStreak": False,
+            "veteran": False,
+            "freshBlood": False,
+            "inactive": False,
+        }
+
+        entry = LeagueEntry.from_api_response(api_data)
+
+        # No games played should return 0% win rate
+        assert entry.win_rate == 0.0
+
+    def test_league_entry_total_games(self):
+        """Test LeagueEntry total games calculation."""
+        api_data = {
+            "leagueId": "test-league-id",
+            "puuid": "test-puuid",
+            "queueType": "RANKED_SOLO_5x5",
+            "tier": "PLATINUM",
+            "rank": "I",
+            "leaguePoints": 75,
+            "wins": 45,
+            "losses": 35,
+            "hotStreak": True,
+            "veteran": False,
+            "freshBlood": False,
+            "inactive": False,
+        }
+
+        entry = LeagueEntry.from_api_response(api_data)
+
+        # 45 wins + 35 losses = 80 total games
+        assert entry.total_games == 80
+        # And verify win rate still works
+        assert entry.win_rate == 56.25  # 45/80 * 100
