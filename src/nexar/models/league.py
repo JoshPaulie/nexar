@@ -1,38 +1,26 @@
 """League and ranking-related models."""
 
+from dataclasses import dataclass
 from typing import Any
 
 from ..enums import Division, Queue, Tier
 
 
+@dataclass(frozen=True)
 class MiniSeries:
     """Represents mini series progress, colloquially known as 'promos'."""
 
-    def __init__(self, losses: int, progress: str, target: int, wins: int):
-        self._losses = losses
-        self._progress = progress
-        self._target = target
-        self._wins = wins
+    losses: int
+    """Number of losses in promo."""
 
-    @property
-    def losses(self) -> int:
-        """Number of losses in promo."""
-        return self._losses
+    progress: str
+    """String showing the current progress where 'W' represents a win, 'L' represents a loss, and 'N' represents a game not yet played."""
 
-    @property
-    def progress(self) -> str:
-        """String showing the current progress where 'W' represents a win, 'L' represents a loss, and 'N' represents a game not yet played."""
-        return self._progress
+    target: int
+    """Number of wins required for promotion."""
 
-    @property
-    def target(self) -> int:
-        """Number of wins required for promotion."""
-        return self._target
-
-    @property
-    def wins(self) -> int:
-        """Number of wins in promo."""
-        return self._wins
+    wins: int
+    """Number of wins in promo."""
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "MiniSeries":
@@ -44,117 +32,49 @@ class MiniSeries:
             wins=data["wins"],
         )
 
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, MiniSeries):
-            return NotImplemented
-        return (
-            self.losses == other.losses
-            and self.progress == other.progress
-            and self.target == other.target
-            and self.wins == other.wins
-        )
 
-    def __repr__(self) -> str:
-        return f"MiniSeries(losses={self.losses}, progress='{self.progress}', target={self.target}, wins={self.wins})"
-
-
+@dataclass(frozen=True)
 class LeagueEntry:
     """Represents a league entry for a player in a ranked queue."""
 
-    def __init__(
-        self,
-        league_id: str,
-        puuid: str,
-        queue_type: Queue,
-        tier: Tier,
-        rank: Division,
-        league_points: int,
-        wins: int,
-        losses: int,
-        hot_streak: bool,
-        veteran: bool,
-        fresh_blood: bool,
-        inactive: bool,
-        mini_series: MiniSeries | None = None,
-    ):
-        self._league_id = league_id
-        self._puuid = puuid
-        self._queue_type = queue_type
-        self._tier = tier
-        self._rank = rank
-        self._league_points = league_points
-        self._wins = wins
-        self._losses = losses
-        self._hot_streak = hot_streak
-        self._veteran = veteran
-        self._fresh_blood = fresh_blood
-        self._inactive = inactive
-        self._mini_series = mini_series
+    league_id: str
+    """Unique identifier for the league."""
 
-    @property
-    def league_id(self) -> str:
-        """Unique identifier for the league."""
-        return self._league_id
+    puuid: str
+    """Player's universally unique identifier."""
 
-    @property
-    def puuid(self) -> str:
-        """Player's universally unique identifier."""
-        return self._puuid
+    queue_type: Queue
+    """Type of ranked queue."""
 
-    @property
-    def queue_type(self) -> Queue:
-        """Type of ranked queue."""
-        return self._queue_type
+    tier: Tier
+    """Current tier."""
 
-    @property
-    def tier(self) -> Tier:
-        """Current tier."""
-        return self._tier
+    rank: Division
+    """Current rank within the tier (not applicable for Master+)."""
 
-    @property
-    def rank(self) -> Division:
-        """Current rank within the tier (not applicable for Master+)."""
-        return self._rank
+    league_points: int
+    """Current LP (League Points) in the rank."""
 
-    @property
-    def league_points(self) -> int:
-        """Current LP (League Points) in the rank."""
-        return self._league_points
+    wins: int
+    """Total number of wins in the current season for this queue."""
 
-    @property
-    def wins(self) -> int:
-        """Total number of wins in the current season for this queue."""
-        return self._wins
+    losses: int
+    """Total number of losses in the current season for this queue."""
 
-    @property
-    def losses(self) -> int:
-        """Total number of losses in the current season for this queue."""
-        return self._losses
+    hot_streak: bool
+    """Whether the player is currently on a winning streak."""
 
-    @property
-    def hot_streak(self) -> bool:
-        """Whether the player is currently on a winning streak."""
-        return self._hot_streak
+    veteran: bool
+    """Whether the player is a veteran (has played 100+ games in current tier)."""
 
-    @property
-    def veteran(self) -> bool:
-        """Whether the player is a veteran (has played 100+ games in current tier)."""
-        return self._veteran
+    fresh_blood: bool
+    """Whether the player is new to their current tier."""
 
-    @property
-    def fresh_blood(self) -> bool:
-        """Whether the player is new to their current tier."""
-        return self._fresh_blood
+    inactive: bool
+    """Whether the player has been inactive and is subject to decay."""
 
-    @property
-    def inactive(self) -> bool:
-        """Whether the player has been inactive and is subject to decay."""
-        return self._inactive
-
-    @property
-    def mini_series(self) -> MiniSeries | None:
-        """Promotion series data if currently in promos, None otherwise."""
-        return self._mini_series
+    mini_series: MiniSeries | None = None
+    """Promotion series data if currently in promos, None otherwise."""
 
     @property
     def total_games(self) -> int:
@@ -188,25 +108,3 @@ class LeagueEntry:
             if data.get("miniSeries")
             else None,
         )
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, LeagueEntry):
-            return NotImplemented
-        return (
-            self.league_id == other.league_id
-            and self.puuid == other.puuid
-            and self.queue_type == other.queue_type
-            and self.tier == other.tier
-            and self.rank == other.rank
-            and self.league_points == other.league_points
-            and self.wins == other.wins
-            and self.losses == other.losses
-            and self.hot_streak == other.hot_streak
-            and self.veteran == other.veteran
-            and self.fresh_blood == other.fresh_blood
-            and self.inactive == other.inactive
-            and self.mini_series == other.mini_series
-        )
-
-    def __repr__(self) -> str:
-        return f"LeagueEntry(league_id='{self.league_id}', puuid='{self.puuid}', queue_type={self.queue_type!r}, tier={self.tier!r}, rank={self.rank!r}, league_points={self.league_points}, wins={self.wins}, losses={self.losses}, hot_streak={self.hot_streak}, veteran={self.veteran}, fresh_blood={self.fresh_blood}, inactive={self.inactive}, mini_series={self.mini_series})"
