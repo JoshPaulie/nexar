@@ -37,13 +37,17 @@ class NexarClient:
         self.default_v5_region = default_v5_region
 
     def _make_api_call(
-        self, endpoint: str, region: RegionV4 | RegionV5
+        self,
+        endpoint: str,
+        region: RegionV4 | RegionV5,
+        params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Make an API call to the Riot Games API.
 
         Args:
             endpoint: The API endpoint path
             region: The region to use for the request
+            params: Optional query parameters dict
 
         Returns:
             JSON response from the API
@@ -62,7 +66,7 @@ class NexarClient:
         }
 
         try:
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, headers=headers, params=params, timeout=30)
             self._handle_response_errors(response)
             return response.json()
         except requests.RequestException as e:
@@ -218,29 +222,23 @@ class NexarClient:
                 else end_time
             )
 
-        # Build query parameters
-        params = []
+        # Build query parameters dict
+        params = {}
         if start_timestamp is not None:
-            params.append(f"startTime={start_timestamp}")
+            params["startTime"] = start_timestamp
         if end_timestamp is not None:
-            params.append(f"endTime={end_timestamp}")
+            params["endTime"] = end_timestamp
         if queue is not None:
-            queue_id = queue.value if isinstance(queue, QueueId) else queue
-            params.append(f"queue={queue_id}")
+            params["queue"] = queue.value if isinstance(queue, QueueId) else queue
         if match_type is not None:
-            type_value = (
+            params["type"] = (
                 match_type.value if isinstance(match_type, MatchType) else match_type
             )
-            params.append(f"type={type_value}")
         if start != 0:
-            params.append(f"start={start}")
+            params["start"] = start
         if count != 20:
-            params.append(f"count={count}")
+            params["count"] = count
 
-        # Build endpoint with query string
         endpoint = f"/lol/match/v5/matches/by-puuid/{puuid}/ids"
-        if params:
-            endpoint += "?" + "&".join(params)
-
-        data = self._make_api_call(endpoint, region=region)
+        data = self._make_api_call(endpoint, region=region, params=params)
         return data
