@@ -61,7 +61,22 @@ for i, match in enumerate(recent_matches[:5], 1):
     if player_participant:
         result = "WIN" if player_participant.win else "LOSS"
         kda = f"{player_participant.kills}/{player_participant.deaths}/{player_participant.assists}"
-        print(f"{i}. {result} - {player_participant.champion_name} ({kda})")
+        
+        # Add challenges insights
+        challenges_info = ""
+        if player_participant.challenges:
+            c = player_participant.challenges
+            insights = []
+            if c.kda is not None:
+                insights.append(f"KDA: {c.kda:.1f}")
+            if c.kill_participation is not None:
+                insights.append(f"KP: {c.kill_participation:.0%}")
+            if c.damage_per_minute is not None:
+                insights.append(f"DPM: {c.damage_per_minute:.0f}")
+            if insights:
+                challenges_info = f" | {' | '.join(insights)}"
+        
+        print(f"{i}. {result} - {player_participant.champion_name} ({kda}){challenges_info}")
 
 # Get champion statistics (reduced from 50 to 20 games to save API calls)
 print("\n--- Top Champions (Last 20 games) ---")
@@ -77,3 +92,47 @@ for i, champ_stats in enumerate(top_champions, 1):
 print("\n--- All Champions (Last 20 games) ---")
 all_stats = player.get_champion_stats(count=20)
 print(f"Total unique champions played: {len(all_stats)}")
+
+# Example of analyzing challenges across multiple matches
+print("\n--- Performance Analysis (Last 5 matches) ---")
+performance_metrics = {
+    "total_matches": 0,
+    "avg_kda": 0,
+    "avg_kill_participation": 0,
+    "avg_damage_per_minute": 0,
+    "avg_vision_score_per_minute": 0,
+    "multikills_total": 0,
+    "solo_kills_total": 0,
+}
+
+valid_matches = 0
+for match in recent_matches[:5]:
+    for participant in match.info.participants:
+        if participant.puuid == player.puuid and participant.challenges:
+            c = participant.challenges
+            performance_metrics["total_matches"] += 1
+            valid_matches += 1
+            
+            if c.kda is not None:
+                performance_metrics["avg_kda"] += c.kda
+            if c.kill_participation is not None:
+                performance_metrics["avg_kill_participation"] += c.kill_participation
+            if c.damage_per_minute is not None:
+                performance_metrics["avg_damage_per_minute"] += c.damage_per_minute
+            if c.vision_score_per_minute is not None:
+                performance_metrics["avg_vision_score_per_minute"] += c.vision_score_per_minute
+            if c.multikills is not None:
+                performance_metrics["multikills_total"] += c.multikills
+            if c.solo_kills is not None:
+                performance_metrics["solo_kills_total"] += c.solo_kills
+            break
+
+if valid_matches > 0:
+    print(f"Average KDA: {performance_metrics['avg_kda'] / valid_matches:.2f}")
+    print(f"Average Kill Participation: {performance_metrics['avg_kill_participation'] / valid_matches:.1%}")
+    print(f"Average Damage Per Minute: {performance_metrics['avg_damage_per_minute'] / valid_matches:.0f}")
+    print(f"Average Vision Score Per Minute: {performance_metrics['avg_vision_score_per_minute'] / valid_matches:.1f}")
+    print(f"Total Multikills: {performance_metrics['multikills_total']}")
+    print(f"Total Solo Kills: {performance_metrics['solo_kills_total']}")
+else:
+    print("No matches with challenges data found.")
