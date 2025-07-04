@@ -6,6 +6,7 @@ Easy and simple Riot API SDK, for League of Legends only.
 
 ```python
 from nexar import NexarClient, RegionV4, RegionV5
+import logging
 
 # Create client
 client = NexarClient(
@@ -13,6 +14,9 @@ client = NexarClient(
     default_v4_region=RegionV4.NA1,
     default_v5_region=RegionV5.AMERICAS,
 )
+
+# Enable logging to see API calls and cache performance
+nexar.configure_logging(logging.INFO)
 
 # Get player information
 player = client.get_player("bexli", "bex")

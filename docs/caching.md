@@ -133,20 +133,51 @@ client.clear_cache()
 client.print_api_call_summary()
 ```
 
-## Debugging
+## Logging
 
-Enable debug mode to see cache hits and misses:
+Enable logging to see cache hits and misses:
 
-```bash
-export NEXAR_DEBUG=1
+```python
+import logging
+import nexar
+
+# Configure Nexar logging (default level is INFO)
+nexar.configure_logging(logging.INFO)
+
+# Or enable debug logging for more details
+nexar.configure_logging(logging.DEBUG)
+
+# Create your client and make API calls
+client = nexar.NexarClient(api_key, region_v4, region_v5)
 ```
 
 This will show output like:
 ```
-[NEXAR_DEBUG] API Call #1: /riot/account/v1/accounts/by-riot-id/bexli/bex (region: americas)
-[NEXAR_DEBUG]   ✓ Success (Status: 200, fresh)
-[NEXAR_DEBUG] API Call #2: /riot/account/v1/accounts/by-riot-id/bexli/bex (region: americas)
-[NEXAR_DEBUG]   ✓ Success (Status: 200, from cache)
+[nexar] API Call #1: /riot/account/v1/accounts/by-riot-id/bexli/bex (region: americas)
+[nexar]   ✓ Success (Status: 200, fresh)
+[nexar] API Call #2: /riot/account/v1/accounts/by-riot-id/bexli/bex (region: americas)
+[nexar]   ✓ Success (Status: 200, from cache)
+[nexar] API Stats: 2 calls total, 1 fresh, 1 cached (50.0% cache hit rate)
+```
+
+### Logging Levels
+
+- **INFO**: Shows API calls, success/errors, and cache statistics
+- **DEBUG**: Includes parameters, cache configuration details, and more verbose output
+
+### Getting Statistics
+
+You can programmatically access API call statistics:
+
+```python
+# Get detailed statistics
+stats = client.get_api_call_stats()
+print(f"Total calls: {stats['total_calls']}")
+print(f"Cache hits: {stats['cache_hits']}")
+print(f"Fresh calls: {stats['fresh_calls']}")
+
+# Print formatted summary
+client.print_api_call_summary()
 ```
 
 ## Cache Storage

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Simple demo showing the Player API without making too many requests."""
 
+import logging
 import os
 
-from nexar import NexarClient, RegionV4, RegionV5
+import nexar
 
 
 def main():
@@ -14,14 +15,19 @@ def main():
         print("Please set RIOT_API_KEY environment variable")
         return
 
+    # Enable logging to see API calls and cache hits
+    print("Enabling logging to show API calls and cache performance...")
+    nexar.configure_logging(logging.INFO)
+
     # Create client
-    client = NexarClient(
+    client = nexar.NexarClient(
         riot_api_key=api_key,
-        default_v4_region=RegionV4.NA1,
-        default_v5_region=RegionV5.AMERICAS,
+        default_v4_region=nexar.RegionV4.NA1,
+        default_v5_region=nexar.RegionV5.AMERICAS,
+        cache_config=nexar.SMART_CACHE_CONFIG,  # Enable caching for demo
     )
 
-    print("=== Nexar Player API Demo ===")
+    print("\n=== Nexar Player API Demo ===")
 
     # Create a player object (abstracts away riot id lookup)
     print("Creating player object...")
@@ -50,6 +56,9 @@ def main():
         )
     else:
         print("Flex Queue: Unranked")
+
+    print("\n=== API Call Summary ===")
+    client.print_api_call_summary()
 
     print("\nDemo completed successfully!")
     print("\nThe Player class provides these additional methods:")

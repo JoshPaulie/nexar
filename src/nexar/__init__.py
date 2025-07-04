@@ -18,6 +18,7 @@ from .exceptions import (
     RiotAPIError,
     UnauthorizedError,
 )
+from .logging import configure_logging
 from .models import (
     ChampionStats,
     LeagueEntry,
@@ -34,6 +35,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     "NexarClient",
+    "configure_logging",
     "CacheConfig",
     "DEFAULT_CACHE_CONFIG",
     "SMART_CACHE_CONFIG",

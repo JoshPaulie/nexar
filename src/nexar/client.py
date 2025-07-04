@@ -1,6 +1,5 @@
 """Main client for the Nexar SDK."""
 
-import os
 from datetime import datetime
 from typing import Any
 
@@ -16,6 +15,7 @@ from .exceptions import (
     RiotAPIError,
     UnauthorizedError,
 )
+from .logging import get_logger
 from .models import LeagueEntry, Match, RiotAccount, Summoner
 from .models.player import Player
 
@@ -42,6 +42,7 @@ class NexarClient:
         self.default_v4_region = default_v4_region
         self.default_v5_region = default_v5_region
         self.cache_config = cache_config or DEFAULT_CACHE_CONFIG
+        self._logger = get_logger()
 
         # API call tracking (always enabled, debug display is conditional)
         self._api_call_count = 0
@@ -97,14 +98,10 @@ class NexarClient:
         # Always increment API call counter
         self._api_call_count += 1
 
-        # Debug logging (check environment variable each time for flexibility)
-        debug_enabled = os.getenv("NEXAR_DEBUG") is not None
-        if debug_enabled:
-            print(
-                f"[NEXAR_DEBUG] API Call #{self._api_call_count}: {endpoint} (region: {region.value})"
-            )
-            if params:
-                print(f"[NEXAR_DEBUG]   Params: {params}")
+        # Log API call start
+        self._logger.log_api_call_start(
+            self._api_call_count, endpoint, region.value, params
+        )
 
         # Construct the full URL with the region
         url = f"https://{region.value}.api.riotgames.com{endpoint}"
@@ -124,25 +121,16 @@ class NexarClient:
 
             self._handle_response_errors(response)
 
-            debug_enabled = os.getenv("NEXAR_DEBUG") is not None
-            if debug_enabled:
-                cache_status = (
-                    "from cache" if getattr(response, "from_cache", False) else "fresh"
-                )
-                print(
-                    f"[NEXAR_DEBUG]   ✓ Success (Status: {response.status_code}, {cache_status})"
-                )
+            # Log successful response
+            from_cache = getattr(response, "from_cache", False)
+            self._logger.log_api_call_success(response.status_code, from_cache)
 
             return response.json()
         except requests.RequestException as e:
-            debug_enabled = os.getenv("NEXAR_DEBUG") is not None
-            if debug_enabled:
-                print(f"[NEXAR_DEBUG]   ✗ Request failed: {e}")
+            self._logger.log_api_call_error(e)
             raise RiotAPIError(0, f"Request failed: {e}") from e
         except (RateLimitError, RiotAPIError) as e:
-            debug_enabled = os.getenv("NEXAR_DEBUG") is not None
-            if debug_enabled:
-                print(f"[NEXAR_DEBUG]   ✗ API Error: {e}")
+            self._logger.log_api_call_error(e)
             raise
 
     def _get_api_call_count(self) -> int:
@@ -156,13 +144,19 @@ class NexarClient:
     def _reset_api_call_count(self) -> None:
         """Reset the API call counter to zero."""
         self._api_call_count = 0
+        self._logger.reset_stats()
+
+    def get_api_call_stats(self) -> dict[str, int]:
+        """Get API call statistics.
+
+        Returns:
+            Dictionary with call statistics including total calls, cache hits, and fresh calls
+        """
+        return self._logger.get_stats()
 
     def print_api_call_summary(self) -> None:
         """Print a summary of API calls made so far."""
-        debug_enabled = os.getenv("NEXAR_DEBUG") is not None
-        print(f"[NEXAR] API Call Summary: {self._api_call_count} total calls made")
-        if not debug_enabled:
-            print("[NEXAR] Set NEXAR_DEBUG=1 to see detailed call logs")
+        self._logger.log_stats_summary()
 
     def _handle_response_errors(self, response: requests.Response) -> None:
         """Handle HTTP errors from the API response."""
@@ -191,32 +185,32 @@ class NexarClient:
         if not self.cache_config.enabled:
             return
 
-        debug_enabled = os.getenv("NEXAR_DEBUG") is not None
-        if debug_enabled:
-            print(
-                f"[NEXAR_DEBUG] Caching enabled: {self.cache_config.cache_name}.{self.cache_config.backend}"
+        # Log cache setup information
+        has_cache = hasattr(self._session, "cache")
+        cache_type = type(self._session.cache) if has_cache else None
+        self._logger.log_cache_setup(
+            self.cache_config.cache_name,
+            self.cache_config.backend,
+            has_cache,
+            cache_type,
+        )
+
+        if has_cache:
+            # Log cache configuration details
+            has_url_expiration = (
+                hasattr(self._session, "settings")
+                and hasattr(self._session.settings, "urls_expire_after")
+                and bool(self._session.settings.urls_expire_after)
             )
-            print(f"[NEXAR_DEBUG] Session has cache: {hasattr(self._session, 'cache')}")
-            if hasattr(self._session, "cache"):
-                print(f"[NEXAR_DEBUG] Cache backend: {type(self._session.cache)}")
-                # Show some config details
-                print(
-                    f"[NEXAR_DEBUG] Default expire_after: {self.cache_config.expire_after}"
-                )
-                if hasattr(self._session, "settings") and hasattr(
-                    self._session.settings, "urls_expire_after"
-                ):
-                    print(
-                        f"[NEXAR_DEBUG] Per-URL expiration configured: {bool(self._session.settings.urls_expire_after)}"
-                    )
+            self._logger.log_cache_config(
+                self.cache_config.expire_after, has_url_expiration
+            )
 
     def clear_cache(self) -> None:
         """Clear all cached responses."""
         if hasattr(self._session, "cache") and self._session.cache:
             self._session.cache.clear()
-            debug_enabled = os.getenv("NEXAR_DEBUG") is not None
-            if debug_enabled:
-                print("[NEXAR_DEBUG] Cache cleared")
+            self._logger.log_cache_cleared()
 
     def get_cache_info(self) -> dict[str, Any]:
         """Get information about the current cache state.
