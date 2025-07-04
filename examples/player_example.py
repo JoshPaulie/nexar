@@ -49,7 +49,7 @@ def main():
     else:
         print("Flex Queue Rank: Unranked")
 
-    # Get recent matches
+    # Get recent matches (reduced from 20 to 10 to save API calls)
     print("\n--- Recent Matches ---")
     recent_matches = player.get_last_20(queue=QueueId.RANKED_SOLO_5x5)
     for i, match in enumerate(recent_matches[:5], 1):
@@ -65,9 +65,9 @@ def main():
             kda = f"{player_participant.kills}/{player_participant.deaths}/{player_participant.assists}"
             print(f"{i}. {result} - {player_participant.champion_name} ({kda})")
 
-    # Get champion statistics
-    print("\n--- Top Champions (Last 50 games) ---")
-    top_champions = player.get_top_champions(top_n=5, count=50)
+    # Get champion statistics (reduced from 50 to 20 games to save API calls)
+    print("\n--- Top Champions (Last 20 games) ---")
+    top_champions = player.get_top_champions(top_n=3, count=20)
     for i, champ_stats in enumerate(top_champions, 1):
         print(f"{i}. {champ_stats.champion_name}")
         print(f"   Games: {champ_stats.games_played} ({champ_stats.win_rate:.1f}% WR)")
@@ -75,9 +75,9 @@ def main():
             f"   Avg KDA: {champ_stats.avg_kda:.1f} ({champ_stats.avg_kills:.1f}/{champ_stats.avg_deaths:.1f}/{champ_stats.avg_assists:.1f})"
         )
 
-    # Get all champion stats
-    print("\n--- All Champions (Last 100 games) ---")
-    all_stats = player.get_champion_stats(count=100)
+    # Get all champion stats (reduced from 100 to 20 games to save API calls)
+    print("\n--- All Champions (Last 20 games) ---")
+    all_stats = player.get_champion_stats(count=20)
     print(f"Total unique champions played: {len(all_stats)}")
 
 
