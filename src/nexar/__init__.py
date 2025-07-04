@@ -39,6 +39,7 @@ from .models import (
     TeamInfo,
     TeamsInfo,
 )
+from .rate_limiter import RateLimit, RateLimiter
 
 __version__ = "0.1.0"
 
@@ -51,6 +52,8 @@ __all__ = [
     "LONG_CACHE_CONFIG",
     "PERMANENT_CACHE_CONFIG",
     "NO_CACHE_CONFIG",
+    "RateLimit",
+    "RateLimiter",
     "RegionV4",
     "RegionV5",
     "Queue",

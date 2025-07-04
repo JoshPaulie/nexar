@@ -18,6 +18,7 @@ from .exceptions import (
 from .logging import get_logger
 from .models import LeagueEntry, Match, RiotAccount, Summoner
 from .models.player import Player
+from .rate_limiter import RateLimiter
 
 
 class NexarClient:
@@ -29,6 +30,7 @@ class NexarClient:
         default_v4_region: RegionV4,
         default_v5_region: RegionV5,
         cache_config: CacheConfig | None = None,
+        rate_limiter: RateLimiter | None = None,
     ) -> None:
         """Initialize the Nexar client.
 
@@ -37,11 +39,13 @@ class NexarClient:
             default_v4_region: Default region for platform-specific endpoints
             default_v5_region: Default region for regional endpoints
             cache_config: Cache configuration (uses default if None)
+            rate_limiter: Rate limiter configuration (uses default if None)
         """
         self.riot_api_key = riot_api_key
         self.default_v4_region = default_v4_region
         self.default_v5_region = default_v5_region
         self.cache_config = cache_config or DEFAULT_CACHE_CONFIG
+        self.rate_limiter = rate_limiter or RateLimiter.create_default()
         self._logger = get_logger()
 
         # API call tracking (always enabled, debug display is conditional)
@@ -95,6 +99,9 @@ class NexarClient:
         Raises:
             RiotAPIError: If the API returns an error status code
         """
+        # Apply rate limiting before making the request
+        self.rate_limiter.wait_if_needed()
+
         # Always increment API call counter
         self._api_call_count += 1
 
@@ -119,6 +126,9 @@ class NexarClient:
                 url, headers=headers, params=params, timeout=30
             )
 
+            # Record the request after it's made
+            self.rate_limiter.record_request()
+
             self._handle_response_errors(response)
 
             # Log successful response
@@ -127,9 +137,13 @@ class NexarClient:
 
             return response.json()
         except requests.RequestException as e:
+            # Still record the request even if it failed
+            self.rate_limiter.record_request()
             self._logger.log_api_call_error(e)
             raise RiotAPIError(0, f"Request failed: {e}") from e
         except (RateLimitError, RiotAPIError) as e:
+            # Still record the request even if it failed
+            self.rate_limiter.record_request()
             self._logger.log_api_call_error(e)
             raise
 
@@ -145,6 +159,18 @@ class NexarClient:
         """Reset the API call counter to zero."""
         self._api_call_count = 0
         self._logger.reset_stats()
+
+    def get_rate_limit_status(self) -> dict[str, Any]:
+        """Get current rate limit status.
+
+        Returns:
+            Dictionary with current rate limit usage and remaining requests
+        """
+        return self.rate_limiter.get_status()
+
+    def reset_rate_limiter(self) -> None:
+        """Reset the rate limiter state."""
+        self.rate_limiter = RateLimiter.create_default()
 
     def get_api_call_stats(self) -> dict[str, int]:
         """Get API call statistics.
