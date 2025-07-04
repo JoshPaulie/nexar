@@ -72,16 +72,6 @@ class Participant:
             return f"{self.kills}/{self.deaths}/{self.assists}"
         return (self.kills, self.deaths, self.assists)
 
-    def kda_ratio(self) -> float:
-        """
-        Calculate KDA ratio: (kills + assists) / deaths.
-
-        Returns 0.0 if deaths is 0 to avoid division by zero.
-        """
-        if self.deaths == 0:
-            return float(self.kills + self.assists)
-        return (self.kills + self.assists) / self.deaths
-
     champion_level: int
     """Final champion level achieved."""
 
