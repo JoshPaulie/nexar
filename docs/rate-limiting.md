@@ -79,6 +79,7 @@ client.reset_rate_limiter()
 - **Multiple Windows**: Supports multiple rate limit windows (e.g., per-second and per-minute limits)
 - **Sliding Windows**: Uses sliding time windows for accurate rate limiting
 - **No Manual Management**: You don't need to manage rate limiting manually - just make API calls normally
+- **Cache-Aware**: Only fresh API calls count against rate limits - cached responses are instant and don't consume rate limit quota
 - **Comprehensive Logging**: Detailed logging at DEBUG level, INFO level messages when rate limits are hit
 
 ## Logging
@@ -122,9 +123,24 @@ Info logs include:
 
 ## Rate Limiting vs Caching
 
-Rate limiting and caching work together:
+Rate limiting and caching work together intelligently:
 
-1. **Caching** reduces the number of actual API calls by returning cached responses
-2. **Rate limiting** ensures that when API calls are made, they don't exceed Riot's limits
+1. **Cached responses** don't count against rate limits since no actual API request is made
+2. **Fresh requests** are subject to rate limiting to ensure compliance with Riot's limits
+3. **Cache hits** are instant and don't consume any rate limit quota
+4. **Cache misses** trigger rate limiting before making the actual API call
 
-Cached responses don't count against rate limits since no actual API request is made.
+This means you can make the same API call repeatedly without worrying about rate limits if the response is cached. Only unique requests or expired cache entries will consume your rate limit quota.
+
+### Example
+```python
+# First call - fresh request, counts against rate limits
+account = client.get_riot_account("bexli", "bex")  # Rate limited if needed
+
+# Subsequent calls - cached, no rate limiting
+account = client.get_riot_account("bexli", "bex")  # Instant, no rate limit check
+account = client.get_riot_account("bexli", "bex")  # Instant, no rate limit check
+
+# Different account - fresh request, rate limited
+other = client.get_riot_account("Doublelift", "NA1")  # Rate limited if needed
+```

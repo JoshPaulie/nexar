@@ -99,9 +99,6 @@ class NexarClient:
         Raises:
             RiotAPIError: If the API returns an error status code
         """
-        # Apply rate limiting before making the request
-        self.rate_limiter.wait_if_needed()
-
         # Always increment API call counter
         self._api_call_count += 1
 
@@ -121,29 +118,57 @@ class NexarClient:
         }
 
         try:
-            # Use the cached session for requests
+            # Check if this request would be served from cache
+            from requests import Request
+
+            request = Request("GET", url, headers=headers, params=params)
+            prepared_request = self._session.prepare_request(request)
+
+            # Only apply rate limiting if the request is not cached
+            is_cached = False
+            if hasattr(self._session, "cache") and self._session.cache:
+                try:
+                    cache_key = self._session.cache.create_key(prepared_request)
+                    is_cached = self._session.cache.contains(cache_key)
+                except Exception:
+                    # If cache check fails, assume not cached and apply rate limiting
+                    is_cached = False
+
+            if not is_cached:
+                # Apply rate limiting for actual API calls
+                self.rate_limiter.wait_if_needed()
+
+            # Make the request (cached or not)
             response = self._session.get(
                 url, headers=headers, params=params, timeout=30
             )
 
-            # Record the request after it's made
-            self.rate_limiter.record_request()
+            # Record the request only if it wasn't served from cache
+            from_cache = getattr(response, "from_cache", False)
+            if not from_cache:
+                self.rate_limiter.record_request()
 
             self._handle_response_errors(response)
 
             # Log successful response
-            from_cache = getattr(response, "from_cache", False)
             self._logger.log_api_call_success(response.status_code, from_cache)
 
             return response.json()
         except requests.RequestException as e:
-            # Still record the request even if it failed
+            # Record failed actual requests (RequestException means network/HTTP error)
             self.rate_limiter.record_request()
             self._logger.log_api_call_error(e)
             raise RiotAPIError(0, f"Request failed: {e}") from e
         except (RateLimitError, RiotAPIError) as e:
-            # Still record the request even if it failed
-            self.rate_limiter.record_request()
+            # These exceptions come after we have a response
+            # Only record if it wasn't from cache
+            if "response" in locals():
+                from_cache = getattr(response, "from_cache", False)
+                if not from_cache:
+                    self.rate_limiter.record_request()
+            else:
+                # If we don't have a response, it was likely a network error
+                self.rate_limiter.record_request()
             self._logger.log_api_call_error(e)
             raise
 
