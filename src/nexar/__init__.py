@@ -11,9 +11,11 @@ from .exceptions import (
     UnauthorizedError,
 )
 from .models import (
+    ChampionStats,
     LeagueEntry,
     Match,
     MiniSeries,
+    Player,
     RiotAccount,
     Summoner,
     TeamInfo,
@@ -38,6 +40,8 @@ __all__ = [
     "Summoner",
     "LeagueEntry",
     "MiniSeries",
+    "Player",
+    "ChampionStats",
     "NexarError",
     "RiotAPIError",
     "RateLimitError",

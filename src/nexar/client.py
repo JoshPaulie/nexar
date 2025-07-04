@@ -1,5 +1,6 @@
 """Main client for the Nexar SDK."""
 
+import os
 from datetime import datetime
 from typing import Any
 
@@ -14,6 +15,7 @@ from .exceptions import (
     UnauthorizedError,
 )
 from .models import LeagueEntry, Match, RiotAccount, Summoner
+from .models.player import Player
 
 
 class NexarClient:
@@ -36,6 +38,9 @@ class NexarClient:
         self.default_v4_region = default_v4_region
         self.default_v5_region = default_v5_region
 
+        # API call tracking (always enabled, debug display is conditional)
+        self._api_call_count = 0
+
     def _make_api_call(
         self,
         endpoint: str,
@@ -55,6 +60,18 @@ class NexarClient:
         Raises:
             RiotAPIError: If the API returns an error status code
         """
+        # Always increment API call counter
+        self._api_call_count += 1
+
+        # Debug logging (check environment variable each time for flexibility)
+        debug_enabled = os.getenv("NEXAR_DEBUG") is not None
+        if debug_enabled:
+            print(
+                f"[NEXAR_DEBUG] API Call #{self._api_call_count}: {endpoint} (region: {region.value})"
+            )
+            if params:
+                print(f"[NEXAR_DEBUG]   Params: {params}")
+
         # Construct the full URL with the region
         url = f"https://{region.value}.api.riotgames.com{endpoint}"
 
@@ -68,9 +85,41 @@ class NexarClient:
         try:
             response = requests.get(url, headers=headers, params=params, timeout=30)
             self._handle_response_errors(response)
+
+            debug_enabled = os.getenv("NEXAR_DEBUG") is not None
+            if debug_enabled:
+                print(f"[NEXAR_DEBUG]   ✓ Success (Status: {response.status_code})")
+
             return response.json()
         except requests.RequestException as e:
+            debug_enabled = os.getenv("NEXAR_DEBUG") is not None
+            if debug_enabled:
+                print(f"[NEXAR_DEBUG]   ✗ Request failed: {e}")
             raise RiotAPIError(0, f"Request failed: {e}") from e
+        except (RateLimitError, RiotAPIError) as e:
+            debug_enabled = os.getenv("NEXAR_DEBUG") is not None
+            if debug_enabled:
+                print(f"[NEXAR_DEBUG]   ✗ API Error: {e}")
+            raise
+
+    def _get_api_call_count(self) -> int:
+        """Get the current number of API calls made by this client.
+
+        Returns:
+            Number of API calls made since client initialization
+        """
+        return self._api_call_count
+
+    def _reset_api_call_count(self) -> None:
+        """Reset the API call counter to zero."""
+        self._api_call_count = 0
+
+    def print_api_call_summary(self) -> None:
+        """Print a summary of API calls made so far."""
+        debug_enabled = os.getenv("NEXAR_DEBUG") is not None
+        print(f"[NEXAR] API Call Summary: {self._api_call_count} total calls made")
+        if not debug_enabled:
+            print("[NEXAR] Set NEXAR_DEBUG=1 to see detailed call logs")
 
     def _handle_response_errors(self, response: requests.Response) -> None:
         """Handle HTTP errors from the API response."""
@@ -242,3 +291,30 @@ class NexarClient:
         endpoint = f"/lol/match/v5/matches/by-puuid/{puuid}/ids"
         data = self._make_api_call(endpoint, region=region, params=params)
         return data
+
+    # High-level convenience methods
+    def get_player(
+        self,
+        game_name: str,
+        tag_line: str,
+        v4_region: RegionV4 | None = None,
+        v5_region: RegionV5 | None = None,
+    ) -> Player:
+        """Create a Player object for convenient high-level access.
+
+        Args:
+            game_name: Player's game name (without #)
+            tag_line: Player's tag line (without #)
+            v4_region: Platform region for v4 endpoints (defaults to client default)
+            v5_region: Regional region for v5 endpoints (defaults to client default)
+
+        Returns:
+            Player object providing high-level access to player data
+        """
+        return Player(
+            client=self,
+            game_name=game_name,
+            tag_line=tag_line,
+            v4_region=v4_region,
+            v5_region=v5_region,
+        )

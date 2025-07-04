@@ -20,6 +20,7 @@ from .match import (
     TeamInfo,
     TeamsInfo,
 )
+from .player import ChampionStats, Player
 
 __all__ = [
     # Account models
@@ -49,4 +50,7 @@ __all__ = [
     # Challenge models
     "Challenges",
     "Missions",
+    # Player models
+    "Player",
+    "ChampionStats",
 ]
