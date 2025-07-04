@@ -38,11 +38,10 @@ class Queue(Enum):
 
     RANKED_SOLO_5x5 = "RANKED_SOLO_5x5"
     RANKED_FLEX_SR = "RANKED_FLEX_SR"
-    RANKED_FLEX_TT = "RANKED_FLEX_TT"
 
 
 class Tier(Enum):
-    """Ranked tiers."""
+    """Ranked tiers (Iron, Bronze, etc.)."""
 
     IRON = "IRON"
     BRONZE = "BRONZE"
@@ -57,7 +56,7 @@ class Tier(Enum):
 
 
 class Division(Enum):
-    """Ranked divisions."""
+    """Ranked divisions. (I, II, etc.)"""
 
     ONE = "I"
     TWO = "II"
@@ -86,3 +85,13 @@ class MatchType(Enum):
     NORMAL = "normal"
     TOURNEY = "tourney"
     TUTORIAL = "tutorial"
+
+
+class MatchParticipantPosition(Enum):
+    """Position assignments in League of Legends matches."""
+
+    TOP = "TOP"
+    JUNGLE = "JUNGLE"
+    MIDDLE = "MIDDLE"
+    BOTTOM = "BOTTOM"
+    UTILITY = "UTILITY"

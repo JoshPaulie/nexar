@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pytest
 
+from nexar.enums import MatchParticipantPosition
 from nexar.models import (
     Ban,
     Challenges,
@@ -47,8 +48,8 @@ def create_test_participant(**overrides) -> Participant:
         "item_5": 1001,
         "item_6": 3340,
         # Position and role
-        "individual_position": "MIDDLE",
-        "team_position": "MIDDLE",
+        "individual_position": MatchParticipantPosition.MIDDLE,
+        "team_position": MatchParticipantPosition.MIDDLE,
         "lane": "MIDDLE",
         "role": "SOLO",
         # Ping stats
@@ -258,8 +259,8 @@ class TestMatchModels:
             total_damage_dealt_to_champions=18000,
             total_damage_taken=20000,
             vision_score=25,
-            individual_position="JUNGLE",
-            team_position="JUNGLE",
+            individual_position=MatchParticipantPosition.JUNGLE,
+            team_position=MatchParticipantPosition.JUNGLE,
             lane="JUNGLE",
             role="NONE",
             win=False,
@@ -355,8 +356,8 @@ class TestMatchModels:
                 total_damage_dealt_to_champions=20000,
                 total_damage_taken=15000,
                 vision_score=30,
-                individual_position="MIDDLE",
-                team_position="MIDDLE",
+                individual_position=MatchParticipantPosition.MIDDLE,
+                team_position=MatchParticipantPosition.MIDDLE,
                 lane="MIDDLE",
                 role="SOLO",
                 win=True,
@@ -377,8 +378,8 @@ class TestMatchModels:
                 total_damage_dealt_to_champions=18000,
                 total_damage_taken=12000,
                 vision_score=25,
-                individual_position="JUNGLE",
-                team_position="JUNGLE",
+                individual_position=MatchParticipantPosition.JUNGLE,
+                team_position=MatchParticipantPosition.JUNGLE,
                 lane="JUNGLE",
                 role="NONE",
                 win=True,
@@ -440,8 +441,8 @@ class TestMatchModels:
             total_damage_dealt_to_champions=18000,
             total_damage_taken=20000,
             vision_score=25,
-            individual_position="JUNGLE",
-            team_position="JUNGLE",
+            individual_position=MatchParticipantPosition.JUNGLE,
+            team_position=MatchParticipantPosition.JUNGLE,
             lane="JUNGLE",
             role="NONE",
             win=False,

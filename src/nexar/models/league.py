@@ -47,10 +47,10 @@ class LeagueEntry:
     """Type of ranked queue."""
 
     tier: Tier
-    """Current tier."""
+    """Current tier (IRON, BRONZE, ..., CHALLENGER)."""
 
     rank: Division
-    """Current rank within the tier (not applicable for Master+)."""
+    """Current rank (IV, III, etc) within the tier (not applicable for Master+)."""
 
     league_points: int
     """Current LP (League Points) in the rank."""

@@ -9,7 +9,16 @@ from .cache import (
     CacheConfig,
 )
 from .client import NexarClient
-from .enums import Division, MatchType, Queue, QueueId, RegionV4, RegionV5, Tier
+from .enums import (
+    Division,
+    MatchParticipantPosition,
+    MatchType,
+    Queue,
+    QueueId,
+    RegionV4,
+    RegionV5,
+    Tier,
+)
 from .exceptions import (
     ForbiddenError,
     NexarError,
@@ -47,6 +56,7 @@ __all__ = [
     "Queue",
     "QueueId",
     "MatchType",
+    "MatchParticipantPosition",
     "Tier",
     "Division",
     "Match",

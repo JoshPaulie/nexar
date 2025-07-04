@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from ...enums import MatchParticipantPosition
+
 if TYPE_CHECKING:
     from .challenges import Challenges, Missions
     from .perks import Perks
@@ -20,13 +22,31 @@ class Participant:
     """Player's summoner name at the time of the match."""
 
     champion_id: int
-    """Unique identifier for the champion played."""
+    """
+    Unique identifier for the champion played.
+    
+    Riot docs:
+    > Prior to patch 11.4, on Feb 18th, 2021, this field returned invalid championIds.
+    We recommend determining the champion based on the championName field for matches played prior
+    to patch 11.4.
+
+    **Use champion_name instead of deriving champion name from ID**
+    """
 
     champion_name: str
-    """Name of the champion played."""
+    """
+    Name of the champion played.
+    
+    **Use this over champion_id**
+    """
 
     team_id: int
     """Team identifier (100 for blue side, 200 for red side)."""
+
+    @property
+    def team_color(self):
+        """Team color. Colloquially players use the terms "blue side" or "red side"."""
+        return "Blue" if self.team_id == 100 else "Red"
 
     participant_id: int
     """Participant's position in the match (1-10)."""
@@ -40,6 +60,27 @@ class Participant:
 
     assists: int
     """Number of assists on enemy champion kills."""
+
+    def kda(self, *, as_str: bool = False) -> tuple[int, int, int] | str:
+        """
+        Get kills, deaths, and assists.
+
+        Args:
+            as_str: If True, returns formatted string like "5/2/10". If False, returns tuple.
+        """
+        if as_str:
+            return f"{self.kills}/{self.deaths}/{self.assists}"
+        return (self.kills, self.deaths, self.assists)
+
+    def kda_ratio(self) -> float:
+        """
+        Calculate KDA ratio: (kills + assists) / deaths.
+
+        Returns 0.0 if deaths is 0 to avoid division by zero.
+        """
+        if self.deaths == 0:
+            return float(self.kills + self.assists)
+        return (self.kills + self.assists) / self.deaths
 
     champion_level: int
     """Final champion level achieved."""
@@ -79,11 +120,27 @@ class Participant:
     """Trinket item (item ID, 0 if empty)."""
 
     # Position and role
-    individual_position: str
-    """Individual position assignment (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY)."""
+    individual_position: MatchParticipantPosition
+    """
+    Individual position assignment (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY).
 
-    team_position: str
-    """Team-based position assignment (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY)."""
+    Riot API docs:
+    > The individualPosition is the best guess for which position the player actually played in
+    isolation of anything else.
+    
+    **Generally, you should use the team_position over the this.**
+    """
+
+    team_position: MatchParticipantPosition
+    """
+    Team-based position assignment (TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY).
+
+    Riot API docs:
+    > The teamPosition is the best guess for which position the player actually played if we add
+    the constraint that each team must have one top player, one jungle, one middle, etc.
+    
+    **Generally, you should use the this over the individual_position.**
+    """
 
     lane: str
     """Lane assignment during the match."""
@@ -93,34 +150,34 @@ class Participant:
 
     # Ping stats
     all_in_pings: int
-    """Number of 'all in' pings used."""
+    """Number of 'all in' (Yellow crossed swords) pings used."""
 
     assist_me_pings: int
-    """Number of 'assist me' pings used."""
+    """Number of 'assist me' (Green flag) pings used."""
 
     command_pings: int
-    """Number of command pings used."""
+    """Number of command (Blue generic (ALT+click)) pings used."""
 
     enemy_missing_pings: int
-    """Number of 'enemy missing' pings used."""
+    """Number of 'enemy missing' (Yellow questionmark) pings used."""
 
     enemy_vision_pings: int
-    """Number of 'enemy vision' pings used."""
+    """Number of 'enemy vision' (Red eyeball) pings used."""
 
     get_back_pings: int
-    """Number of 'get back' pings used."""
+    """Number of 'get back' (Yellow circle with horizontal line) pings used."""
 
     hold_pings: int
     """Number of 'hold' pings used."""
 
     need_vision_pings: int
-    """Number of 'need vision' pings used."""
+    """Number of 'need vision' (Green ward) pings used."""
 
     on_my_way_pings: int
-    """Number of 'on my way' pings used."""
+    """Number of 'on my way' (Blue arrow pointing at ground) pings used."""
 
     push_pings: int
-    """Number of 'push' pings used."""
+    """Number of 'push' (Green minion) pings used."""
 
     vision_cleared_pings: int
     """Number of 'vision cleared' pings used."""
@@ -222,7 +279,16 @@ class Participant:
 
     # Minion and jungle stats
     neutral_minions_killed: int
-    """Number of neutral minions (jungle monsters) killed."""
+    """
+    Number of neutral minions (jungle monsters) killed.
+
+    This only includes standard monsters Gromp, Red/Blue Buff, etc.
+    Oddly enough, it also includes Ivern's Daisy.
+    
+    Riot docs:
+    > neutralMinionsKilled = mNeutralMinionsKilled, which is incremented on kills of kPet and
+    kJungleMonster
+    """
 
     total_ally_jungle_minions_killed: int
     """Number of allied jungle minions killed."""
@@ -231,14 +297,40 @@ class Participant:
     """Number of enemy jungle minions killed."""
 
     total_minions_killed: int
-    """Total number of minions killed (CS - creep score)."""
+    """
+    Total number of minions killed (colloquially known as "CS" or "creep score").
+    
+    Riot docs:
+    > totalMillionsKilled = mMinionsKilled, which is only incremented on kills of kTeamMinion,
+    kMeleeLaneMinion, kSuperLaneMinion, kRangedLaneMinion and kSiegeLaneMinion
+    """
+
+    @property
+    def creep_score(self):
+        """Alias for .total_minions_killed"""
+        return self.total_minions_killed
 
     # Healing and support stats
     total_heal: int
-    """Total healing done."""
+    """
+    Total healing done.
+    
+    Riot docs:
+    > Whenever positive health is applied (which translates to all heals in the game but not things
+    like regeneration), totalHeal is incremented by the amount of health received. This includes
+    healing enemies, jungle monsters, yourself, etc
+    """
 
     total_heals_on_teammates: int
-    """Total healing done on teammates."""
+    """
+    Total healing done on teammates.
+    
+    Riot docs:
+    > Whenever positive health is applied (which translates to all heals in the game but not things
+    like regeneration), totalHealsOnTeammates is incremented by the amount of health received.
+    This is post modified, so if you heal someone missing 5 health for 100 you will get +5
+    totalHealsOnTeammates
+    """
 
     total_units_healed: int
     """Total number of units healed."""
@@ -331,7 +423,17 @@ class Participant:
     """Total champion experience gained."""
 
     champion_transform: int
-    """TODO"""
+    """
+    Kayn transformation and end of game.
+    
+    - 0 = No transformation
+    - 1 = Slayer (Red)
+    - 2 = Assassin (Blue)
+    
+    Riot docs:
+    > This field is currently only utilized for Kayn's transformations.
+    (Legal values: 0 - None, 1 - Slayer, 2 - Assassin)
+    """
 
     consumables_purchased: int
     """Number of consumable items purchased."""
@@ -352,7 +454,14 @@ class Participant:
     """Whether the participant got first tower kill."""
 
     game_ended_in_early_surrender: bool
-    """Whether the game ended in an early surrender."""
+    """
+    Whether the game ended in an early surrender.
+    
+    Riot docs:
+    > This is an offshoot of the OneStone challenge. The code checks if a spell with the same
+    instance ID does the final point of damage to at least 2 Champions. It doesn't matter if
+    they're enemies, but you cannot hurt your friends.
+    """
 
     game_ended_in_surrender: bool
     """Whether the game ended in a surrender."""
@@ -484,8 +593,8 @@ class Participant:
             item_5=data["item5"],
             item_6=data["item6"],
             # Position and role
-            individual_position=data["individualPosition"],
-            team_position=data["teamPosition"],
+            individual_position=MatchParticipantPosition(data["individualPosition"]),
+            team_position=MatchParticipantPosition(data["teamPosition"]),
             lane=data["lane"],
             role=data["role"],
             # Ping stats
