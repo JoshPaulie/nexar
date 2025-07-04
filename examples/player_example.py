@@ -47,9 +47,9 @@ if player.flex_rank:
 else:
     print("Flex Queue Rank: Unranked")
 
-# Get recent matches (reduced from 20 to 10 to save API calls)
+# Get recent matches
 print("\n--- Recent Matches ---")
-recent_matches = player.get_last_20(queue=QueueId.RANKED_SOLO_5x5)
+recent_matches = player.get_recent_matches(queue=QueueId.RANKED_SOLO_5x5)
 for i, match in enumerate(recent_matches[:5], 1):
     # Find this player's participant
     player_participant = None
