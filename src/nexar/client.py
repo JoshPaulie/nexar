@@ -5,7 +5,9 @@ from datetime import datetime
 from typing import Any
 
 import requests
+import requests_cache
 
+from .cache import DEFAULT_CACHE_CONFIG, CacheConfig
 from .enums import MatchType, QueueId, RegionV4, RegionV5
 from .exceptions import (
     ForbiddenError,
@@ -26,6 +28,7 @@ class NexarClient:
         riot_api_key: str,
         default_v4_region: RegionV4,
         default_v5_region: RegionV5,
+        cache_config: CacheConfig | None = None,
     ) -> None:
         """Initialize the Nexar client.
 
@@ -33,13 +36,44 @@ class NexarClient:
             riot_api_key: Your Riot Games API key
             default_v4_region: Default region for platform-specific endpoints
             default_v5_region: Default region for regional endpoints
+            cache_config: Cache configuration (uses default if None)
         """
         self.riot_api_key = riot_api_key
         self.default_v4_region = default_v4_region
         self.default_v5_region = default_v5_region
+        self.cache_config = cache_config or DEFAULT_CACHE_CONFIG
 
         # API call tracking (always enabled, debug display is conditional)
         self._api_call_count = 0
+
+        # Initialize caching if enabled
+        if self.cache_config.enabled:
+            # Create per-URL expiration mapping
+            urls_expire_after = {}
+            for endpoint_pattern, config in self.cache_config.endpoint_config.items():
+                if isinstance(config, dict) and config.get("enabled", True):
+                    expire_time = config.get(
+                        "expire_after", self.cache_config.expire_after
+                    )
+                    # Map pattern to actual URLs that might match
+                    urls_expire_after[f"*{endpoint_pattern}*"] = expire_time
+                elif isinstance(config, dict) and not config.get("enabled", True):
+                    # For disabled endpoints, we'll handle this differently
+                    continue
+
+            # Create cached session
+            self._session = requests_cache.CachedSession(
+                cache_name=self.cache_config.cache_name,
+                backend=self.cache_config.backend,
+                expire_after=self.cache_config.expire_after,
+                urls_expire_after=urls_expire_after if urls_expire_after else None,
+                allowable_codes=[200],  # Only cache successful responses
+                allowable_methods=["GET"],  # Only cache GET requests
+            )
+        else:
+            self._session = requests.Session()
+
+        self._setup_caching()
 
     def _make_api_call(
         self,
@@ -83,12 +117,21 @@ class NexarClient:
         }
 
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=30)
+            # Use the cached session for requests
+            response = self._session.get(
+                url, headers=headers, params=params, timeout=30
+            )
+
             self._handle_response_errors(response)
 
             debug_enabled = os.getenv("NEXAR_DEBUG") is not None
             if debug_enabled:
-                print(f"[NEXAR_DEBUG]   ✓ Success (Status: {response.status_code})")
+                cache_status = (
+                    "from cache" if getattr(response, "from_cache", False) else "fresh"
+                )
+                print(
+                    f"[NEXAR_DEBUG]   ✓ Success (Status: {response.status_code}, {cache_status})"
+                )
 
             return response.json()
         except requests.RequestException as e:
@@ -142,6 +185,65 @@ class NexarClient:
             raise RateLimitError(response.status_code, message)
         else:
             raise RiotAPIError(response.status_code, message)
+
+    def _setup_caching(self) -> None:
+        """Set up caching for the HTTP session if enabled."""
+        if not self.cache_config.enabled:
+            return
+
+        debug_enabled = os.getenv("NEXAR_DEBUG") is not None
+        if debug_enabled:
+            print(
+                f"[NEXAR_DEBUG] Caching enabled: {self.cache_config.cache_name}.{self.cache_config.backend}"
+            )
+            print(f"[NEXAR_DEBUG] Session has cache: {hasattr(self._session, 'cache')}")
+            if hasattr(self._session, "cache"):
+                print(f"[NEXAR_DEBUG] Cache backend: {type(self._session.cache)}")
+                # Show some config details
+                print(
+                    f"[NEXAR_DEBUG] Default expire_after: {self.cache_config.expire_after}"
+                )
+                if hasattr(self._session, "settings") and hasattr(
+                    self._session.settings, "urls_expire_after"
+                ):
+                    print(
+                        f"[NEXAR_DEBUG] Per-URL expiration configured: {bool(self._session.settings.urls_expire_after)}"
+                    )
+
+    def clear_cache(self) -> None:
+        """Clear all cached responses."""
+        if hasattr(self._session, "cache") and self._session.cache:
+            self._session.cache.clear()
+            debug_enabled = os.getenv("NEXAR_DEBUG") is not None
+            if debug_enabled:
+                print("[NEXAR_DEBUG] Cache cleared")
+
+    def get_cache_info(self) -> dict[str, Any]:
+        """Get information about the current cache state.
+
+        Returns:
+            Dictionary with cache statistics and configuration
+        """
+        info = {
+            "enabled": self.cache_config.enabled,
+            "backend": self.cache_config.backend,
+            "cache_name": self.cache_config.cache_name,
+            "default_expire_after": self.cache_config.expire_after,
+        }
+
+        if hasattr(self._session, "cache") and self._session.cache:
+            try:
+                # Try to get cache size if the backend supports it
+                cache = self._session.cache
+                if hasattr(cache, "__len__"):
+                    info["cached_responses"] = len(cache)
+                if hasattr(cache, "size"):
+                    info["cache_size"] = cache.size
+            except Exception:
+                # Some backends might not support these operations
+                pass
+
+        return info
 
     # Account API
     def get_riot_account(
