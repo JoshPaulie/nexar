@@ -95,3 +95,5 @@ class MatchParticipantPosition(Enum):
     MIDDLE = "MIDDLE"
     BOTTOM = "BOTTOM"
     UTILITY = "UTILITY"
+    INVALID = "Invalid"
+    EMPTY = ""

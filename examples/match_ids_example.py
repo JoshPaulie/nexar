@@ -51,6 +51,39 @@ print(f"ARAM matches: {aram_matches}\n")
 next_page = client.get_match_ids_by_puuid(puuid, start=20, count=20)
 print(f"All matches, 21-40: {next_page}\n")
 
+# Example: Get detailed match data with challenges
+print("=== Detailed Match Analysis ===")
+if ranked_matches:
+    latest_match_id = ranked_matches[0]
+    print(f"Analyzing match: {latest_match_id}")
+    
+    match = client.get_match(latest_match_id)
+    
+    # Find player's participant
+    player_participant = None
+    for participant in match.info.participants:
+        if participant.puuid == puuid:
+            player_participant = participant
+            break
+    
+    if player_participant:
+        result = "WIN" if player_participant.win else "LOSS"
+        print(f"Result: {result} - {player_participant.champion_name}")
+        print(f"KDA: {player_participant.kills}/{player_participant.deaths}/{player_participant.assists}")
+        
+        # Show challenges data highlights
+        challenges = player_participant.challenges
+        if challenges:
+            print("\nKey Performance Metrics:")
+            if challenges.kda is not None:
+                print(f"  KDA Ratio: {challenges.kda:.2f}")
+            if challenges.kill_participation is not None:
+                print(f"  Kill Participation: {challenges.kill_participation:.1%}")
+            if challenges.damage_per_minute is not None:
+                print(f"  Damage Per Minute: {challenges.damage_per_minute:.0f}")
+            if challenges.vision_score_per_minute is not None:
+                print(f"  Vision Score Per Minute: {challenges.vision_score_per_minute:.1f}")
+
 """
 Example response:
 
@@ -65,4 +98,15 @@ Matches from the last week: ['NA1_5316329415', 'NA1_5316316196', 'NA1_5316300873
 ARAM matches: ['NA1_5181786118', 'NA1_5136680640', 'NA1_4987837612', 'NA1_4987822377',  ...]
 
 All matches, 21-40: ['NA1_5295223771', 'NA1_5294414398', 'NA1_5294398478',  ...]
+
+=== Detailed Match Analysis ===
+Analyzing match: NA1_5316329415
+Result: WIN - Jinx
+KDA: 12/2/8
+
+Key Performance Metrics:
+  KDA Ratio: 10.00
+  Kill Participation: 0.87
+  Damage Per Minute: 687
+  Vision Score Per Minute: 1.2
 """
