@@ -39,18 +39,14 @@ print(f"Summoner Level: {player.summoner.summoner_level}")
 print("\n--- Rank Information ---")
 if player.rank:
     rank = player.rank
-    print(
-        f"Solo Queue: {rank.tier.value} {rank.rank.value} ({rank.league_points} LP)"
-    )
+    print(f"Solo Queue: {rank.tier.value} {rank.rank.value} ({rank.league_points} LP)")
     print(f"Solo Queue WR: {rank.win_rate:.1f}% ({rank.wins}W/{rank.losses}L)")
 else:
     print("Solo Queue: Unranked")
 
 if player.flex_rank:
     flex = player.flex_rank
-    print(
-        f"Flex Queue: {flex.tier.value} {flex.rank.value} ({flex.league_points} LP)"
-    )
+    print(f"Flex Queue: {flex.tier.value} {flex.rank.value} ({flex.league_points} LP)")
 else:
     print("Flex Queue: Unranked")
 

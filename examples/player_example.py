@@ -61,7 +61,7 @@ for i, match in enumerate(recent_matches[:5], 1):
     if player_participant:
         result = "WIN" if player_participant.win else "LOSS"
         kda = f"{player_participant.kills}/{player_participant.deaths}/{player_participant.assists}"
-        
+
         # Add challenges insights
         challenges_info = ""
         if player_participant.challenges:
@@ -75,8 +75,10 @@ for i, match in enumerate(recent_matches[:5], 1):
                 insights.append(f"DPM: {c.damage_per_minute:.0f}")
             if insights:
                 challenges_info = f" | {' | '.join(insights)}"
-        
-        print(f"{i}. {result} - {player_participant.champion_name} ({kda}){challenges_info}")
+
+        print(
+            f"{i}. {result} - {player_participant.champion_name} ({kda}){challenges_info}"
+        )
 
 # Get champion statistics (reduced from 50 to 20 games to save API calls)
 print("\n--- Top Champions (Last 20 games) ---")
@@ -112,7 +114,7 @@ for match in recent_matches[:5]:
             c = participant.challenges
             performance_metrics["total_matches"] += 1
             valid_matches += 1
-            
+
             if c.kda is not None:
                 performance_metrics["avg_kda"] += c.kda
             if c.kill_participation is not None:
@@ -120,7 +122,9 @@ for match in recent_matches[:5]:
             if c.damage_per_minute is not None:
                 performance_metrics["avg_damage_per_minute"] += c.damage_per_minute
             if c.vision_score_per_minute is not None:
-                performance_metrics["avg_vision_score_per_minute"] += c.vision_score_per_minute
+                performance_metrics["avg_vision_score_per_minute"] += (
+                    c.vision_score_per_minute
+                )
             if c.multikills is not None:
                 performance_metrics["multikills_total"] += c.multikills
             if c.solo_kills is not None:
@@ -129,9 +133,15 @@ for match in recent_matches[:5]:
 
 if valid_matches > 0:
     print(f"Average KDA: {performance_metrics['avg_kda'] / valid_matches:.2f}")
-    print(f"Average Kill Participation: {performance_metrics['avg_kill_participation'] / valid_matches:.1%}")
-    print(f"Average Damage Per Minute: {performance_metrics['avg_damage_per_minute'] / valid_matches:.0f}")
-    print(f"Average Vision Score Per Minute: {performance_metrics['avg_vision_score_per_minute'] / valid_matches:.1f}")
+    print(
+        f"Average Kill Participation: {performance_metrics['avg_kill_participation'] / valid_matches:.1%}"
+    )
+    print(
+        f"Average Damage Per Minute: {performance_metrics['avg_damage_per_minute'] / valid_matches:.0f}"
+    )
+    print(
+        f"Average Vision Score Per Minute: {performance_metrics['avg_vision_score_per_minute'] / valid_matches:.1f}"
+    )
     print(f"Total Multikills: {performance_metrics['multikills_total']}")
     print(f"Total Solo Kills: {performance_metrics['solo_kills_total']}")
 else:

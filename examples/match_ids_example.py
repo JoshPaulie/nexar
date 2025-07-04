@@ -56,21 +56,23 @@ print("=== Detailed Match Analysis ===")
 if ranked_matches:
     latest_match_id = ranked_matches[0]
     print(f"Analyzing match: {latest_match_id}")
-    
+
     match = client.get_match(latest_match_id)
-    
+
     # Find player's participant
     player_participant = None
     for participant in match.info.participants:
         if participant.puuid == puuid:
             player_participant = participant
             break
-    
+
     if player_participant:
         result = "WIN" if player_participant.win else "LOSS"
         print(f"Result: {result} - {player_participant.champion_name}")
-        print(f"KDA: {player_participant.kills}/{player_participant.deaths}/{player_participant.assists}")
-        
+        print(
+            f"KDA: {player_participant.kills}/{player_participant.deaths}/{player_participant.assists}"
+        )
+
         # Show challenges data highlights
         challenges = player_participant.challenges
         if challenges:
@@ -82,7 +84,9 @@ if ranked_matches:
             if challenges.damage_per_minute is not None:
                 print(f"  Damage Per Minute: {challenges.damage_per_minute:.0f}")
             if challenges.vision_score_per_minute is not None:
-                print(f"  Vision Score Per Minute: {challenges.vision_score_per_minute:.1f}")
+                print(
+                    f"  Vision Score Per Minute: {challenges.vision_score_per_minute:.1f}"
+                )
 
 """
 Example response:
