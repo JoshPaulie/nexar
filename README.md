@@ -5,14 +5,20 @@ Easy and simple Riot API SDK, for League of Legends only.
 ## Quick Start
 
 ```python
-from nexar import NexarClient, RegionV4, RegionV5
 import logging
+import os
 
-# Create client
+import nexar
+from nexar.cache import SMART_CACHE_CONFIG
+from nexar.client import NexarClient
+from nexar.enums import RegionV4, RegionV5
+
+# Create client with "smart cache"
 client = NexarClient(
-    riot_api_key="your_api_key",
+    riot_api_key=os.getenv("RIOT_API_KEY"),
     default_v4_region=RegionV4.NA1,
     default_v5_region=RegionV5.AMERICAS,
+    cache_config=SMART_CACHE_CONFIG,
 )
 
 # Enable logging to see API calls and cache performance
@@ -25,11 +31,21 @@ print(f"Rank: {player.rank.tier.value} {player.rank.rank.value}" if player.rank 
 
 # Get recent matches
 recent_matches = player.get_last_20()
+print(f"Retrieved {len(recent_matches)} recent matches")
 
-# Get champion statistics
-top_champions = player.get_top_champions(top_n=5)
-for champ in top_champions:
-    print(f"{champ.champion_name}: {champ.games_played} games, {champ.win_rate:.1f}% WR")
+# Show recent match results
+for i, match in enumerate(recent_matches[:3]):
+    # Find this player's participant data
+    player_participant = None
+    for participant in match.info.participants:
+        if participant.puuid == player.puuid:
+            player_participant = participant
+            break
+    
+    if player_participant:
+        result = "Win" if player_participant.win else "Loss"
+        kda = f"{player_participant.kills}/{player_participant.deaths}/{player_participant.assists}"
+        print(f"Match {i+1}: {player_participant.champion_name} - {result} ({kda})")
 ```
 
 ## Features

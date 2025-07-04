@@ -3,14 +3,9 @@
 import os
 import time
 
-from nexar import (
-    NO_CACHE_CONFIG,
-    SMART_CACHE_CONFIG,
-    CacheConfig,
-    NexarClient,
-    RegionV4,
-    RegionV5,
-)
+from nexar.cache import NO_CACHE_CONFIG, SMART_CACHE_CONFIG, CacheConfig
+from nexar.client import NexarClient
+from nexar.enums import RegionV4, RegionV5
 
 
 # Example of different cache configurations
