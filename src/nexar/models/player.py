@@ -131,7 +131,7 @@ class Player:
     def rank(self) -> LeagueEntry | None:
         """Get the player's solo queue rank (RANKED_SOLO_5x5)."""
         for entry in self.league_entries:
-            if entry.queue_type.value == "RANKED_SOLO_5x5":
+            if entry.queue_type == QueueId.RANKED_SOLO_5x5:
                 return entry
         return None
 
@@ -139,7 +139,7 @@ class Player:
     def flex_rank(self) -> LeagueEntry | None:
         """Get the player's flex queue rank (RANKED_FLEX_SR)."""
         for entry in self.league_entries:
-            if entry.queue_type.value == "RANKED_FLEX_SR":
+            if entry.queue_type == QueueId.RANKED_FLEX_SR:
                 return entry
         return None
 
@@ -179,22 +179,6 @@ class Player:
             matches.append(match)
 
         return matches
-
-    def get_last_20(
-        self,
-        queue: QueueId | int | None = None,
-        match_type: MatchType | str | None = None,
-    ) -> list[Match]:
-        """Get the last 20 matches for the player.
-
-        Args:
-            queue: Optional queue type filter
-            match_type: Optional match type filter
-
-        Returns:
-            List of up to 20 Match objects
-        """
-        return self.get_recent_matches(count=20, queue=queue, match_type=match_type)
 
     def get_champion_stats(
         self,
@@ -430,7 +414,11 @@ class Player:
             if player_participant is None:
                 continue
 
-            role = player_participant.team_position or "UNKNOWN"
+            role = (
+                player_participant.team_position.value
+                if player_participant.team_position
+                else "UNKNOWN"
+            )
 
             if role not in role_stats:
                 role_stats[role] = {
