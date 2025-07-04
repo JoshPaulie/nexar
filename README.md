@@ -1,6 +1,9 @@
 # Nexar
 
-Easy and simple Riot API SDK, for League of Legends only.
+Easy and simple Riot API SDK, for League of Legends only. And not TFT.
+
+> [!Important]
+> Unreleased, unversioned, subject to breaking changes and squashed git history
 
 ## Quick Start
 
