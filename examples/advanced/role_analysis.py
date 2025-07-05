@@ -8,6 +8,13 @@ from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import QueueId, RegionV4, RegionV5
 
+# Constants for analysis
+TOP_CHAMPIONS_PER_ROLE = 3  # Show top N champions per role
+MIN_GAMES_PER_CHAMPION = 2  # Only show champions with at least N games
+MIN_GAMES_PER_ROLE = 3  # Minimum games played to consider a role for best/worst analysis
+CHUNK_SIZE = 5  # Number of games per trend chunk
+TOTAL_RECENT = 20  # Number of recent games to analyze for trends
+
 # Get API key from environment
 api_key = os.getenv("RIOT_API_KEY")
 if not api_key:
@@ -51,13 +58,13 @@ for role, stats in sorted_roles:
 
 # Find best and worst performing roles
 best_role = max(
-    [(role, stats) for role, stats in role_performance.items() if stats["games_played"] >= 3],
+    [(role, stats) for role, stats in role_performance.items() if stats["games_played"] >= MIN_GAMES_PER_ROLE],
     key=lambda x: x[1]["win_rate"],
     default=(None, None),
 )
 
 worst_role = min(
-    [(role, stats) for role, stats in role_performance.items() if stats["games_played"] >= 3],
+    [(role, stats) for role, stats in role_performance.items() if stats["games_played"] >= MIN_GAMES_PER_ROLE],
     key=lambda x: x[1]["win_rate"],
     default=(None, None),
 )
@@ -123,8 +130,8 @@ for role, champions in role_champion_stats.items():
         reverse=True,
     )
 
-    for champion, stats in sorted_champions[:3]:  # Top 3 champions per role
-        if stats["games"] < 2:  # Only show champions with at least 2 games
+    for champion, stats in sorted_champions[:TOP_CHAMPIONS_PER_ROLE]:  # Top N champions per role
+        if stats["games"] < MIN_GAMES_PER_CHAMPION:  # Only show champions with at least N games
             continue
 
         win_rate = (stats["wins"] / stats["games"]) * 100
@@ -140,13 +147,10 @@ for role, champions in role_champion_stats.items():
 # Performance trends analysis
 print("\n=== Recent Performance Trends ===")
 
-# Analyze last 20 games in chunks of 5 to see trends
-chunk_size = 5
-total_recent = 20
-
-for i in range(0, total_recent, chunk_size):
+# Analyze last TOTAL_RECENT games in chunks of CHUNK_SIZE to see trends
+for i in range(0, TOTAL_RECENT, CHUNK_SIZE):
     chunk_matches = (
-        player.get_recent_matches(count=chunk_size, queue=QueueId.RANKED_SOLO_5x5)[i : i + chunk_size] if i == 0 else []
+        player.get_recent_matches(count=CHUNK_SIZE, queue=QueueId.RANKED_SOLO_5x5)[i : i + CHUNK_SIZE] if i == 0 else []
     )
 
     if i > 0:  # Skip chunks after first since get_recent_matches always gets most recent
@@ -179,7 +183,7 @@ for i in range(0, total_recent, chunk_size):
     win_rate = (wins / games_count) * 100 if games_count > 0 else 0
     avg_kda = total_kda / games_count if games_count > 0 else 0
 
-    print(f"Last {chunk_size} games: {win_rate:.1f}% WR, {avg_kda:.2f} avg KDA")
+    print(f"Last {CHUNK_SIZE} games: {win_rate:.1f}% WR, {avg_kda:.2f} avg KDA")
 
 print("\n=== Analysis Complete ===")
 print("Tips for improvement based on role performance:")

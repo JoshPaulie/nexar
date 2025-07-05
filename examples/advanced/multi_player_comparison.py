@@ -36,18 +36,19 @@ def compare_players(players: list[Player], analysis_games: int = 20):
             rank_info = "Unranked"
             if player.rank:
                 rank = player.rank
-                rank_info = (
-                    f"{rank.tier.value} {rank.rank.value} ({rank.league_points} LP)"
-                )
+                rank_info = f"{rank.tier.value} {rank.rank.value} ({rank.league_points} LP)"
 
             # Get performance summary
             performance = player.get_performance_summary(
-                count=analysis_games, queue=QueueId.RANKED_SOLO_5x5,
+                count=analysis_games,
+                queue=QueueId.RANKED_SOLO_5x5,
             )
 
             # Get top champion
             top_champions = player.get_top_champions(
-                top_n=1, count=analysis_games, queue=QueueId.RANKED_SOLO_5x5,
+                top_n=1,
+                count=analysis_games,
+                queue=QueueId.RANKED_SOLO_5x5,
             )
             top_champion = top_champions[0].champion_name if top_champions else "None"
 
@@ -65,7 +66,7 @@ def compare_players(players: list[Player], analysis_games: int = 20):
                 },
             )
 
-        except Exception as e:
+        except ValueError as e:
             print(f"Error analyzing {player}: {e}")
             continue
 
@@ -148,7 +149,8 @@ def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
         try:
             player_name = f"{player.game_name}#{player.tag_line}"
             champions = player.get_champion_stats(
-                count=analysis_games, queue=QueueId.RANKED_SOLO_5x5,
+                count=analysis_games,
+                queue=QueueId.RANKED_SOLO_5x5,
             )
 
             player_champions[player_name] = champions
@@ -164,7 +166,7 @@ def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
                             "win_rate": champ.win_rate,
                         },
                     )
-        except Exception as e:
+        except ValueError as e:
             print(f"Error getting champions for {player}: {e}")
             continue
 
@@ -180,7 +182,9 @@ def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
         for champion, players_data in sorted(common_champions.items()):
             print(f"\n{champion}:")
             for player_data in sorted(
-                players_data, key=lambda x: x["win_rate"], reverse=True,
+                players_data,
+                key=lambda x: x["win_rate"],
+                reverse=True,
             ):
                 print(
                     f"  {player_data['player']}: {player_data['games']} games, {player_data['win_rate']:.1f}% WR",
@@ -208,6 +212,7 @@ print("=== Multi-Player Analysis Demo ===")
 # You can add more players by adding their game names and tag lines
 players_to_compare = [
     client.get_player("bexli", "bex"),
+    client.get_player("roninalex", "na1"),
     # Add more players here for comparison
     # client.get_player("other_player", "tag"),
 ]

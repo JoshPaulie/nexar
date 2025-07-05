@@ -34,5 +34,10 @@ ignore = [
     "DTZ006",  # Ignore missing tz in datetime
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"examples/*.py" = [
+    "ERA001", # Allow commented out code in examples
+]
+
 [tool.ruff]
 line-length = 120
