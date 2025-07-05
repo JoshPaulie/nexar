@@ -129,17 +129,33 @@ class Player:
 
     @property
     def rank(self) -> LeagueEntry | None:
-        """Get the player's solo queue rank (RANKED_SOLO_5x5)."""
+        """
+        Get the player's solo queue rank.
+
+        - API queue type: RANKED_SOLO_5x5
+        - Map: Summoner's Rift
+        - Colloquial name: Solo/Duo; Solo Queue
+        """
+        from ..enums import Queue
+
         for entry in self.league_entries:
-            if entry.queue_type == QueueId.RANKED_SOLO_5x5:
+            if entry.queue_type == Queue.RANKED_SOLO_5x5:
                 return entry
         return None
 
     @property
     def flex_rank(self) -> LeagueEntry | None:
-        """Get the player's flex queue rank (RANKED_FLEX_SR)."""
+        """
+        Get the player's flex queue rank.
+
+        - API queue type: RANKED_FLEX_SR
+        - Map: Summoner's Rift
+        - Colloquial name: Flex Queue
+        """
+        from ..enums import Queue
+
         for entry in self.league_entries:
-            if entry.queue_type == QueueId.RANKED_FLEX_SR:
+            if entry.queue_type == Queue.RANKED_FLEX_SR:
                 return entry
         return None
 
