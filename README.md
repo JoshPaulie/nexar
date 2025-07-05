@@ -5,7 +5,7 @@ Simple League of Legends SDK with rate limiting & disk caching by default.
 Trying to restore the glory days, pre Riot IDs.
 
 > [!Important]
-> Unreleased, unversioned, subject to breaking changes and squashed git histories
+> Unreleased, unversioned, subject to breaking changes
 
 ## Why Nexar?
 
@@ -56,7 +56,7 @@ for match in recent_matches:
             kda_ratio = f"{participant.challenges.kda:.2f}"
 
             days_ago = (datetime.today() - match.info.game_start_timestamp).days
-            days_ago_str = f"{days_ago:} {'day' if days_ago == 1 else 'days'} ago"
+            days_ago_str = f"{days_ago} {'day' if days_ago == 1 else 'days'} ago"
 
             print(
                 f"{days_ago_str:<10} "
