@@ -11,8 +11,10 @@ from .cache import (
 from .client import NexarClient
 from .enums import (
     Division,
+    MapId,
     MatchParticipantPosition,
     MatchType,
+    PlatformId,
     Queue,
     QueueId,
     RegionV4,
@@ -58,6 +60,8 @@ __all__ = [
     "RegionV5",
     "Queue",
     "QueueId",
+    "MapId",
+    "PlatformId",
     "MatchType",
     "MatchParticipantPosition",
     "Tier",

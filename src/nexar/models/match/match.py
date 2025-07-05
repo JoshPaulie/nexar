@@ -9,6 +9,8 @@ if TYPE_CHECKING:
     from .participant import Participant
     from .team import Team, TeamsInfo
 
+from ...enums import MapId, PlatformId, QueueId
+
 
 @dataclass(frozen=True)
 class MatchMetadata:
@@ -59,13 +61,13 @@ class MatchInfo:
     game_version: str
     """Game version - first two parts determine the patch."""
 
-    map_id: int
+    map_id: MapId
     """Map identifier (e.g., 11 for Summoner's Rift)."""
 
-    platform_id: str
+    platform_id: PlatformId
     """Platform where the match was played."""
 
-    queue_id: int
+    queue_id: QueueId
     """Queue identifier."""
 
     participants: list["Participant"]
@@ -107,9 +109,9 @@ class MatchInfo:
             ),
             game_type=data["gameType"],
             game_version=data["gameVersion"],
-            map_id=data["mapId"],
-            platform_id=data["platformId"],
-            queue_id=data["queueId"],
+            map_id=MapId(data["mapId"]),
+            platform_id=PlatformId(data["platformId"]),
+            queue_id=QueueId(data["queueId"]),
             participants=[
                 Participant.from_api_response(participant)
                 for participant in data["participants"]

@@ -24,6 +24,28 @@ class RegionV4(Enum):
     VN2 = "vn2"
 
 
+# Alias for platform identification - same as RegionV4 but uppercase
+class PlatformId(Enum):
+    """Platform identifiers for match data."""
+
+    BR1 = "BR1"
+    EUN1 = "EUN1"
+    EUW1 = "EUW1"
+    JP1 = "JP1"
+    KR = "KR"
+    LA1 = "LA1"
+    LA2 = "LA2"
+    NA1 = "NA1"
+    OC1 = "OC1"
+    PH2 = "PH2"
+    RU = "RU"
+    SG2 = "SG2"
+    TH2 = "TH2"
+    TR1 = "TR1"
+    TW2 = "TW2"
+    VN2 = "VN2"
+
+
 class RegionV5(Enum):
     """Regional routing values for regional endpoints."""
 
@@ -335,3 +357,41 @@ class MapId(Enum):
 
     RINGS_OF_WRATH = 30
     """Arena map"""
+
+
+class MatchType(Enum):
+    """Match type filters for match history."""
+
+    RANKED = "ranked"
+    """Ranked matches only"""
+
+    NORMAL = "normal"
+    """Normal matches only"""
+
+    TOURNEY = "tourney"
+    """Tournament matches only"""
+
+
+class MatchParticipantPosition(Enum):
+    """Participant positions in League of Legends matches."""
+
+    TOP = "TOP"
+    """Top lane position"""
+
+    JUNGLE = "JUNGLE"
+    """Jungle position"""
+
+    MIDDLE = "MIDDLE"
+    """Middle lane position"""
+
+    BOTTOM = "BOTTOM"
+    """Bottom lane (ADC) position"""
+
+    UTILITY = "UTILITY"
+    """Support position"""
+
+    INVALID = "Invalid"
+    """Invalid/unknown position (legacy data or edge cases)"""
+
+    EMPTY = ""
+    """Empty position (legacy data or edge cases)"""

@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from nexar.enums import MatchParticipantPosition
+from nexar.enums import MapId, MatchParticipantPosition, PlatformId, QueueId
 from nexar.models import (
     Ban,
     Challenges,
@@ -308,9 +308,9 @@ class TestMatchModels:
             game_start_timestamp=datetime.fromtimestamp(1234567890),
             game_type="MATCHED_GAME",
             game_version="14.1.1",
-            map_id=11,
-            platform_id="NA1",
-            queue_id=420,
+            map_id=MapId.SUMMONERS_RIFT,
+            platform_id=PlatformId.NA1,
+            queue_id=QueueId.RANKED_SOLO_5x5,
             participants=[blue_participant, red_participant],
             teams=[blue_team, red_team],
         )
@@ -464,9 +464,9 @@ class TestMatchModels:
             game_start_timestamp=datetime.fromtimestamp(1234567890),
             game_type="MATCHED_GAME",
             game_version="14.1.1",
-            map_id=11,
-            platform_id="NA1",
-            queue_id=420,
+            map_id=MapId.SUMMONERS_RIFT,
+            platform_id=PlatformId.NA1,
+            queue_id=QueueId.RANKED_SOLO_5x5,
             participants=[blue_participant, red_participant],
             teams=[],
         )
