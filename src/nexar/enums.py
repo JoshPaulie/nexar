@@ -93,6 +93,7 @@ class QueueId(Enum):
     Removed all deprecated ones. Leaving obscure and temp queue IDs for forward compatibility.
 
     Last updated: 2025-07-05
+    URL: https://static.developer.riotgames.com/docs/lol/queues.json
     """
 
     CUSTOM = 0
@@ -308,6 +309,7 @@ class MapId(Enum):
     Map IDs for different League of Legends maps.
 
     Last updated: 2025-07-05
+    URL: https://static.developer.riotgames.com/docs/lol/maps.json
     """
 
     SUMMONERS_RIFT_SUMMER = 1
