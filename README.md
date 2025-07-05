@@ -1,6 +1,6 @@
 # Nexar
 
-Simple League of Legends SDK with rate limiting & disk caching by default.
+A simple League of Legends SDK with built-in rate limiting & disk caching.
 
 Trying to restore the glory days, pre Riot IDs.
 
@@ -9,11 +9,15 @@ Trying to restore the glory days, pre Riot IDs.
 
 ## Why Nexar?
 
-Python through and through. Dates? `datetime`. So many enums you'll hate it. Comparable, iterable objects. Type safe. Everything you'd hope for (I hope).
+Built for Python freaks. Dates are `datetime` objects, everything has type hints, and so many enums you'll hate them (but love the autocomplete).
 
-Totally wrapped lower API, and dead simple high level API allows you to pull League data like ranks, match history, champion history, with ease.
+Clean high-level API wraps the messy Riot API underneath. Pull player ranks, match history, and champion stats with just a few lines of code.
 
-Forget Riot IDs. Just use `NexarClient.get_player("username", "tag")` and explore with your IDE. Tons of helpful doc strings and tips. 
+Hate Riot IDs? Who doesn't. Just `NexarClient.get_player("username", "tag")` and explore with your IDE.
+
+Packed with helpful doc strings and tips.
+
+> Check out [Why not Nexar?](docs/why-not-nexar.md) for more
 
 ## Quick Start
 
