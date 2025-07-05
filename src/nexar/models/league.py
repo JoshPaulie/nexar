@@ -88,6 +88,50 @@ class LeagueEntry:
             return 0.0
         return (self.wins / self.total_games) * 100.0
 
+    @property
+    def rank_value(self) -> int:
+        """A unique integer representing the combined tier and rank for comparison purposes."""
+        tier_order = list(Tier)
+        rank_order = list(Division)
+        tier_index = tier_order.index(self.tier)
+        # For Master+ tiers, rank is always Division.I
+        if self.tier in {Tier.MASTER, Tier.GRANDMASTER, Tier.CHALLENGER}:
+            rank_index = 0
+        else:
+            # Reverse the division index: I=0, II=1, III=2, IV=3 (I is highest)
+            rank_index = len(rank_order) - 1 - rank_order.index(self.rank)
+        return tier_index * len(rank_order) + rank_index
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, LeagueEntry):
+            return NotImplemented
+        return self.rank_value < other.rank_value
+
+    def __le__(self, other: object) -> bool:
+        if not isinstance(other, LeagueEntry):
+            return NotImplemented
+        return self.rank_value <= other.rank_value
+
+    def __gt__(self, other: object) -> bool:
+        if not isinstance(other, LeagueEntry):
+            return NotImplemented
+        return self.rank_value > other.rank_value
+
+    def __ge__(self, other: object) -> bool:
+        if not isinstance(other, LeagueEntry):
+            return NotImplemented
+        return self.rank_value >= other.rank_value
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, LeagueEntry):
+            return NotImplemented
+        return self.rank_value == other.rank_value
+
+    def __ne__(self, other: object) -> bool:
+        if not isinstance(other, LeagueEntry):
+            return NotImplemented
+        return self.rank_value != other.rank_value
+
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "LeagueEntry":
         """Create LeagueEntry from API response."""

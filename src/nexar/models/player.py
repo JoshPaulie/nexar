@@ -159,6 +159,18 @@ class Player:
                 return entry
         return None
 
+    @property
+    def solo_rank_value(self) -> int | None:
+        """
+        Combined tier/rank value for the player's solo queue rank.
+        Returns None if the player is unranked in solo queue.
+
+        Useful for comparing or sorting players by solo queue rank.
+        """
+        if self.rank is not None:
+            return self.rank.rank_value
+        return None
+
     def get_recent_matches(
         self,
         count: int = 20,
