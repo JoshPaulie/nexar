@@ -1,23 +1,3 @@
-# Nexar
-
-Simple League of Legends SDK with rate limiting & disk caching by default.
-
-Trying to restore the glory days, pre Riot IDs.
-
-> [!Important]
-> Unreleased, unversioned, subject to breaking changes and squashed git histories
-
-## Why Nexar?
-
-Python through and through. Dates? `datetime`. So many enums you'll hate it. Comparable, iterable objects. Type safe. Everything you'd hope for (I hope).
-
-Totally wrapped lower API, and dead simple high level API allows you to pull League data like ranks, match history, champion history, with ease.
-
-Forget Riot IDs. Just use `NexarClient.get_player("username", "tag")` and explore with your IDE. Tons of helpful doc strings and tips. 
-
-## Quick Start
-
-```python
 import os
 from datetime import datetime
 
@@ -66,35 +46,3 @@ for match in recent_matches:
                 f"{kda} ({kda_ratio})"
             )
             break
-
-```
-
-## Documentation
-
-For detailed information, see the documentation:
-
-- [Player API Guide](docs/player-api.md) - Comprehensive Player class documentation
-- [Caching Guide](docs/caching.md) - Advanced caching configuration and performance
-- [Examples](examples/) - Code examples for common use cases
-
-## Development
-
-### Running Tests
-
-Tests use real Riot API calls rather than mocks. You'll need a valid Riot API key:
-
-1. Copy `riot-key.sh.example` to `riot-key.sh`
-2. Add your Riot API key to `riot-key.sh`
-3. Run tests with the provided script:
-
-```bash
-./run_tests.sh
-```
-
-The script automatically sources your API key and runs the test suite.
-
-### Test Requirements
-
-- Valid Riot API key
-- Active internet connection
-- Tests may be rate-limited by Riot's API
