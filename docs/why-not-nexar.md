@@ -1,6 +1,10 @@
 # Why not Nexar?
 
-It's written by an idiot, very simple.
+## Infancy
+
+Project is very new and functionality is well suited to my usecases.
+
+> Issues are encouraged for features I haven't thought of.
 
 ## Synchronous
 
