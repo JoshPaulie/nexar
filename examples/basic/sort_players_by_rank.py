@@ -3,7 +3,7 @@ import sys
 
 from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
-from nexar.utils import sort_players_by_solo_queue_rank
+from nexar.utils import sort_players
 
 # Get API key from environment
 api_key = os.getenv("RIOT_API_KEY")
@@ -32,7 +32,7 @@ for player in players:
     _ = player.solo_rank_value  # Ensures rank is loaded
 
 # Sort list of players by solo queue rank (highest first)
-sorted_players = sort_players_by_solo_queue_rank(players)
+sorted_players = sort_players(players, key=lambda p: p.solo_rank_value)
 
 print("Players sorted by solo queue rank (highest to lowest):")
 for player in sorted_players:
