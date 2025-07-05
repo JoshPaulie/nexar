@@ -9,7 +9,11 @@ if TYPE_CHECKING:
     from .participant import Participant
     from .team import Team, TeamsInfo
 
-from ...enums import MapId, PlatformId, QueueId
+from nexar.enums import MapId, PlatformId, QueueId
+
+# Team ID constants
+BLUE_TEAM_ID: int = 100
+RED_TEAM_ID: int = 200
 
 
 @dataclass(frozen=True)
@@ -83,7 +87,7 @@ class MatchInfo:
     game_name: str | None = None
     """
     Meta tag used by Riot.
-    
+
     Example: teambuilder-match-5318386826
     """
 
@@ -144,12 +148,12 @@ class Match:
         from .team import TeamInfo, TeamsInfo
 
         # Separate participants by team ID (100 = blue, 200 = red)
-        blue_participants = [p for p in self.participants if p.team_id == 100]
-        red_participants = [p for p in self.participants if p.team_id == 200]
+        blue_participants = [p for p in self.participants if p.team_id == BLUE_TEAM_ID]
+        red_participants = [p for p in self.participants if p.team_id == RED_TEAM_ID]
 
         # Find the corresponding team data
-        blue_team_data = next(t for t in self.info.teams if t.team_id == 100)
-        red_team_data = next(t for t in self.info.teams if t.team_id == 200)
+        blue_team_data = next(t for t in self.info.teams if t.team_id == BLUE_TEAM_ID)
+        red_team_data = next(t for t in self.info.teams if t.team_id == RED_TEAM_ID)
 
         blue_team = TeamInfo(
             team_id=blue_team_data.team_id,

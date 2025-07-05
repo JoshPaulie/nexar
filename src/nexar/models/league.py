@@ -14,7 +14,10 @@ class MiniSeries:
     """Number of losses in promo."""
 
     progress: str
-    """String showing the current progress where 'W' represents a win, 'L' represents a loss, and 'N' represents a game not yet played."""
+    """
+    String showing the current progress where 'W' represents a win, 'L' represents a loss,
+    and 'N' represents a game not yet played.
+    """
 
     target: int
     """Number of wins required for promotion."""

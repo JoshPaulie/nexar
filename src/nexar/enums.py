@@ -87,12 +87,14 @@ class Division(Enum):
 
 
 class QueueId(Enum):
-    """Queue IDs for different game modes.
+    """
+    Queue IDs for different game modes.
 
     Removed all deprecated ones. Leaving obscure and temp queue IDs for forward compatibility.
 
     Last updated: 2025-07-05
     URL: https://static.developer.riotgames.com/docs/lol/queues.json
+
     """
 
     CUSTOM = 0
@@ -304,10 +306,12 @@ class QueueId(Enum):
 
 
 class MapId(Enum):
-    """Map IDs for different League of Legends maps.
+    """
+    Map IDs for different League of Legends maps.
 
     Last updated: 2025-07-05
     URL: https://static.developer.riotgames.com/docs/lol/maps.json
+
     """
 
     SUMMONERS_RIFT_SUMMER = 1

@@ -36,7 +36,7 @@ def sort_players(
 
     """
 
-    def get_value(p: Player) -> Any:
+    def get_value(p: Player) -> int | float:
         value = getattr(p, key, None) if isinstance(key, str) else key(p)
         return value if value is not None else -1
 

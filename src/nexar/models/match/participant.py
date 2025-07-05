@@ -62,7 +62,8 @@ class Participant:
     @property
     def team_color(self) -> str:
         """Team color. Colloquially players use the terms "blue side" or "red side"."""
-        return "Blue" if self.team_id == 100 else "Red"
+        blue_team_id: int = 100
+        return "Blue" if self.team_id == blue_team_id else "Red"
 
     @property
     def summoner_name(self) -> str:
@@ -304,15 +305,15 @@ class Participant:
 
     This only includes standard monsters Gromp, Red/Blue Buff, etc.
     Oddly enough, it also includes Ivern's Daisy.
-    
+
     Riot docs:
     > neutralMinionsKilled = mNeutralMinionsKilled, which is incremented on kills of kPet and
     kJungleMonster
     """
 
     @property
-    def total_jungle_minions_killed(self):
-        """Alias for neutral_minions_killed"""
+    def total_jungle_minions_killed(self) -> int:
+        """Alias for neutral_minions_killed."""
         return self.neutral_minions_killed
 
     total_ally_jungle_minions_killed: int
@@ -324,14 +325,14 @@ class Participant:
     total_minions_killed: int
     """
     Total number of minions killed.
-    
+
     Riot docs:
     > totalMillionsKilled = mMinionsKilled, which is only incremented on kills of kTeamMinion,
     kMeleeLaneMinion, kSuperLaneMinion, kRangedLaneMinion and kSiegeLaneMinion
     """
 
     @property
-    def creep_score(self):
+    def creep_score(self) -> int:
         """
         Total "Creep score" or CS earned throughout the game.
 
@@ -343,7 +344,7 @@ class Participant:
     total_heal: int
     """
     Total healing done.
-    
+
     Riot docs:
     > Whenever positive health is applied (which translates to all heals in the game but not things
     like regeneration), totalHeal is incremented by the amount of health received. This includes
@@ -353,7 +354,7 @@ class Participant:
     total_heals_on_teammates: int
     """
     Total healing done on teammates.
-    
+
     Riot docs:
     > Whenever positive health is applied (which translates to all heals in the game but not things
     like regeneration), totalHealsOnTeammates is incremented by the amount of health received.
@@ -454,11 +455,11 @@ class Participant:
     champion_transform: int
     """
     Kayn transformation and end of game.
-    
+
     - 0 = No transformation
     - 1 = Slayer (Red)
     - 2 = Assassin (Blue)
-    
+
     Riot docs:
     > This field is currently only utilized for Kayn's transformations.
     (Legal values: 0 - None, 1 - Slayer, 2 - Assassin)
@@ -485,7 +486,7 @@ class Participant:
     game_ended_in_early_surrender: bool
     """
     Whether the game ended in an early surrender.
-    
+
     Riot docs:
     > This is an offshoot of the OneStone challenge. The code checks if a spell with the same
     instance ID does the final point of damage to at least 2 Champions. It doesn't matter if

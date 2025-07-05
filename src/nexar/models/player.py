@@ -187,7 +187,8 @@ class Player:
         start_time: int | datetime | None = None,
         end_time: int | datetime | None = None,
     ) -> list[Match]:
-        """Get recent matches for the player.
+        """
+        Get recent matches for the player.
 
         Args:
             count: Number of matches to retrieve (1-100, default 20)
@@ -223,7 +224,8 @@ class Player:
         queue: QueueId | int | None = None,
         match_type: MatchType | str | None = None,
     ) -> list[ChampionStats]:
-        """Get champion statistics from recent matches.
+        """
+        Get champion statistics from recent matches.
 
         Args:
             count: Number of recent matches to analyze (default 20)
@@ -291,7 +293,8 @@ class Player:
         queue: QueueId | int | None = None,
         match_type: MatchType | str | None = None,
     ) -> list[ChampionStats]:
-        """Get top played champions.
+        """
+        Get top played champions.
 
         Args:
             top_n: Number of top champions to return (default 5)
@@ -316,7 +319,8 @@ class Player:
         queue: QueueId | int | None = None,
         match_type: MatchType | str | None = None,
     ) -> dict[str, Any]:
-        """Get a performance summary from recent matches.
+        """
+        Get a performance summary from recent matches.
 
         Args:
             count: Number of recent matches to analyze (default 20)
@@ -398,7 +402,8 @@ class Player:
         }
 
     def is_on_win_streak(self, min_games: int = 3) -> bool:
-        """Check if the player is currently on a win streak.
+        """
+        Check if the player is currently on a win streak.
 
         Args:
             min_games: Minimum number of games to consider a streak (default 3)
@@ -430,7 +435,8 @@ class Player:
         count: int = 50,
         queue: QueueId | int | None = None,
     ) -> dict[str, dict[str, Any]]:
-        """Get performance statistics grouped by role.
+        """
+        Get performance statistics grouped by role.
 
         Args:
             count: Number of recent matches to analyze (default 50)
@@ -478,7 +484,7 @@ class Player:
                 stats["wins"] += 1
 
         # Calculate derived stats
-        for role, stats in role_stats.items():
+        for stats in role_stats.values():
             games = stats["games_played"]
             if games > 0:
                 stats["win_rate"] = round((stats["wins"] / games) * 100, 1)
@@ -504,7 +510,7 @@ class Player:
         self._league_entries = None
 
     def __str__(self) -> str:
-        """String representation of the player."""
+        """Return string representation of the player."""
         return f"Player({self.game_name}#{self.tag_line})"
 
     def __repr__(self) -> str:

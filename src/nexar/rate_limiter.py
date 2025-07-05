@@ -37,11 +37,15 @@ class RateLimiter:
 
         # Log rate limiter initialization
         self._logger.logger.debug(
-            f"Rate limiter initialized with {len(rate_limits)} limits:",
+            "Rate limiter initialized with %d limits:",
+            len(rate_limits),
         )
         for i, limit in enumerate(rate_limits):
             self._logger.logger.debug(
-                f"  Limit {i + 1}: {limit.requests} requests per {limit.window_seconds}s",
+                "  Limit %d: %d requests per %ds",
+                i + 1,
+                limit.requests,
+                limit.window_seconds,
             )
 
     def wait_if_needed(self) -> None:
@@ -62,14 +66,20 @@ class RateLimiter:
 
             if removed_count > 0:
                 self._logger.logger.debug(
-                    f"Cleaned up {removed_count} expired requests from limit {i + 1}",
+                    "Cleaned up %d expired requests from limit %d",
+                    removed_count,
+                    i + 1,
                 )
 
             # Check current status
             current_usage = len(request_queue)
             remaining = rate_limit.requests - current_usage
             self._logger.logger.debug(
-                f"Limit {i + 1}: {current_usage}/{rate_limit.requests} used, {remaining} remaining",
+                "Limit %d: %d/%d used, %d remaining",
+                i + 1,
+                current_usage,
+                rate_limit.requests,
+                remaining,
             )
 
             # Check if we need to wait
@@ -83,7 +93,9 @@ class RateLimiter:
 
         if max_wait_time > 0:
             self._logger.logger.info(
-                f"Rate limit hit! {limiting_constraint} - waiting {max_wait_time:.2f} seconds",
+                "Rate limit hit! %s - waiting %.2f seconds",
+                limiting_constraint,
+                max_wait_time,
             )
             time.sleep(max_wait_time)
             self._logger.logger.info(
@@ -99,10 +111,10 @@ class RateLimiter:
         current_time = time.time()
 
         # Add current request to all queues
-        for i, request_queue in enumerate(self._request_queues):
+        for _i, request_queue in enumerate(self._request_queues):
             request_queue.append(current_time)
 
-        self._logger.logger.debug(f"Request recorded at {current_time:.3f}")
+        self._logger.logger.debug("Request recorded at %.3f", current_time)
 
     def get_status(self) -> dict[str, Any]:
         """

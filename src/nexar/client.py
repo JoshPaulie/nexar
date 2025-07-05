@@ -20,6 +20,17 @@ from .models import LeagueEntry, Match, RiotAccount, Summoner
 from .models.player import Player
 from .rate_limiter import RateLimiter
 
+# HTTP status codes (module-level constants)
+HTTP_OK = 200
+HTTP_UNAUTHORIZED = 401
+HTTP_FORBIDDEN = 403
+HTTP_NOT_FOUND = 404
+HTTP_TOO_MANY_REQUESTS = 429
+
+# Constants for match id count
+MAX_MATCH_ID_COUNT = 100
+DEFAULT_MATCH_ID_COUNT = 20
+
 
 class NexarClient:
     """Main client for interacting with the Riot Games API."""
@@ -138,8 +149,9 @@ class NexarClient:
                 try:
                     cache_key = self._session.cache.create_key(prepared_request)
                     is_cached = self._session.cache.contains(cache_key)
-                except Exception:
+                except (AttributeError, KeyError, TypeError) as exc:
                     # If cache check fails, assume not cached and apply rate limiting
+                    self._logger.logger.debug("Cache check failed: %s", exc)
                     is_cached = False
 
             if not is_cached:
@@ -228,7 +240,7 @@ class NexarClient:
 
     def _handle_response_errors(self, response: requests.Response) -> None:
         """Handle HTTP errors from the API response."""
-        if response.status_code == 200:
+        if response.status_code == HTTP_OK:
             return
 
         try:
@@ -237,13 +249,13 @@ class NexarClient:
         except ValueError:
             message = response.text or "Unknown error"
 
-        if response.status_code == 401:
+        if response.status_code == HTTP_UNAUTHORIZED:
             raise UnauthorizedError(response.status_code, message)
-        if response.status_code == 403:
+        if response.status_code == HTTP_FORBIDDEN:
             raise ForbiddenError(response.status_code, message)
-        if response.status_code == 404:
+        if response.status_code == HTTP_NOT_FOUND:
             raise NotFoundError(response.status_code, message)
-        if response.status_code == 429:
+        if response.status_code == HTTP_TOO_MANY_REQUESTS:
             raise RateLimitError(response.status_code, message)
         raise RiotAPIError(response.status_code, message)
 
@@ -303,9 +315,9 @@ class NexarClient:
                     info["cached_responses"] = len(cache)
                 if hasattr(cache, "size"):
                     info["cache_size"] = cache.size
-            except Exception:
+            except (AttributeError, KeyError, TypeError) as exc:
                 # Some backends might not support these operations
-                pass
+                self._logger.logger.debug("Cache info check failed: %s", exc)
 
         return info
 
@@ -432,7 +444,7 @@ class NexarClient:
             List of match IDs
 
         """
-        if not 0 <= count <= 100:
+        if not 0 <= count <= MAX_MATCH_ID_COUNT:
             msg = "count must be between 0 and 100"
             raise ValueError(msg)
 
@@ -459,7 +471,7 @@ class NexarClient:
             params["type"] = match_type.value if isinstance(match_type, MatchType) else match_type
         if start != 0:
             params["start"] = start
-        if count != 20:
+        if count != DEFAULT_MATCH_ID_COUNT:
             params["count"] = count
 
         endpoint = f"/lol/match/v5/matches/by-puuid/{puuid}/ids"

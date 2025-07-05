@@ -6,7 +6,8 @@ from typing import Any
 
 @dataclass
 class CacheConfig:
-    """Configuration for API response caching.
+    """
+    Configuration for API response caching.
 
     Attributes:
         enabled: Whether caching is enabled
@@ -24,7 +25,8 @@ class CacheConfig:
     endpoint_config: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     def get_endpoint_expire_after(self, endpoint: str) -> int | None:
-        """Get expiration time for a specific endpoint.
+        """
+        Get expiration time for a specific endpoint.
 
         Args:
             endpoint: The API endpoint path
@@ -38,7 +40,8 @@ class CacheConfig:
         return self.expire_after
 
     def is_endpoint_cached(self, endpoint: str) -> bool:
-        """Check if a specific endpoint should be cached.
+        """
+        Check if a specific endpoint should be cached.
 
         Args:
             endpoint: The API endpoint path

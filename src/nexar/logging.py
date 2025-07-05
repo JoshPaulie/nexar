@@ -61,9 +61,14 @@ class NexarLogger:
 
         """
         self._call_stats["total_calls"] += 1
-        self.logger.info(f"API Call #{call_number}: {endpoint} (region: {region})")
+        self.logger.info(
+            "API Call #%d: %s (region: %s)",
+            call_number,
+            endpoint,
+            region,
+        )
         if params:
-            self.logger.debug(f"  Params: {params}")
+            self.logger.debug("  Params: %s", params)
 
     def log_api_call_success(self, status_code: int, *, from_cache: bool) -> None:
         """
@@ -81,7 +86,11 @@ class NexarLogger:
             self._call_stats["fresh_calls"] += 1
             cache_status = "fresh"
 
-        self.logger.info(f"  ✓ Success (Status: {status_code}, {cache_status})")
+        self.logger.info(
+            "  \u2713 Success (Status: %d, %s)",
+            status_code,
+            cache_status,
+        )
 
     def log_api_call_error(self, error: Exception) -> None:
         """
@@ -91,7 +100,7 @@ class NexarLogger:
             error: The error that occurred
 
         """
-        self.logger.error(f"  ✗ Error: {error}")
+        self.logger.error("  \u2717 Error: %s", error)
 
     def log_cache_setup(
         self,
@@ -111,10 +120,10 @@ class NexarLogger:
             cache_type: Type of cache backend
 
         """
-        self.logger.info(f"Caching enabled: {cache_name}.{backend}")
-        self.logger.debug(f"Session has cache: {has_cache}")
+        self.logger.info("Caching enabled: %s.%s", cache_name, backend)
+        self.logger.debug("Session has cache: %s", has_cache)
         if cache_type:
-            self.logger.debug(f"Cache backend: {cache_type}")
+            self.logger.debug("Cache backend: %s", cache_type)
 
     def log_cache_config(self, expire_after: int, *, has_url_expiration: bool) -> None:
         """
@@ -125,8 +134,8 @@ class NexarLogger:
             has_url_expiration: Whether per-URL expiration is configured
 
         """
-        self.logger.debug(f"Default expire_after: {expire_after}")
-        self.logger.debug(f"Per-URL expiration configured: {has_url_expiration}")
+        self.logger.debug("Default expire_after: %d", expire_after)
+        self.logger.debug("Per-URL expiration configured: %s", has_url_expiration)
 
     def log_cache_cleared(self) -> None:
         """Log cache clearing."""
@@ -141,7 +150,11 @@ class NexarLogger:
         if total > 0:
             cache_hit_rate = (cache_hits / total) * 100
             self.logger.info(
-                f"API Stats: {total} calls total, {fresh} fresh, {cache_hits} cached ({cache_hit_rate:.1f}% cache hit rate)",
+                "API Stats: %d calls total, %d fresh, %d cached (%.1f%% cache hit rate)",
+                total,
+                fresh,
+                cache_hits,
+                cache_hit_rate,
             )
         else:
             self.logger.info(
