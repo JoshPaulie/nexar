@@ -45,9 +45,9 @@ class Participant:
     """
 
     @property
-    def champion_icon(self) -> str:
+    def champion_icon_url(self) -> str:
         """
-        Link to CDragon API for Champion Icon.
+        Link to champion icon URL via CDragon.
 
         Useful for Discord embeds or Web UI.
         """
@@ -235,7 +235,11 @@ class Participant:
     """Number of turret kills."""
 
     unreal_kills: int
-    """TODO"""
+    """
+    (Presumably) Number of unreal kills achieved.
+    
+    Possibly for legacy/never released 6v6 gamemodes, but is unused and should be ignored.
+    """
 
     # Damage stats
     damage_dealt_to_buildings: int
@@ -305,6 +309,11 @@ class Participant:
     kJungleMonster
     """
 
+    @property
+    def total_jungle_minions_killed(self):
+        """Alias for neutral_minions_killed"""
+        return self.neutral_minions_killed
+
     total_ally_jungle_minions_killed: int
     """Number of allied jungle minions killed."""
 
@@ -313,7 +322,7 @@ class Participant:
 
     total_minions_killed: int
     """
-    Total number of minions killed (colloquially known as "CS" or "creep score").
+    Total number of minions killed.
     
     Riot docs:
     > totalMillionsKilled = mMinionsKilled, which is only incremented on kills of kTeamMinion,
@@ -322,8 +331,12 @@ class Participant:
 
     @property
     def creep_score(self):
-        """Alias for .total_minions_killed"""
-        return self.total_minions_killed
+        """
+        Total "Creep score" or CS earned throughout the game.
+
+        Combination of lane minions + jungle minions.
+        """
+        return self.total_minions_killed + self.neutral_minions_killed
 
     # Healing and support stats
     total_heal: int

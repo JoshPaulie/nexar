@@ -79,7 +79,11 @@ class MatchInfo:
     """When the match ended on the game server, if available."""
 
     game_name: str | None = None
-    """TODO"""
+    """
+    Meta tag used by Riot.
+    
+    Example: teambuilder-match-5318386826
+    """
 
     tournament_code: str | None = None
     """Tournament code used to generate the match, if applicable."""
