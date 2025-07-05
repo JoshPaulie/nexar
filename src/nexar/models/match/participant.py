@@ -18,8 +18,12 @@ class Participant:
     puuid: str
     """Player's universally unique identifier."""
 
-    summoner_name: str
-    """Player's summoner name at the time of the match."""
+    _summoner_name: str
+    """
+    Player's summoner name at the time of the match.
+    
+    **Deprecated by Riot.** Use `Participant.riot_id_game_name` instead.
+    """
 
     champion_id: int
     """
@@ -47,6 +51,15 @@ class Participant:
     def team_color(self):
         """Team color. Colloquially players use the terms "blue side" or "red side"."""
         return "Blue" if self.team_id == 100 else "Red"
+
+    @property
+    def summoner_name(self) -> str:
+        """
+        Player's summoner name at the time of the match.
+
+        **Deprecated by Riot.** Use `Participant.riot_id_game_name` instead.
+        """
+        return self._summoner_name
 
     participant_id: int
     """Participant's position in the match (1-10)."""
@@ -560,7 +573,7 @@ class Participant:
         return cls(
             # Core participant data
             puuid=data["puuid"],
-            summoner_name=data["summonerName"],
+            _summoner_name=data["summonerName"],
             champion_id=data["championId"],
             champion_name=data["championName"],
             team_id=data["teamId"],

@@ -25,7 +25,9 @@ def create_test_participant(**overrides) -> Participant:
     defaults = {
         # Core participant data
         "puuid": "test_player",
-        "summoner_name": "TestPlayer",
+        "_summoner_name": "TestPlayer",
+        "riot_id_game_name": "TestPlayer",
+        "riot_id_tagline": "TST",
         "champion_id": 1,
         "champion_name": "Annie",
         "team_id": 100,
@@ -233,7 +235,8 @@ class TestMatchModels:
         # Create test participants
         blue_participant = create_test_participant(
             puuid="blue_player",
-            summoner_name="BluePlayer",
+            riot_id_game_name="BluePlayer",
+            riot_id_tagline="BLU",
             champion_id=1,
             champion_name="Annie",
             team_id=100,  # Blue team
@@ -245,7 +248,8 @@ class TestMatchModels:
 
         red_participant = create_test_participant(
             puuid="red_player",
-            summoner_name="RedPlayer",
+            riot_id_game_name="RedPlayer",
+            riot_id_tagline="RED",
             champion_id=2,
             champion_name="Olaf",
             team_id=200,  # Red team
@@ -329,20 +333,21 @@ class TestMatchModels:
         assert teams.blue.team_id == 100
         assert teams.blue.win is True
         assert len(teams.blue.participants) == 1
-        assert teams.blue.participants[0].summoner_name == "BluePlayer"
+        assert teams.blue.participants[0].riot_id_game_name == "BluePlayer"
 
         # Test red team
         assert teams.red.team_id == 200
         assert teams.red.win is False
         assert len(teams.red.participants) == 1
-        assert teams.red.participants[0].summoner_name == "RedPlayer"
+        assert teams.red.participants[0].riot_id_game_name == "RedPlayer"
 
     def test_team_info_aggregated_stats(self):
         """Test TeamInfo aggregated statistics properties."""
         participants = [
             create_test_participant(
                 puuid="player1",
-                summoner_name="Player1",
+                riot_id_game_name="Player1",
+                riot_id_tagline="P1",
                 champion_id=1,
                 champion_name="Annie",
                 team_id=100,
@@ -364,7 +369,8 @@ class TestMatchModels:
             ),
             create_test_participant(
                 puuid="player2",
-                summoner_name="Player2",
+                riot_id_game_name="Player2",
+                riot_id_tagline="P2",
                 champion_id=2,
                 champion_name="Olaf",
                 team_id=100,
@@ -415,7 +421,8 @@ class TestMatchModels:
         """Test that Match is iterable over participants."""
         blue_participant = create_test_participant(
             puuid="blue_player",
-            summoner_name="BluePlayer",
+            riot_id_game_name="BluePlayer",
+            riot_id_tagline="BLU",
             champion_id=1,
             champion_name="Annie",
             team_id=100,
@@ -427,7 +434,8 @@ class TestMatchModels:
 
         red_participant = create_test_participant(
             puuid="red_player",
-            summoner_name="RedPlayer",
+            riot_id_game_name="RedPlayer",
+            riot_id_tagline="RED",
             champion_id=2,
             champion_name="Olaf",
             team_id=200,
@@ -474,7 +482,7 @@ class TestMatchModels:
         # Test iteration
         participant_names = []
         for participant in match:
-            participant_names.append(participant.summoner_name)
+            participant_names.append(participant.riot_id_game_name)
 
         assert participant_names == ["BluePlayer", "RedPlayer"]
 
