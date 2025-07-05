@@ -78,7 +78,7 @@ class Tier(Enum):
 
 
 class Division(Enum):
-    """Ranked divisions. (I, II, etc.)"""
+    """Ranked divisions. (I, II, etc.)."""
 
     ONE = "I"
     TWO = "II"
@@ -87,8 +87,7 @@ class Division(Enum):
 
 
 class QueueId(Enum):
-    """
-    Queue IDs for different game modes.
+    """Queue IDs for different game modes.
 
     Removed all deprecated ones. Leaving obscure and temp queue IDs for forward compatibility.
 
@@ -305,8 +304,7 @@ class QueueId(Enum):
 
 
 class MapId(Enum):
-    """
-    Map IDs for different League of Legends maps.
+    """Map IDs for different League of Legends maps.
 
     Last updated: 2025-07-05
     URL: https://static.developer.riotgames.com/docs/lol/maps.json

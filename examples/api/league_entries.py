@@ -73,7 +73,7 @@ player = Player(client=client, game_name="bexli", tag_line="bex")
 print("Using Player API for the same data:")
 print(f"Solo Queue Rank: {player.rank.tier.value if player.rank else 'Unranked'}")
 print(
-    f"Flex Queue Rank: {player.flex_rank.tier.value if player.flex_rank else 'Unranked'}"
+    f"Flex Queue Rank: {player.flex_rank.tier.value if player.flex_rank else 'Unranked'}",
 )
 
 print("\n=== API Usage Notes ===")
@@ -90,5 +90,5 @@ print("- Handles PUUID lookup automatically")
 print("- Simpler for common use cases")
 print()
 print(
-    "Recommendation: Use Player API unless you need all queue types or custom processing"
+    "Recommendation: Use Player API unless you need all queue types or custom processing",
 )

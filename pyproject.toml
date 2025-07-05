@@ -7,10 +7,10 @@ authors = [
     { name = "bex", email = "30572280+JoshPaulie@users.noreply.github.com" },
 ]
 requires-python = ">=3.13"
-dependencies = [
-    "requests>=2.32.4",
-    "requests-cache>=1.2.1",
-]
+dependencies = ["requests>=2.32.4", "requests-cache>=1.2.1"]
+
+[dependency-groups]
+dev = ["pytest>=8.4.1"]
 
 [build-system]
 requires = ["hatchling"]
@@ -23,8 +23,16 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I", "N", "UP"]
-ignore = []
+# select = ["E4", "E7", "E9", "F", "I", "N", "UP"]
+select = ["ALL"]
+ignore = [
+    "T201",    # Allow print statements
+    "D107",    # Ignore missing docstring in __init__
+    "PLR0913", # Ignore too many return statements
+    "D212",    # Ignore dumb rule about docstrings and how they start
+    "D105",    # Ignore missing docstring in magic methods
+    "DTZ006",  # Ignore missing tz in datetime
+]
 
-[dependency-groups]
-dev = ["pytest>=8.4.1"]
+[tool.ruff]
+line-length = 120

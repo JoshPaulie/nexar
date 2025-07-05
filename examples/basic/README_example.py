@@ -43,6 +43,6 @@ for match in recent_matches:
                 f"{result:<9} "
                 f"{participant.champion_name:<8} "
                 f"{participant.team_position.value.title():<6} "
-                f"{kda} ({kda_ratio})"
+                f"{kda} ({kda_ratio})",
             )
             break

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from ...enums import MatchParticipantPosition
+from nexar.enums import MatchParticipantPosition
 
 if TYPE_CHECKING:
     from .challenges import Challenges, Missions
@@ -21,14 +21,14 @@ class Participant:
     _summoner_name: str
     """
     Player's summoner name at the time of the match.
-    
+
     **Deprecated by Riot.** Use `Participant.riot_id_game_name` instead.
     """
 
     champion_id: int
     """
     Unique identifier for the champion played.
-    
+
     Riot docs:
     > Prior to patch 11.4, on Feb 18th, 2021, this field returned invalid championIds.
     We recommend determining the champion based on the championName field for matches played prior
@@ -40,7 +40,7 @@ class Participant:
     champion_name: str
     """
     Name of the champion played.
-    
+
     **Use this over champion_id**
     """
 
@@ -60,7 +60,7 @@ class Participant:
     """Team identifier (100 for blue side, 200 for red side)."""
 
     @property
-    def team_color(self):
+    def team_color(self) -> str:
         """Team color. Colloquially players use the terms "blue side" or "red side"."""
         return "Blue" if self.team_id == 100 else "Red"
 
@@ -92,6 +92,7 @@ class Participant:
 
         Args:
             as_str: If True, returns formatted string like "5/2/10". If False, returns tuple.
+
         """
         if as_str:
             return f"{self.kills}/{self.deaths}/{self.assists}"
@@ -142,7 +143,7 @@ class Participant:
     Riot API docs:
     > The individualPosition is the best guess for which position the player actually played in
     isolation of anything else.
-    
+
     **Generally, you should use the team_position over the this.**
     """
 
@@ -153,7 +154,7 @@ class Participant:
     Riot API docs:
     > The teamPosition is the best guess for which position the player actually played if we add
     the constraint that each team must have one top player, one jungle, one middle, etc.
-    
+
     **Generally, you should use the this over the individual_position.**
     """
 
@@ -237,7 +238,7 @@ class Participant:
     unreal_kills: int
     """
     (Presumably) Number of unreal kills achieved.
-    
+
     Possibly for legacy/never released 6v6 gamemodes, but is unused and should be ignored.
     """
 
@@ -753,10 +754,6 @@ class Participant:
             subteam_placement=data.get("subteamPlacement"),
             # Complex nested objects
             perks=Perks.from_api_response(data["perks"]) if data.get("perks") else None,
-            challenges=Challenges.from_api_response(data["challenges"])
-            if data.get("challenges")
-            else None,
-            missions=Missions.from_api_response(data["missions"])
-            if data.get("missions")
-            else None,
+            challenges=Challenges.from_api_response(data["challenges"]) if data.get("challenges") else None,
+            missions=Missions.from_api_response(data["missions"]) if data.get("missions") else None,
         )

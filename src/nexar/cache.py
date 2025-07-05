@@ -14,6 +14,7 @@ class CacheConfig:
         backend: Cache backend to use ('sqlite', 'filesystem', 'memory', etc.)
         expire_after: Default expiration time in seconds (None for no expiration)
         endpoint_config: Per-endpoint cache configuration
+
     """
 
     enabled: bool = True
@@ -30,6 +31,7 @@ class CacheConfig:
 
         Returns:
             Expiration time in seconds, or None for no expiration
+
         """
         if endpoint in self.endpoint_config:
             return self.endpoint_config[endpoint].get("expire_after", self.expire_after)
@@ -43,6 +45,7 @@ class CacheConfig:
 
         Returns:
             True if the endpoint should be cached
+
         """
         if not self.enabled:
             return False

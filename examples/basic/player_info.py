@@ -33,7 +33,7 @@ print(f"PUUID: {player.puuid}")
 if player.rank:
     rank = player.rank
     print(
-        f"Solo Queue Rank: {rank.tier.value} {rank.rank.value} ({rank.league_points} LP)"
+        f"Solo Queue Rank: {rank.tier.value} {rank.rank.value} ({rank.league_points} LP)",
     )
     print(f"Win Rate: {rank.win_rate:.1f}% ({rank.wins}W/{rank.losses}L)")
     if rank.mini_series:
@@ -44,7 +44,7 @@ else:
 if player.flex_rank:
     flex = player.flex_rank
     print(
-        f"Flex Queue Rank: {flex.tier.value} {flex.rank.value} ({flex.league_points} LP)"
+        f"Flex Queue Rank: {flex.tier.value} {flex.rank.value} ({flex.league_points} LP)",
     )
 else:
     print("Flex Queue Rank: Unranked")

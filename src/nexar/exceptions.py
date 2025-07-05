@@ -4,7 +4,6 @@
 class NexarError(Exception):
     """Base exception for all Nexar SDK errors."""
 
-    pass
 
 
 class RiotAPIError(NexarError):
@@ -19,22 +18,18 @@ class RiotAPIError(NexarError):
 class RateLimitError(RiotAPIError):
     """Raised when rate limit is exceeded."""
 
-    pass
 
 
 class NotFoundError(RiotAPIError):
     """Raised when requested resource is not found."""
 
-    pass
 
 
 class UnauthorizedError(RiotAPIError):
     """Raised when API key is invalid or missing."""
 
-    pass
 
 
 class ForbiddenError(RiotAPIError):
     """Raised when access is forbidden."""
 
-    pass

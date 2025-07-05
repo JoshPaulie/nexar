@@ -13,7 +13,7 @@ def riot_api_key():
     api_key = os.getenv("RIOT_API_KEY")
     if not api_key:
         pytest.skip(
-            "RIOT_API_KEY environment variable not set. Source riot-key.sh before running tests."
+            "RIOT_API_KEY environment variable not set. Source riot-key.sh before running tests.",
         )
     return api_key
 

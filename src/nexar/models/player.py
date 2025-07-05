@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from ..enums import MatchType, QueueId, RegionV4, RegionV5
-from .account import RiotAccount, Summoner
-from .league import LeagueEntry
-
 if TYPE_CHECKING:
-    from ..client import NexarClient
+    from datetime import datetime
+
+    from nexar.client import NexarClient
+    from nexar.enums import MatchType, QueueId, RegionV4, RegionV5
+
+    from .account import RiotAccount, Summoner
+    from .league import LeagueEntry
     from .match.match import Match
 
 
@@ -75,7 +76,8 @@ class Player:
         v4_region: RegionV4 | None = None,
         v5_region: RegionV5 | None = None,
     ) -> None:
-        """Initialize a Player.
+        """
+        Initialize a Player.
 
         Args:
             client: The NexarClient instance
@@ -83,6 +85,7 @@ class Player:
             tag_line: Player's tag line (without #)
             v4_region: Platform region for v4 endpoints (defaults to client default)
             v5_region: Regional region for v5 endpoints (defaults to client default)
+
         """
         self._client = client
         self.game_name = game_name
@@ -100,7 +103,9 @@ class Player:
         """Get the player's Riot account. Cached after first access."""
         if self._riot_account is None:
             self._riot_account = self._client.get_riot_account(
-                self.game_name, self.tag_line, region=self._v5_region
+                self.game_name,
+                self.tag_line,
+                region=self._v5_region,
             )
         return self._riot_account
 
@@ -109,7 +114,8 @@ class Player:
         """Get the player's summoner information. Cached after first access."""
         if self._summoner is None:
             self._summoner = self._client.get_summoner_by_puuid(
-                self.riot_account.puuid, region=self._v4_region
+                self.riot_account.puuid,
+                region=self._v4_region,
             )
         return self._summoner
 
@@ -123,7 +129,8 @@ class Player:
         """Get all league entries for the player. Cached after first access."""
         if self._league_entries is None:
             self._league_entries = self._client.get_league_entries_by_puuid(
-                self.puuid, region=self._v4_region
+                self.puuid,
+                region=self._v4_region,
             )
         return self._league_entries
 
@@ -136,7 +143,7 @@ class Player:
         - Map: Summoner's Rift
         - Colloquial name: Solo/Duo; Solo Queue
         """
-        from ..enums import Queue
+        from nexar.enums import Queue
 
         for entry in self.league_entries:
             if entry.queue_type == Queue.RANKED_SOLO_5x5:
@@ -152,7 +159,7 @@ class Player:
         - Map: Summoner's Rift
         - Colloquial name: Flex Queue
         """
-        from ..enums import Queue
+        from nexar.enums import Queue
 
         for entry in self.league_entries:
             if entry.queue_type == Queue.RANKED_FLEX_SR:
@@ -163,6 +170,7 @@ class Player:
     def solo_rank_value(self) -> int | None:
         """
         Combined tier/rank value for the player's solo queue rank.
+
         Returns None if the player is unranked in solo queue.
 
         Useful for comparing or sorting players by solo queue rank.
@@ -190,6 +198,7 @@ class Player:
 
         Returns:
             List of Match objects
+
         """
         match_ids = self._client.get_match_ids_by_puuid(
             self.puuid,
@@ -223,9 +232,12 @@ class Player:
 
         Returns:
             List of ChampionStats sorted by games played (descending)
+
         """
         matches = self.get_recent_matches(
-            count=count, queue=queue, match_type=match_type
+            count=count,
+            queue=queue,
+            match_type=match_type,
         )
 
         # Group stats by champion
@@ -289,9 +301,12 @@ class Player:
 
         Returns:
             List of top ChampionStats by games played
+
         """
         all_stats = self.get_champion_stats(
-            count=count, queue=queue, match_type=match_type
+            count=count,
+            queue=queue,
+            match_type=match_type,
         )
         return all_stats[:top_n]
 
@@ -310,9 +325,12 @@ class Player:
 
         Returns:
             Dictionary with performance statistics
+
         """
         matches = self.get_recent_matches(
-            count=count, queue=queue, match_type=match_type
+            count=count,
+            queue=queue,
+            match_type=match_type,
         )
 
         if not matches:
@@ -354,10 +372,7 @@ class Player:
             total_kills += player_participant.kills
             total_deaths += player_participant.deaths
             total_assists += player_participant.assists
-            total_cs += (
-                player_participant.total_minions_killed
-                + player_participant.neutral_minions_killed
-            )
+            total_cs += player_participant.total_minions_killed + player_participant.neutral_minions_killed
             total_duration_seconds += match.info.game_duration
 
         losses = total_games - wins
@@ -365,13 +380,9 @@ class Player:
         avg_kills = total_kills / total_games if total_games > 0 else 0.0
         avg_deaths = total_deaths / total_games if total_games > 0 else 0.0
         avg_assists = total_assists / total_games if total_games > 0 else 0.0
-        avg_kda = (
-            (total_kills + total_assists) / total_deaths if total_deaths > 0 else 0.0
-        )
+        avg_kda = (total_kills + total_assists) / total_deaths if total_deaths > 0 else 0.0
         avg_cs = total_cs / total_games if total_games > 0 else 0.0
-        avg_duration_minutes = (
-            (total_duration_seconds / 60) / total_games if total_games > 0 else 0.0
-        )
+        avg_duration_minutes = (total_duration_seconds / 60) / total_games if total_games > 0 else 0.0
 
         return {
             "total_games": total_games,
@@ -394,6 +405,7 @@ class Player:
 
         Returns:
             True if player is on a win streak of at least min_games
+
         """
         recent_matches = self.get_recent_matches(count=min_games)
 
@@ -426,6 +438,7 @@ class Player:
 
         Returns:
             Dictionary with role names as keys and performance stats as values
+
         """
         matches = self.get_recent_matches(count=count, queue=queue)
 
@@ -442,11 +455,7 @@ class Player:
             if player_participant is None:
                 continue
 
-            role = (
-                player_participant.team_position.value
-                if player_participant.team_position
-                else "UNKNOWN"
-            )
+            role = player_participant.team_position.value if player_participant.team_position else "UNKNOWN"
 
             if role not in role_stats:
                 role_stats[role] = {
@@ -463,10 +472,7 @@ class Player:
             stats["total_kills"] += player_participant.kills
             stats["total_deaths"] += player_participant.deaths
             stats["total_assists"] += player_participant.assists
-            stats["total_cs"] += (
-                player_participant.total_minions_killed
-                + player_participant.neutral_minions_killed
-            )
+            stats["total_cs"] += player_participant.total_minions_killed + player_participant.neutral_minions_killed
 
             if player_participant.win:
                 stats["wins"] += 1
@@ -482,8 +488,7 @@ class Player:
                 stats["avg_cs"] = round(stats["total_cs"] / games, 1)
                 stats["avg_kda"] = (
                     round(
-                        (stats["total_kills"] + stats["total_assists"])
-                        / stats["total_deaths"],
+                        (stats["total_kills"] + stats["total_assists"]) / stats["total_deaths"],
                         2,
                     )
                     if stats["total_deaths"] > 0

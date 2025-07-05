@@ -7,25 +7,20 @@ from .perks import Perks, PerkStats, PerkStyle, PerkStyleSelection
 from .team import Ban, Objective, Objectives, Team, TeamInfo, TeamsInfo
 
 __all__ = [
-    # Core match models
+    "Ban",
+    "Challenges",
     "Match",
     "MatchInfo",
     "MatchMetadata",
-    # Participant models
+    "Missions",
+    "Objective",
+    "Objectives",
     "Participant",
-    # Perk models
-    "Perks",
     "PerkStats",
     "PerkStyle",
     "PerkStyleSelection",
-    # Team models
-    "Ban",
-    "Objective",
-    "Objectives",
+    "Perks",
     "Team",
     "TeamInfo",
     "TeamsInfo",
-    # Challenge models
-    "Challenges",
-    "Missions",
 ]

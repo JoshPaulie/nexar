@@ -38,7 +38,7 @@ print(f"   Most recent: {match_ids[0] if match_ids else 'None'}")
 # Example 2: Filter by queue type
 print("\n2. Ranked Solo Queue matches only:")
 ranked_match_ids = client.get_match_ids_by_puuid(
-    puuid, queue=QueueId.RANKED_SOLO_5x5, count=10
+    puuid, queue=QueueId.RANKED_SOLO_5x5, count=10,
 )
 print(f"   Found {len(ranked_match_ids)} ranked match IDs")
 
@@ -48,14 +48,14 @@ end_time = datetime.now()
 start_time = end_time - timedelta(days=7)
 
 recent_match_ids = client.get_match_ids_by_puuid(
-    puuid, start_time=start_time, end_time=end_time, count=50
+    puuid, start_time=start_time, end_time=end_time, count=50,
 )
 print(f"   Found {len(recent_match_ids)} matches in last 7 days")
 
 # Example 4: Filter by match type
 print("\n4. Ranked matches only (any ranked queue):")
 ranked_any_match_ids = client.get_match_ids_by_puuid(
-    puuid, match_type=MatchType.RANKED, count=15
+    puuid, match_type=MatchType.RANKED, count=15,
 )
 print(f"   Found {len(ranked_any_match_ids)} ranked matches")
 
@@ -74,7 +74,7 @@ print("\n6. Complex filtering - ranked matches from last 30 days:")
 thirty_days_ago = datetime.now() - timedelta(days=30)
 
 complex_match_ids = client.get_match_ids_by_puuid(
-    puuid, start_time=thirty_days_ago, queue=QueueId.RANKED_SOLO_5x5, count=25
+    puuid, start_time=thirty_days_ago, queue=QueueId.RANKED_SOLO_5x5, count=25,
 )
 print(f"   Found {len(complex_match_ids)} ranked solo queue matches from last 30 days")
 
@@ -86,7 +86,7 @@ if match_ids:
 
     print(f"   Match ID: {match_id}")
     print(
-        f"   Game Duration: {match.info.game_duration // 60}m {match.info.game_duration % 60}s"
+        f"   Game Duration: {match.info.game_duration // 60}m {match.info.game_duration % 60}s",
     )
     print(f"   Queue: {match.info.queue_id}")
     print(f"   Participants: {len(match.info.participants)}")
@@ -97,7 +97,7 @@ if match_ids:
             result = "WIN" if participant.win else "LOSS"
             kda = f"{participant.kills}/{participant.deaths}/{participant.assists}"
             print(
-                f"   Player Result: {result} with {participant.champion_name} ({kda})"
+                f"   Player Result: {result} with {participant.champion_name} ({kda})",
             )
             break
 

@@ -44,7 +44,7 @@ class TestRateLimiter:
             [
                 RateLimit(requests=2, window_seconds=1),
                 RateLimit(requests=3, window_seconds=2),
-            ]
+            ],
         )
 
         # Make 2 requests quickly

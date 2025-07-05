@@ -5,10 +5,11 @@ import os
 import sys
 import time
 
+from feature_logging import SMART_CACHE_CONFIG
+
 from nexar.cache import (
     DEFAULT_CACHE_CONFIG,
     NO_CACHE_CONFIG,
-    SMART_CACHE_CONFIG,
     CacheConfig,
 )
 from nexar.client import NexarClient
@@ -20,7 +21,7 @@ if not api_key:
     sys.exit("Please set RIOT_API_KEY environment variable")
 
 
-def time_operation(description: str, operation):
+def time_operation(description: str, operation: callable) -> object:
     """Time an operation and print the results."""
     print(f"\n{description}")
     start = time.time()

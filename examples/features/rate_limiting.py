@@ -5,7 +5,8 @@ import os
 import sys
 import time
 
-from nexar.cache import SMART_CACHE_CONFIG
+from feature_logging import SMART_CACHE_CONFIG
+
 from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 from nexar.rate_limiter import RateLimit, RateLimiter
@@ -77,7 +78,7 @@ conservative_rate_limiter = RateLimiter(
     [
         RateLimit(requests=10, window_seconds=1),  # 10 requests per second
         RateLimit(requests=50, window_seconds=120),  # 50 requests per 2 minutes
-    ]
+    ],
 )
 
 conservative_client = NexarClient(

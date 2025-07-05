@@ -25,7 +25,6 @@ client = NexarClient(
 
 def compare_players(players: list[Player], analysis_games: int = 20):
     """Compare performance metrics across multiple players."""
-
     print(f"\n=== Comparing {len(players)} Players (Last {analysis_games} Games) ===")
 
     player_data = []
@@ -43,12 +42,12 @@ def compare_players(players: list[Player], analysis_games: int = 20):
 
             # Get performance summary
             performance = player.get_performance_summary(
-                count=analysis_games, queue=QueueId.RANKED_SOLO_5x5
+                count=analysis_games, queue=QueueId.RANKED_SOLO_5x5,
             )
 
             # Get top champion
             top_champions = player.get_top_champions(
-                top_n=1, count=analysis_games, queue=QueueId.RANKED_SOLO_5x5
+                top_n=1, count=analysis_games, queue=QueueId.RANKED_SOLO_5x5,
             )
             top_champion = top_champions[0].champion_name if top_champions else "None"
 
@@ -63,7 +62,7 @@ def compare_players(players: list[Player], analysis_games: int = 20):
                     "performance": performance,
                     "top_champion": top_champion,
                     "on_streak": on_streak,
-                }
+                },
             )
 
         except Exception as e:
@@ -72,11 +71,11 @@ def compare_players(players: list[Player], analysis_games: int = 20):
 
     if not player_data:
         print("No player data available for comparison")
-        return
+        return None
 
     # Print comparison table
     print(
-        f"\n{'Player':<20} {'Level':<6} {'Rank':<20} {'WR%':<6} {'Avg KDA':<8} {'Top Champ':<15} {'Streak':<6}"
+        f"\n{'Player':<20} {'Level':<6} {'Rank':<20} {'WR%':<6} {'Avg KDA':<8} {'Top Champ':<15} {'Streak':<6}",
     )
     print("-" * 95)
 
@@ -91,7 +90,7 @@ def compare_players(players: list[Player], analysis_games: int = 20):
         streak = "YES" if data["on_streak"] else "NO"
 
         print(
-            f"{player_name:<20} {level:<6} {rank:<20} {win_rate:<6} {avg_kda:<8} {top_champ:<15} {streak:<6}"
+            f"{player_name:<20} {level:<6} {rank:<20} {win_rate:<6} {avg_kda:<8} {top_champ:<15} {streak:<6}",
         )
 
     # Detailed performance comparison
@@ -106,10 +105,10 @@ def compare_players(players: list[Player], analysis_games: int = 20):
 
     if sorted_by_wr:
         print(
-            f"\n🏆 Highest Win Rate: {sorted_by_wr[0]['player'].game_name}#{sorted_by_wr[0]['player'].tag_line}"
+            f"\n🏆 Highest Win Rate: {sorted_by_wr[0]['player'].game_name}#{sorted_by_wr[0]['player'].tag_line}",
         )
         print(
-            f"   {sorted_by_wr[0]['performance']['win_rate']:.1f}% ({sorted_by_wr[0]['performance']['wins']}W/{sorted_by_wr[0]['performance']['losses']}L)"
+            f"   {sorted_by_wr[0]['performance']['win_rate']:.1f}% ({sorted_by_wr[0]['performance']['wins']}W/{sorted_by_wr[0]['performance']['losses']}L)",
         )
 
     # Sort by KDA
@@ -121,11 +120,11 @@ def compare_players(players: list[Player], analysis_games: int = 20):
 
     if sorted_by_kda:
         print(
-            f"\n🎯 Best KDA: {sorted_by_kda[0]['player'].game_name}#{sorted_by_kda[0]['player'].tag_line}"
+            f"\n🎯 Best KDA: {sorted_by_kda[0]['player'].game_name}#{sorted_by_kda[0]['player'].tag_line}",
         )
         perf = sorted_by_kda[0]["performance"]
         print(
-            f"   {perf['avg_kills']:.1f}/{perf['avg_deaths']:.1f}/{perf['avg_assists']:.1f} ({perf['avg_kda']:.2f} KDA)"
+            f"   {perf['avg_kills']:.1f}/{perf['avg_deaths']:.1f}/{perf['avg_assists']:.1f} ({perf['avg_kda']:.2f} KDA)",
         )
 
     # Players on win streaks
@@ -140,7 +139,6 @@ def compare_players(players: list[Player], analysis_games: int = 20):
 
 def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
     """Analyze what champions multiple players have in common."""
-
     print(f"\n=== Champion Pool Analysis (Last {analysis_games} Games) ===")
 
     all_champions = {}
@@ -150,7 +148,7 @@ def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
         try:
             player_name = f"{player.game_name}#{player.tag_line}"
             champions = player.get_champion_stats(
-                count=analysis_games, queue=QueueId.RANKED_SOLO_5x5
+                count=analysis_games, queue=QueueId.RANKED_SOLO_5x5,
             )
 
             player_champions[player_name] = champions
@@ -164,7 +162,7 @@ def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
                             "player": player_name,
                             "games": champ.games_played,
                             "win_rate": champ.win_rate,
-                        }
+                        },
                     )
         except Exception as e:
             print(f"Error getting champions for {player}: {e}")
@@ -182,10 +180,10 @@ def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
         for champion, players_data in sorted(common_champions.items()):
             print(f"\n{champion}:")
             for player_data in sorted(
-                players_data, key=lambda x: x["win_rate"], reverse=True
+                players_data, key=lambda x: x["win_rate"], reverse=True,
             ):
                 print(
-                    f"  {player_data['player']}: {player_data['games']} games, {player_data['win_rate']:.1f}% WR"
+                    f"  {player_data['player']}: {player_data['games']} games, {player_data['win_rate']:.1f}% WR",
                 )
 
     # Find unique champions (played by only one player)
@@ -199,7 +197,7 @@ def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
         print("\nUnique Champions (3+ games):")
         for champion, player_data in sorted(unique_champions.items()):
             print(
-                f"  {champion}: {player_data['player']} ({player_data['games']} games, {player_data['win_rate']:.1f}% WR)"
+                f"  {champion}: {player_data['player']} ({player_data['games']} games, {player_data['win_rate']:.1f}% WR)",
             )
 
 

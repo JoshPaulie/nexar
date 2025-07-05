@@ -32,7 +32,8 @@ class NexarClient:
         cache_config: CacheConfig | None = None,
         rate_limiter: RateLimiter | None = None,
     ) -> None:
-        """Initialize the Nexar client.
+        """
+        Initialize the Nexar client.
 
         Args:
             riot_api_key: Your Riot Games API key
@@ -40,6 +41,7 @@ class NexarClient:
             default_v5_region: Default region for regional endpoints
             cache_config: Cache configuration (uses default if None)
             rate_limiter: Rate limiter configuration (uses default if None)
+
         """
         self.riot_api_key = riot_api_key
         self.default_v4_region = default_v4_region
@@ -58,7 +60,8 @@ class NexarClient:
             for endpoint_pattern, config in self.cache_config.endpoint_config.items():
                 if isinstance(config, dict) and config.get("enabled", True):
                     expire_time = config.get(
-                        "expire_after", self.cache_config.expire_after
+                        "expire_after",
+                        self.cache_config.expire_after,
                     )
                     # Map pattern to actual URLs that might match
                     urls_expire_after[f"*{endpoint_pattern}*"] = expire_time
@@ -86,7 +89,8 @@ class NexarClient:
         region: RegionV4 | RegionV5,
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Make an API call to the Riot Games API.
+        """
+        Make an API call to the Riot Games API.
 
         Args:
             endpoint: The API endpoint path
@@ -98,13 +102,17 @@ class NexarClient:
 
         Raises:
             RiotAPIError: If the API returns an error status code
+
         """
         # Always increment API call counter
         self._api_call_count += 1
 
         # Log API call start
         self._logger.log_api_call_start(
-            self._api_call_count, endpoint, region.value, params
+            self._api_call_count,
+            endpoint,
+            region.value,
+            params,
         )
 
         # Construct the full URL with the region
@@ -140,7 +148,10 @@ class NexarClient:
 
             # Make the request (cached or not)
             response = self._session.get(
-                url, headers=headers, params=params, timeout=30
+                url,
+                headers=headers,
+                params=params,
+                timeout=30,
             )
 
             # Record the request only if it wasn't served from cache
@@ -151,7 +162,7 @@ class NexarClient:
             self._handle_response_errors(response)
 
             # Log successful response
-            self._logger.log_api_call_success(response.status_code, from_cache)
+            self._logger.log_api_call_success(response.status_code, from_cache=from_cache)
 
             return response.json()
         except requests.RequestException as e:
@@ -173,10 +184,12 @@ class NexarClient:
             raise
 
     def _get_api_call_count(self) -> int:
-        """Get the current number of API calls made by this client.
+        """
+        Get the current number of API calls made by this client.
 
         Returns:
             Number of API calls made since client initialization
+
         """
         return self._api_call_count
 
@@ -186,10 +199,12 @@ class NexarClient:
         self._logger.reset_stats()
 
     def get_rate_limit_status(self) -> dict[str, Any]:
-        """Get current rate limit status.
+        """
+        Get current rate limit status.
 
         Returns:
             Dictionary with current rate limit usage and remaining requests
+
         """
         return self.rate_limiter.get_status()
 
@@ -198,10 +213,12 @@ class NexarClient:
         self.rate_limiter = RateLimiter.create_default()
 
     def get_api_call_stats(self) -> dict[str, int]:
-        """Get API call statistics.
+        """
+        Get API call statistics.
 
         Returns:
             Dictionary with call statistics including total calls, cache hits, and fresh calls
+
         """
         return self._logger.get_stats()
 
@@ -222,14 +239,13 @@ class NexarClient:
 
         if response.status_code == 401:
             raise UnauthorizedError(response.status_code, message)
-        elif response.status_code == 403:
+        if response.status_code == 403:
             raise ForbiddenError(response.status_code, message)
-        elif response.status_code == 404:
+        if response.status_code == 404:
             raise NotFoundError(response.status_code, message)
-        elif response.status_code == 429:
+        if response.status_code == 429:
             raise RateLimitError(response.status_code, message)
-        else:
-            raise RiotAPIError(response.status_code, message)
+        raise RiotAPIError(response.status_code, message)
 
     def _setup_caching(self) -> None:
         """Set up caching for the HTTP session if enabled."""
@@ -240,10 +256,10 @@ class NexarClient:
         has_cache = hasattr(self._session, "cache")
         cache_type = type(self._session.cache) if has_cache else None
         self._logger.log_cache_setup(
-            self.cache_config.cache_name,
-            self.cache_config.backend,
-            has_cache,
-            cache_type,
+            cache_name=self.cache_config.cache_name,
+            backend=self.cache_config.backend,
+            has_cache=has_cache,
+            cache_type=cache_type,
         )
 
         if has_cache:
@@ -254,7 +270,8 @@ class NexarClient:
                 and bool(self._session.settings.urls_expire_after)
             )
             self._logger.log_cache_config(
-                self.cache_config.expire_after, has_url_expiration
+                expire_after=self.cache_config.expire_after,
+                has_url_expiration=has_url_expiration,
             )
 
     def clear_cache(self) -> None:
@@ -264,10 +281,12 @@ class NexarClient:
             self._logger.log_cache_cleared()
 
     def get_cache_info(self) -> dict[str, Any]:
-        """Get information about the current cache state.
+        """
+        Get information about the current cache state.
 
         Returns:
             Dictionary with cache statistics and configuration
+
         """
         info = {
             "enabled": self.cache_config.enabled,
@@ -292,9 +311,13 @@ class NexarClient:
 
     # Account API
     def get_riot_account(
-        self, game_name: str, tag_line: str, region: RegionV5 | None = None
+        self,
+        game_name: str,
+        tag_line: str,
+        region: RegionV5 | None = None,
     ) -> RiotAccount:
-        """Get a Riot account by game name and tag line.
+        """
+        Get a Riot account by game name and tag line.
 
         Args:
             game_name: The game name (without #)
@@ -303,6 +326,7 @@ class NexarClient:
 
         Returns:
             RiotAccount with account information
+
         """
         region = region or self.default_v5_region
         data = self._make_api_call(
@@ -313,9 +337,12 @@ class NexarClient:
 
     # Summoner API
     def get_summoner_by_puuid(
-        self, puuid: str, region: RegionV4 | None = None
+        self,
+        puuid: str,
+        region: RegionV4 | None = None,
     ) -> Summoner:
-        """Get a summoner by PUUID.
+        """
+        Get a summoner by PUUID.
 
         Args:
             puuid: The summoner's PUUID
@@ -323,6 +350,7 @@ class NexarClient:
 
         Returns:
             Summoner with summoner information
+
         """
         region = region or self.default_v4_region
         data = self._make_api_call(
@@ -333,9 +361,12 @@ class NexarClient:
 
     # League API
     def get_league_entries_by_puuid(
-        self, puuid: str, region: RegionV4 | None = None
+        self,
+        puuid: str,
+        region: RegionV4 | None = None,
     ) -> list[LeagueEntry]:
-        """Get league entries by PUUID.
+        """
+        Get league entries by PUUID.
 
         Args:
             puuid: The summoner's PUUID
@@ -343,6 +374,7 @@ class NexarClient:
 
         Returns:
             List of league entries for the summoner
+
         """
         region = region or self.default_v4_region
         data = self._make_api_call(
@@ -353,7 +385,8 @@ class NexarClient:
 
     # Match API
     def get_match(self, match_id: str, region: RegionV5 | None = None) -> Match:
-        """Get match details by match ID.
+        """
+        Get match details by match ID.
 
         Args:
             match_id: The match ID
@@ -361,6 +394,7 @@ class NexarClient:
 
         Returns:
             Match with detailed match information
+
         """
         region = region or self.default_v5_region
         data = self._make_api_call(
@@ -381,7 +415,8 @@ class NexarClient:
         count: int = 20,
         region: RegionV5 | None = None,
     ) -> list[str]:
-        """Get match IDs by PUUID with optional filters.
+        """
+        Get match IDs by PUUID with optional filters.
 
         Args:
             puuid: The player's PUUID
@@ -395,28 +430,22 @@ class NexarClient:
 
         Returns:
             List of match IDs
+
         """
         if not 0 <= count <= 100:
-            raise ValueError("count must be between 0 and 100")
+            msg = "count must be between 0 and 100"
+            raise ValueError(msg)
 
         region = region or self.default_v5_region
 
         # Convert datetime objects to epoch timestamps
         start_timestamp = None
         if start_time is not None:
-            start_timestamp = (
-                int(start_time.timestamp())
-                if isinstance(start_time, datetime)
-                else start_time
-            )
+            start_timestamp = int(start_time.timestamp()) if isinstance(start_time, datetime) else start_time
 
         end_timestamp = None
         if end_time is not None:
-            end_timestamp = (
-                int(end_time.timestamp())
-                if isinstance(end_time, datetime)
-                else end_time
-            )
+            end_timestamp = int(end_time.timestamp()) if isinstance(end_time, datetime) else end_time
 
         # Build query parameters dict
         params = {}
@@ -427,17 +456,14 @@ class NexarClient:
         if queue is not None:
             params["queue"] = queue.value if isinstance(queue, QueueId) else queue
         if match_type is not None:
-            params["type"] = (
-                match_type.value if isinstance(match_type, MatchType) else match_type
-            )
+            params["type"] = match_type.value if isinstance(match_type, MatchType) else match_type
         if start != 0:
             params["start"] = start
         if count != 20:
             params["count"] = count
 
         endpoint = f"/lol/match/v5/matches/by-puuid/{puuid}/ids"
-        data = self._make_api_call(endpoint, region=region, params=params)
-        return data
+        return self._make_api_call(endpoint, region=region, params=params)
 
     # High-level convenience methods
     def get_player(
@@ -447,7 +473,8 @@ class NexarClient:
         v4_region: RegionV4 | None = None,
         v5_region: RegionV5 | None = None,
     ) -> Player:
-        """Create a Player object for convenient high-level access.
+        """
+        Create a Player object for convenient high-level access.
 
         Args:
             game_name: Player's game name (without #)
@@ -457,6 +484,7 @@ class NexarClient:
 
         Returns:
             Player object providing high-level access to player data
+
         """
         return Player(
             client=self,

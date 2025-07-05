@@ -53,7 +53,7 @@ class TestGetMatchIdsByPuuid:
     def test_get_match_ids_by_puuid_with_match_type(self, client, test_puuid):
         """Test get_match_ids_by_puuid with match type filter."""
         result = client.get_match_ids_by_puuid(
-            test_puuid, match_type=MatchType.NORMAL, count=5
+            test_puuid, match_type=MatchType.NORMAL, count=5,
         )
 
         assert isinstance(result, list)

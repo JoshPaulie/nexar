@@ -12,14 +12,14 @@ class RiotAccount:
     puuid: str
     """
     Player Universally Unique Identifier.
-    
+
     Check out docs/puuid.md for more.
     """
 
     game_name: str
     """
     Game name associated with Riot account, if a name is set.
-    
+
     ```
     bexli#bex
     ^^^^^
@@ -29,7 +29,7 @@ class RiotAccount:
     tag_line: str
     """
     Tag line associated with Riot account, if a tag line is set.
-    
+
     ```
     bexli#bex
           ^^^
@@ -40,7 +40,9 @@ class RiotAccount:
     def from_api_response(cls, data: dict[str, Any]) -> "RiotAccount":
         """Create RiotAccount from API response."""
         return cls(
-            puuid=data["puuid"], game_name=data["gameName"], tag_line=data["tagLine"]
+            puuid=data["puuid"],
+            game_name=data["gameName"],
+            tag_line=data["tagLine"],
         )
 
 
@@ -54,7 +56,7 @@ class Summoner:
     puuid: str
     """
     Player Universally Unique Identifier.
-    
+
     Check out docs/puuid.md for more.
     """
 
@@ -62,7 +64,7 @@ class Summoner:
     """ID of the summoner icon associated with the summoner."""
 
     @property
-    def profile_icon_url(self):
+    def profile_icon_url(self) -> str:
         """Link to profile icon URL via CDragon."""
         return (
             f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/"
@@ -72,7 +74,7 @@ class Summoner:
     revision_date: datetime
     """
     Date summoner was last modified specified as datetime.
-    
+
     The following events will update this timestamp:
         - profile icon change
         - playing the tutorial or advanced tutorial

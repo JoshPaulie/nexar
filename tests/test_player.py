@@ -270,7 +270,7 @@ class TestPlayer:
         player = client.get_player("bexli", "bex")
 
         role_stats = player.get_recent_performance_by_role(
-            count=10, queue=QueueId.RANKED_SOLO_5x5
+            count=10, queue=QueueId.RANKED_SOLO_5x5,
         )
         assert isinstance(role_stats, dict)
 
@@ -372,7 +372,7 @@ class TestPlayer:
         start_time = end_time - timedelta(days=7)
 
         matches = player.get_recent_matches(
-            count=10, start_time=start_time, end_time=end_time
+            count=10, start_time=start_time, end_time=end_time,
         )
         assert isinstance(matches, list)
 
@@ -381,7 +381,7 @@ class TestPlayer:
         start_epoch = int(start_time.timestamp())
 
         matches = player.get_recent_matches(
-            count=10, start_time=start_epoch, end_time=end_epoch
+            count=10, start_time=start_epoch, end_time=end_epoch,
         )
         assert isinstance(matches, list)
 

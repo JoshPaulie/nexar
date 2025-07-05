@@ -28,7 +28,8 @@ print(f"Advanced role analysis for {player}")
 # Get performance by role from recent ranked games
 print("\n=== Performance by Role (Ranked Solo Queue) ===")
 role_performance = player.get_recent_performance_by_role(
-    count=50, queue=QueueId.RANKED_SOLO_5x5
+    count=50,
+    queue=QueueId.RANKED_SOLO_5x5,
 )
 
 if not role_performance:
@@ -36,9 +37,7 @@ if not role_performance:
     sys.exit()
 
 # Sort roles by games played
-sorted_roles = sorted(
-    role_performance.items(), key=lambda x: x[1]["games_played"], reverse=True
-)
+sorted_roles = sorted(role_performance.items(), key=lambda x: x[1]["games_played"], reverse=True)
 
 for role, stats in sorted_roles:
     if stats["games_played"] == 0:
@@ -46,31 +45,19 @@ for role, stats in sorted_roles:
 
     print(f"\n{role}:")
     print(f"  Games Played: {stats['games_played']}")
-    print(
-        f"  Win Rate: {stats['win_rate']}% ({stats['wins']}W/{stats['games_played'] - stats['wins']}L)"
-    )
-    print(
-        f"  Average KDA: {stats['avg_kills']}/{stats['avg_deaths']}/{stats['avg_assists']} ({stats['avg_kda']})"
-    )
+    print(f"  Win Rate: {stats['win_rate']}% ({stats['wins']}W/{stats['games_played'] - stats['wins']}L)")
+    print(f"  Average KDA: {stats['avg_kills']}/{stats['avg_deaths']}/{stats['avg_assists']} ({stats['avg_kda']})")
     print(f"  Average CS: {stats['avg_cs']}")
 
 # Find best and worst performing roles
 best_role = max(
-    [
-        (role, stats)
-        for role, stats in role_performance.items()
-        if stats["games_played"] >= 3
-    ],
+    [(role, stats) for role, stats in role_performance.items() if stats["games_played"] >= 3],
     key=lambda x: x[1]["win_rate"],
     default=(None, None),
 )
 
 worst_role = min(
-    [
-        (role, stats)
-        for role, stats in role_performance.items()
-        if stats["games_played"] >= 3
-    ],
+    [(role, stats) for role, stats in role_performance.items() if stats["games_played"] >= 3],
     key=lambda x: x[1]["win_rate"],
     default=(None, None),
 )
@@ -98,11 +85,7 @@ for match in recent_matches:
     if not player_participant:
         continue
 
-    role = (
-        player_participant.team_position.value
-        if player_participant.team_position
-        else "UNKNOWN"
-    )
+    role = player_participant.team_position.value if player_participant.team_position else "UNKNOWN"
     champion = player_participant.champion_name
 
     if role not in role_champion_stats:
@@ -146,11 +129,12 @@ for role, champions in role_champion_stats.items():
 
         win_rate = (stats["wins"] / stats["games"]) * 100
         avg_kda = (stats["total_kills"] + stats["total_assists"]) / max(
-            stats["total_deaths"], 1
+            stats["total_deaths"],
+            1,
         )
 
         print(
-            f"  {champion}: {stats['games']} games, {win_rate:.1f}% WR, {avg_kda:.2f} KDA"
+            f"  {champion}: {stats['games']} games, {win_rate:.1f}% WR, {avg_kda:.2f} KDA",
         )
 
 # Performance trends analysis
@@ -162,16 +146,10 @@ total_recent = 20
 
 for i in range(0, total_recent, chunk_size):
     chunk_matches = (
-        player.get_recent_matches(count=chunk_size, queue=QueueId.RANKED_SOLO_5x5)[
-            i : i + chunk_size
-        ]
-        if i == 0
-        else []
+        player.get_recent_matches(count=chunk_size, queue=QueueId.RANKED_SOLO_5x5)[i : i + chunk_size] if i == 0 else []
     )
 
-    if (
-        i > 0
-    ):  # Skip chunks after first since get_recent_matches always gets most recent
+    if i > 0:  # Skip chunks after first since get_recent_matches always gets most recent
         break
 
     if not chunk_matches:
@@ -192,7 +170,8 @@ for i in range(0, total_recent, chunk_size):
                 wins += 1
 
             kda = (player_participant.kills + player_participant.assists) / max(
-                player_participant.deaths, 1
+                player_participant.deaths,
+                1,
             )
             total_kda += kda
 

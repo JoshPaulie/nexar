@@ -23,10 +23,12 @@ class RateLimiter:
     """Rate limiter for API requests with multiple time windows."""
 
     def __init__(self, rate_limits: list[RateLimit]) -> None:
-        """Initialize rate limiter with multiple rate limits.
+        """
+        Initialize rate limiter with multiple rate limits.
 
         Args:
             rate_limits: List of rate limit configurations to enforce
+
         """
         self.rate_limits = rate_limits
         # Track request timestamps for each rate limit
@@ -35,11 +37,11 @@ class RateLimiter:
 
         # Log rate limiter initialization
         self._logger.logger.debug(
-            f"Rate limiter initialized with {len(rate_limits)} limits:"
+            f"Rate limiter initialized with {len(rate_limits)} limits:",
         )
         for i, limit in enumerate(rate_limits):
             self._logger.logger.debug(
-                f"  Limit {i + 1}: {limit.requests} requests per {limit.window_seconds}s"
+                f"  Limit {i + 1}: {limit.requests} requests per {limit.window_seconds}s",
             )
 
     def wait_if_needed(self) -> None:
@@ -49,7 +51,7 @@ class RateLimiter:
         limiting_constraint = None
 
         for i, (rate_limit, request_queue) in enumerate(
-            zip(self.rate_limits, self._request_queues)
+            zip(self.rate_limits, self._request_queues, strict=False),
         ):
             # Remove old requests outside the time window
             cutoff_time = current_time - rate_limit.window_seconds
@@ -60,14 +62,14 @@ class RateLimiter:
 
             if removed_count > 0:
                 self._logger.logger.debug(
-                    f"Cleaned up {removed_count} expired requests from limit {i + 1}"
+                    f"Cleaned up {removed_count} expired requests from limit {i + 1}",
                 )
 
             # Check current status
             current_usage = len(request_queue)
             remaining = rate_limit.requests - current_usage
             self._logger.logger.debug(
-                f"Limit {i + 1}: {current_usage}/{rate_limit.requests} used, {remaining} remaining"
+                f"Limit {i + 1}: {current_usage}/{rate_limit.requests} used, {remaining} remaining",
             )
 
             # Check if we need to wait
@@ -81,15 +83,15 @@ class RateLimiter:
 
         if max_wait_time > 0:
             self._logger.logger.info(
-                f"Rate limit hit! {limiting_constraint} - waiting {max_wait_time:.2f} seconds"
+                f"Rate limit hit! {limiting_constraint} - waiting {max_wait_time:.2f} seconds",
             )
             time.sleep(max_wait_time)
             self._logger.logger.info(
-                "Rate limit wait complete - proceeding with request"
+                "Rate limit wait complete - proceeding with request",
             )
         else:
             self._logger.logger.debug(
-                "No rate limiting required - proceeding immediately"
+                "No rate limiting required - proceeding immediately",
             )
 
     def record_request(self) -> None:
@@ -103,16 +105,18 @@ class RateLimiter:
         self._logger.logger.debug(f"Request recorded at {current_time:.3f}")
 
     def get_status(self) -> dict[str, Any]:
-        """Get current rate limiter status.
+        """
+        Get current rate limiter status.
 
         Returns:
             Dictionary with current usage for each rate limit
+
         """
         current_time = time.time()
         status = {}
 
         for i, (rate_limit, request_queue) in enumerate(
-            zip(self.rate_limits, self._request_queues)
+            zip(self.rate_limits, self._request_queues, strict=False),
         ):
             # Remove old requests outside the time window
             cutoff_time = current_time - rate_limit.window_seconds
@@ -126,9 +130,7 @@ class RateLimiter:
                 "current_usage": len(request_queue),
                 "remaining": max(0, remaining),
                 "reset_in_seconds": (
-                    (request_queue[0] + rate_limit.window_seconds) - current_time
-                    if request_queue
-                    else 0
+                    (request_queue[0] + rate_limit.window_seconds) - current_time if request_queue else 0
                 ),
             }
 
@@ -136,14 +138,16 @@ class RateLimiter:
 
     @classmethod
     def create_default(cls) -> "RateLimiter":
-        """Create rate limiter with default Riot API limits.
+        """
+        Create rate limiter with default Riot API limits.
 
         Returns:
             RateLimiter configured with 20 req/1s and 100 req/2min
+
         """
         return cls(
             [
                 RateLimit(requests=20, window_seconds=1),
                 RateLimit(requests=100, window_seconds=120),  # 2 minutes
-            ]
+            ],
         )

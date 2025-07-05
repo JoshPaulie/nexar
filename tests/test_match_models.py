@@ -168,12 +168,11 @@ class TestMatchModels:
     """Test match-related models."""
 
     @pytest.mark.skip(
-        reason="Requires specific match ID - implement when match history endpoint is added"
+        reason="Requires specific match ID - implement when match history endpoint is added",
     )
     def test_match_from_api_response(self):
         """Test Match creation from real API response."""
         # TODO: Implement when we add match history endpoints to get real match IDs
-        pass
 
     def test_ban_creation(self):
         """Test Ban model can be created directly."""

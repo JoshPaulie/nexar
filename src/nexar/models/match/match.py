@@ -105,17 +105,14 @@ class MatchInfo:
             game_id=data["gameId"],
             game_mode=data["gameMode"],
             game_start_timestamp=datetime.fromtimestamp(
-                data["gameStartTimestamp"] / 1000
+                data["gameStartTimestamp"] / 1000,
             ),
             game_type=data["gameType"],
             game_version=data["gameVersion"],
             map_id=MapId(data["mapId"]),
             platform_id=PlatformId(data["platformId"]),
             queue_id=QueueId(data["queueId"]),
-            participants=[
-                Participant.from_api_response(participant)
-                for participant in data["participants"]
-            ],
+            participants=[Participant.from_api_response(participant) for participant in data["participants"]],
             teams=[Team.from_api_response(team) for team in data["teams"]],
             game_end_timestamp=datetime.fromtimestamp(data["gameEndTimestamp"] / 1000)
             if data.get("gameEndTimestamp")

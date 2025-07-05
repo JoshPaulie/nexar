@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from ..enums import Division, Queue, Tier
+from nexar.enums import Division, Queue, Tier
 
 
 @dataclass(frozen=True)
@@ -148,7 +148,5 @@ class LeagueEntry:
             veteran=data["veteran"],
             fresh_blood=data["freshBlood"],
             inactive=data["inactive"],
-            mini_series=MiniSeries.from_api_response(data["miniSeries"])
-            if data.get("miniSeries")
-            else None,
+            mini_series=MiniSeries.from_api_response(data["miniSeries"]) if data.get("miniSeries") else None,
         )

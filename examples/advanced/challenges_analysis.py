@@ -63,9 +63,7 @@ for i, match in enumerate(matches, 1):
 
     print(f"\nMatch {i} - {player_participant.champion_name}:")
     print(f"  Result: {'WIN' if player_participant.win else 'LOSS'}")
-    print(
-        f"  Duration: {match.info.game_duration // 60}m {match.info.game_duration % 60}s"
-    )
+    print(f"  Duration: {match.info.game_duration // 60}m {match.info.game_duration % 60}s")
 
     # Core performance metrics
     if challenges.kda is not None:
@@ -87,13 +85,8 @@ for i, match in enumerate(matches, 1):
     # Interesting specific challenges
     interesting_challenges = []
 
-    if (
-        challenges.twelve_assist_streak_count
-        and challenges.twelve_assist_streak_count > 0
-    ):
-        interesting_challenges.append(
-            f"12+ assist streaks: {challenges.twelve_assist_streak_count}"
-        )
+    if challenges.twelve_assist_streak_count and challenges.twelve_assist_streak_count > 0:
+        interesting_challenges.append(f"12+ assist streaks: {challenges.twelve_assist_streak_count}")
 
     if challenges.earliest_baron and challenges.earliest_baron > 0:
         baron_time = challenges.earliest_baron // 60
@@ -168,19 +161,11 @@ for match in matches:
             if challenges.earliest_baron and challenges.earliest_baron > 0:
                 special_achievements["Early Barons"] += 1
 
-            if (
-                challenges.earliest_dragon_takedown
-                and challenges.earliest_dragon_takedown > 0
-            ):
+            if challenges.earliest_dragon_takedown and challenges.earliest_dragon_takedown > 0:
                 special_achievements["Early Dragons"] += 1
 
-            if (
-                challenges.twelve_assist_streak_count
-                and challenges.twelve_assist_streak_count > 0
-            ):
-                special_achievements["12+ Assist Streaks"] += (
-                    challenges.twelve_assist_streak_count
-                )
+            if challenges.twelve_assist_streak_count and challenges.twelve_assist_streak_count > 0:
+                special_achievements["12+ Assist Streaks"] += challenges.twelve_assist_streak_count
 
 for achievement, count in special_achievements.items():
     if count > 0:

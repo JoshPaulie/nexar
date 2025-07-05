@@ -32,7 +32,7 @@ summary = player.get_performance_summary(count=20)
 print(f"Total Games: {summary['total_games']}")
 print(f"Win Rate: {summary['win_rate']}% ({summary['wins']}W/{summary['losses']}L)")
 print(
-    f"Average KDA: {summary['avg_kills']}/{summary['avg_deaths']}/{summary['avg_assists']} ({summary['avg_kda']})"
+    f"Average KDA: {summary['avg_kills']}/{summary['avg_deaths']}/{summary['avg_assists']} ({summary['avg_kda']})",
 )
 print(f"Average CS: {summary['avg_cs']}")
 print(f"Average Game Duration: {summary['avg_game_duration_minutes']} minutes")
@@ -51,7 +51,7 @@ for i, champ in enumerate(top_champions, 1):
     print(f"{i}. {champ.champion_name}")
     print(f"   Games: {champ.games_played} | Win Rate: {champ.win_rate:.1f}%")
     print(
-        f"   Avg KDA: {champ.avg_kills:.1f}/{champ.avg_deaths:.1f}/{champ.avg_assists:.1f} ({champ.avg_kda:.2f})"
+        f"   Avg KDA: {champ.avg_kills:.1f}/{champ.avg_deaths:.1f}/{champ.avg_assists:.1f} ({champ.avg_kda:.2f})",
     )
 
 # Get ranked performance summary

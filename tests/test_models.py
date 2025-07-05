@@ -14,7 +14,7 @@ class TestRiotAccount:
     def test_riot_account_creation(self):
         """Test RiotAccount can be created directly."""
         account = RiotAccount(
-            puuid="test-puuid", game_name="TestPlayer", tag_line="TEST"
+            puuid="test-puuid", game_name="TestPlayer", tag_line="TEST",
         )
 
         assert account.puuid == "test-puuid"
@@ -33,7 +33,7 @@ class TestRiotAccount:
     def test_riot_account_immutable(self):
         """Test that RiotAccount is immutable."""
         account = RiotAccount(
-            puuid="test-puuid", game_name="TestPlayer", tag_line="TEST"
+            puuid="test-puuid", game_name="TestPlayer", tag_line="TEST",
         )
 
         with pytest.raises(AttributeError):

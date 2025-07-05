@@ -459,16 +459,16 @@ class Challenges:
             vision_score_per_minute=data.get("visionScorePerMinute"),
             twelve_assist_streak_count=data.get("12AssistStreakCount"),
             baron_buff_gold_advantage_over_threshold=data.get(
-                "baronBuffGoldAdvantageOverThreshold"
+                "baronBuffGoldAdvantageOverThreshold",
             ),
             control_ward_time_coverage_in_river_or_enemy_half=data.get(
-                "controlWardTimeCoverageInRiverOrEnemyHalf"
+                "controlWardTimeCoverageInRiverOrEnemyHalf",
             ),
             earliest_baron=data.get("earliestBaron"),
             earliest_dragon_takedown=data.get("earliestDragonTakedown"),
             earliest_elder_dragon=data.get("earliestElderDragon"),
             early_laning_phase_gold_exp_advantage=data.get(
-                "earlyLaningPhaseGoldExpAdvantage"
+                "earlyLaningPhaseGoldExpAdvantage",
             ),
             faster_support_quest_completion=data.get("fasterSupportQuestCompletion"),
             fastest_legendary=data.get("fastestLegendary"),
@@ -478,7 +478,7 @@ class Challenges:
             highest_ward_kills=data.get("highestWardKills"),
             jungler_kills_early_jungle=data.get("junglerKillsEarlyJungle"),
             kills_on_laners_early_jungle_as_jungler=data.get(
-                "killsOnLanersEarlyJungleAsJungler"
+                "killsOnLanersEarlyJungleAsJungler",
             ),
             laning_phase_gold_exp_advantage=data.get("laningPhaseGoldExpAdvantage"),
             legendary_count=data.get("legendaryCount"),
@@ -493,7 +493,7 @@ class Challenges:
             third_inhibitor_destroyed_time=data.get("thirdInhibitorDestroyedTime"),
             three_wards_one_sweeper_count=data.get("threeWardsOneSweeperCount"),
             vision_score_advantage_lane_opponent=data.get(
-                "visionScoreAdvantageLaneOpponent"
+                "visionScoreAdvantageLaneOpponent",
             ),
             infernal_scale_pickup=data.get("InfernalScalePickup"),
             fist_bump_participation=data.get("fistBumpParticipation"),
@@ -503,7 +503,7 @@ class Challenges:
             allied_jungle_monster_kills=data.get("alliedJungleMonsterKills"),
             baron_takedowns=data.get("baronTakedowns"),
             blast_cone_opposite_opponent_count=data.get(
-                "blastConeOppositeOpponentCount"
+                "blastConeOppositeOpponentCount",
             ),
             bounty_gold=data.get("bountyGold"),
             buffs_stolen=data.get("buffsStolen"),
@@ -518,16 +518,16 @@ class Challenges:
             legendary_item_used=data.get("legendaryItemUsed"),
             effective_heal_and_shielding=data.get("effectiveHealAndShielding"),
             elder_dragon_kills_with_opposing_soul=data.get(
-                "elderDragonKillsWithOpposingSoul"
+                "elderDragonKillsWithOpposingSoul",
             ),
             elder_dragon_multikills=data.get("elderDragonMultikills"),
             enemy_champion_immobilizations=data.get("enemyChampionImmobilizations"),
             enemy_jungle_monster_kills=data.get("enemyJungleMonsterKills"),
             epic_monster_kills_near_enemy_jungler=data.get(
-                "epicMonsterKillsNearEnemyJungler"
+                "epicMonsterKillsNearEnemyJungler",
             ),
             epic_monster_kills_within_30_seconds_of_spawn=data.get(
-                "epicMonsterKillsWithin30SecondsOfSpawn"
+                "epicMonsterKillsWithin30SecondsOfSpawn",
             ),
             epic_monster_steals=data.get("epicMonsterSteals"),
             epic_monster_stolen_without_smite=data.get("epicMonsterStolenWithoutSmite"),
@@ -537,7 +537,7 @@ class Challenges:
             full_team_takedown=data.get("fullTeamTakedown"),
             game_length=data.get("gameLength"),
             get_takedowns_in_all_lanes_early_jungle_as_laner=data.get(
-                "getTakedownsInAllLanesEarlyJungleAsLaner"
+                "getTakedownsInAllLanesEarlyJungleAsLaner",
             ),
             had_open_nexus=data.get("hadOpenNexus"),
             immobilize_and_kill_with_ally=data.get("immobilizeAndKillWithAlly"),
@@ -545,25 +545,25 @@ class Challenges:
             initial_crab_count=data.get("initialCrabCount"),
             jungle_cs_before_10_minutes=data.get("jungleCsBefore10Minutes"),
             jungler_takedowns_near_damaged_epic_monster=data.get(
-                "junglerTakedownsNearDamagedEpicMonster"
+                "junglerTakedownsNearDamagedEpicMonster",
             ),
             kill_after_hidden_with_ally=data.get("killAfterHiddenWithAlly"),
             killed_champ_took_full_team_damage_survived=data.get(
-                "killedChampTookFullTeamDamageSurvived"
+                "killedChampTookFullTeamDamageSurvived",
             ),
             killing_sprees=data.get("killingSprees"),
             kills_near_enemy_turret=data.get("killsNearEnemyTurret"),
             kills_on_other_lanes_early_jungle_as_laner=data.get(
-                "killsOnOtherLanesEarlyJungleAsLaner"
+                "killsOnOtherLanesEarlyJungleAsLaner",
             ),
             kills_on_recently_healed_by_aram_pack=data.get(
-                "killsOnRecentlyHealedByAramPack"
+                "killsOnRecentlyHealedByAramPack",
             ),
             kills_under_own_turret=data.get("killsUnderOwnTurret"),
             kills_with_help_from_epic_monster=data.get("killsWithHelpFromEpicMonster"),
             knock_enemy_into_team_and_kill=data.get("knockEnemyIntoTeamAndKill"),
             k_turrets_destroyed_before_plates_fall=data.get(
-                "kTurretsDestroyedBeforePlatesFall"
+                "kTurretsDestroyedBeforePlatesFall",
             ),
             land_skill_shots_early_game=data.get("landSkillShotsEarlyGame"),
             lane_minions_first_10_minutes=data.get("laneMinionsFirst10Minutes"),
@@ -574,11 +574,11 @@ class Challenges:
             multi_kill_one_spell=data.get("multiKillOneSpell"),
             multikills=data.get("multikills"),
             multikills_after_aggressive_flash=data.get(
-                "multikillsAfterAggressiveFlash"
+                "multikillsAfterAggressiveFlash",
             ),
             multi_turret_rift_herald_count=data.get("multiTurretRiftHeraldCount"),
             outer_turret_executes_before_10_minutes=data.get(
-                "outerTurretExecutesBefore10Minutes"
+                "outerTurretExecutesBefore10Minutes",
             ),
             outnumbered_kills=data.get("outnumberedKills"),
             outnumbered_nexus_kill=data.get("outnumberedNexusKill"),
@@ -593,7 +593,7 @@ class Challenges:
             save_ally_from_death=data.get("saveAllyFromDeath"),
             scuttle_crab_kills=data.get("scuttleCrabKills"),
             shortest_time_to_ace_from_first_takedown=data.get(
-                "shortestTimeToAceFromFirstTakedown"
+                "shortestTimeToAceFromFirstTakedown",
             ),
             skillshots_dodged=data.get("skillshotsDodged"),
             skillshots_hit=data.get("skillshotsHit"),
@@ -613,15 +613,15 @@ class Challenges:
             stealth_wards_placed=data.get("stealthWardsPlaced"),
             survived_single_digit_hp_count=data.get("survivedSingleDigitHpCount"),
             survived_three_immobilizes_in_fight=data.get(
-                "survivedThreeImmobilizesInFight"
+                "survivedThreeImmobilizesInFight",
             ),
             takedown_on_first_turret=data.get("takedownOnFirstTurret"),
             takedowns=data.get("takedowns"),
             takedowns_after_gaining_level_advantage=data.get(
-                "takedownsAfterGainingLevelAdvantage"
+                "takedownsAfterGainingLevelAdvantage",
             ),
             takedowns_before_jungle_minion_spawn=data.get(
-                "takedownsBeforeJungleMinionSpawn"
+                "takedownsBeforeJungleMinionSpawn",
             ),
             takedowns_first_x_minutes=data.get("takedownsFirstXMinutes"),
             takedowns_in_alcove=data.get("takedownsInAlcove"),

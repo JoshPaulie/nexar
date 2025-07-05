@@ -5,7 +5,8 @@ import logging
 import os
 import sys
 
-from nexar.cache import SMART_CACHE_CONFIG
+from feature_logging import SMART_CACHE_CONFIG
+
 from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 from nexar.logging import configure_logging

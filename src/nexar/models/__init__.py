@@ -23,34 +23,26 @@ from .match import (
 from .player import ChampionStats, Player
 
 __all__ = [
-    # Account models
-    "RiotAccount",
-    "Summoner",
-    # League models
+    "Ban",
+    "Challenges",
+    "ChampionStats",
     "LeagueEntry",
-    "MiniSeries",
-    # Match models
     "Match",
     "MatchInfo",
     "MatchMetadata",
-    # Participant models
+    "MiniSeries",
+    "Missions",
+    "Objective",
+    "Objectives",
     "Participant",
-    # Perk models
-    "Perks",
     "PerkStats",
     "PerkStyle",
     "PerkStyleSelection",
-    # Team models
-    "Ban",
-    "Objective",
-    "Objectives",
+    "Perks",
+    "Player",
+    "RiotAccount",
+    "Summoner",
     "Team",
     "TeamInfo",
     "TeamsInfo",
-    # Challenge models
-    "Challenges",
-    "Missions",
-    # Player models
-    "Player",
-    "ChampionStats",
 ]
