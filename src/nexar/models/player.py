@@ -171,7 +171,7 @@ class Player:
 
         Args:
             count: Number of matches to retrieve (1-100, default 20)
-            queue: Queue type filter
+            queue: Queue type filter (None for all matches)
             match_type: Match type filter
             start_time: Start time filter
             end_time: End time filter
@@ -198,14 +198,14 @@ class Player:
 
     def get_champion_stats(
         self,
-        count: int = 100,
+        count: int = 20,
         queue: QueueId | int | None = None,
         match_type: MatchType | str | None = None,
     ) -> list[ChampionStats]:
         """Get champion statistics from recent matches.
 
         Args:
-            count: Number of recent matches to analyze (default 100)
+            count: Number of recent matches to analyze (default 20)
             queue: Optional queue type filter
             match_type: Optional match type filter
 
@@ -263,7 +263,7 @@ class Player:
     def get_top_champions(
         self,
         top_n: int = 5,
-        count: int = 100,
+        count: int = 20,
         queue: QueueId | int | None = None,
         match_type: MatchType | str | None = None,
     ) -> list[ChampionStats]:
@@ -271,7 +271,7 @@ class Player:
 
         Args:
             top_n: Number of top champions to return (default 5)
-            count: Number of recent matches to analyze (default 100)
+            count: Number of recent matches to analyze (default 20)
             queue: Optional queue type filter
             match_type: Optional match type filter
 
