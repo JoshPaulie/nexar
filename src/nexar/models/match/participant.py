@@ -44,6 +44,18 @@ class Participant:
     **Use this over champion_id**
     """
 
+    @property
+    def champion_icon(self) -> str:
+        """
+        Link to CDragon API for Champion Icon.
+
+        Useful for Discord embeds or Web UI.
+        """
+        return (
+            f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/"
+            f"global/default/v1/champion-icons/{self.champion_id}.png"
+        )
+
     team_id: int
     """Team identifier (100 for blue side, 200 for red side)."""
 
