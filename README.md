@@ -117,3 +117,13 @@ The script automatically sources your API key and runs the test suite.
 - Valid Riot API key
 - Active internet connection
 - Tests may be rate-limited by Riot's API
+
+## LLMs and the project
+
+Tests, examples, transforming the API response schemas to models, and other large scale chores were contributed by [Github Copilot](https://docs.github.com/en/copilot/how-tos/completions/getting-code-suggestions-in-your-ide-with-github-copilot) with [Anthropic's Claude Sonnet 4]([https://](https://www.anthropic.com/claude/sonnet)) model.
+
+Cheers to the Anthropic team. This was the only model that didn't make me want to tear my hair out. Easily saved me hours of boring contributions.
+
+### LLM Contributions
+
+Used sparingly, and in the same fashion as above, it would hypocritical to not allow LLM contributions. But vibe coded, unchecked, slop may result in ban.
