@@ -77,7 +77,26 @@ For detailed information, see the documentation:
 - [Caching Guide](docs/caching.md) - Advanced caching configuration and performance
 - [Examples](examples/) - Code examples for common use cases
 
-## Development
+## Development and contributing
+
+### Contributing
+
+Features requests should start as issues. Bugs may start as PRs.
+
+```sh
+# Fork the repo
+
+# Clone fork locally
+git clone https://github.com/username/nexar
+
+# Make changes on branch
+
+# Ensure functionality and new tests if needed
+
+# Ensure tests are still passing
+
+# Make PR
+```
 
 ### Running Tests
 
