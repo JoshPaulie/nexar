@@ -33,12 +33,15 @@ ignore = [
     "PLR0913", # Ignore too many return statements
     "D212",    # Ignore dumb rule about docstrings and how they start
     "D105",    # Ignore missing docstring in magic methods
+    "D401",    # Allow declarative docstrings
     "DTZ006",  # Ignore missing tz in datetime
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "examples/*.py" = [
-    "ERA001", # Allow commented out code in examples
+    "ERA001",  # Allow commented out code in examples
+    "C901",    # Allow long main functions in examples
+    "PLR2004", # Allow magic numbers in examples
 ]
 
 [tool.ruff]
