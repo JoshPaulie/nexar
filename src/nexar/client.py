@@ -1,6 +1,8 @@
 """Main client for the Nexar SDK."""
 
 import asyncio
+import json
+import os
 from datetime import datetime
 from types import TracebackType
 from typing import Any
@@ -199,7 +201,22 @@ class NexarClient:
                 # Log successful response
                 self._logger.log_api_call_success(response.status, from_cache=from_cache)
 
-                return await response.json()
+                response_data = await response.json()
+
+                # Debug: Print API response if environment variable is set
+                if os.getenv("NEXAR_DEBUG_RESPONSES"):
+                    print(f"\n{'=' * 60}")
+                    print(f"DEBUG: API Response for {endpoint}")
+                    print(f"URL: {url}")
+                    print(f"Status: {response.status}")
+                    print(f"From Cache: {from_cache}")
+                    if params:
+                        print(f"Params: {params}")
+                    print("Response Data:")
+                    print(json.dumps(response_data, indent=2))
+                    print(f"{'=' * 60}\n")
+
+                return response_data
 
         except aiohttp.ClientError as e:
             # Record failed actual requests (ClientError means network/HTTP error)
