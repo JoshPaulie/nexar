@@ -117,3 +117,51 @@ class TestNexarClient:
             await client.get_riot_account("NonExistentPlayer999", "FAKE")
 
         assert exc_info.value.status_code == 404
+
+    async def test_get_players_success(self, client):
+        """Test successful multiple player retrieval."""
+        riot_ids = ["mltsimpleton#na1", "roninalex#na1"]
+        
+        players = await client.get_players(riot_ids)
+        
+        assert isinstance(players, list)
+        assert len(players) == 2
+        
+        # Check first player
+        assert players[0].game_name == "mltsimpleton"
+        assert players[0].tag_line == "na1"
+        
+        # Check second player
+        assert players[1].game_name == "roninalex"
+        assert players[1].tag_line == "na1"
+        
+        # Verify that riot accounts were pre-fetched
+        for player in players:
+            # Should not make additional API calls since accounts were pre-fetched
+            riot_account = await player.get_riot_account()
+            assert riot_account.puuid is not None
+
+    async def test_get_players_with_invalid_riot_id(self, client):
+        """Test get_players with invalid riot ID format."""
+        invalid_riot_ids = ["bexli#bex", "invalid_format"]
+
+        with pytest.raises(ValueError) as exc_info:
+            await client.get_players(invalid_riot_ids)
+
+        assert "Invalid Riot ID format" in str(exc_info.value)
+
+    async def test_get_players_empty_list(self, client):
+        """Test get_players with empty list."""
+        players = await client.get_players([])
+
+        assert isinstance(players, list)
+        assert len(players) == 0
+
+    async def test_get_players_single_player(self, client):
+        """Test get_players with single player."""
+        players = await client.get_players(["mltsimpleton#na1"])
+        
+        assert isinstance(players, list)
+        assert len(players) == 1
+        assert players[0].game_name == "mltsimpleton"
+        assert players[0].tag_line == "na1"

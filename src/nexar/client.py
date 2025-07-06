@@ -1,5 +1,6 @@
 """Main client for the Nexar SDK."""
 
+import asyncio
 from datetime import datetime
 from types import TracebackType
 from typing import Any
@@ -382,7 +383,7 @@ class NexarClient:
     async def get_league_entries_by_puuid(
         self,
         puuid: str,
-        region: RegionV4 | None = None,
+        region: RegionV4 | None,
     ) -> list[LeagueEntry]:
         """
         Get league entries by PUUID.
@@ -515,6 +516,58 @@ class NexarClient:
             v4_region=v4_region,
             v5_region=v5_region,
         )
+
+    async def get_players(
+        self,
+        riot_ids: list[str],
+        v4_region: RegionV4 | None = None,
+        v5_region: RegionV5 | None = None,
+    ) -> list["Player"]:
+        """
+        Create multiple Player objects efficiently using parallel processing.
+
+        Args:
+            riot_ids: List of Riot IDs in "username#tagline" format (e.g., ["bexli#bex", "player2#tag"])
+            v4_region: Platform region for v4 endpoints (defaults to client default)
+            v5_region: Regional region for v5 endpoints (defaults to client default)
+
+        Returns:
+            List of Player objects providing high-level access to player data
+
+        Raises:
+            ValueError: If any riot_id is not in the correct format
+
+        """
+        # Import here to avoid circular imports
+        from .models.player import Player
+
+        async def create_player(riot_id: str) -> Player:
+            """Helper function to create a single player."""
+            if "#" not in riot_id:
+                msg = f"Invalid Riot ID format: '{riot_id}'. Expected 'username#tagline'"
+                raise ValueError(msg)
+
+            game_name, tag_line = riot_id.split("#", 1)
+
+            if not game_name or not tag_line:
+                msg = f"Invalid Riot ID format: '{riot_id}'. Both username and tagline must be non-empty"
+                raise ValueError(msg)
+
+            # Create player object (this doesn't make API calls yet)
+            player = Player(
+                client=self,
+                game_name=game_name,
+                tag_line=tag_line,
+                v4_region=v4_region,
+                v5_region=v5_region,
+            )
+
+            # Pre-fetch riot account to validate the player exists
+            await player.get_riot_account()
+            return player
+
+        # Use asyncio.gather for efficient parallel processing
+        return await asyncio.gather(*[create_player(riot_id) for riot_id in riot_ids])
 
     async def close(self) -> None:
         """Close the client session."""

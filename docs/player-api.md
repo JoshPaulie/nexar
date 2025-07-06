@@ -17,6 +17,43 @@ client = NexarClient(
 player = client.get_player("game_name", "tag_line")
 ```
 
+## Batch Player Retrieval
+
+For efficient retrieval of multiple players, use the `get_players()` method which fetches players in parallel:
+
+```python
+async with client:
+    # Get multiple players efficiently using parallel processing
+    riot_ids = ["mltsimpleton#na1", "roninalex#na1", "bexli#bex"]
+    players = await client.get_players(riot_ids)
+    
+    # All players are pre-validated and ready to use
+    for player in players:
+        summoner = await player.get_summoner()
+        print(f"{player}: Level {summoner.summoner_level}")
+```
+
+### Benefits of Batch Retrieval
+- **Parallel Processing**: Uses `asyncio.gather()` for concurrent API calls
+- **Pre-validation**: Ensures all players exist before returning
+- **Efficient**: Reduces total request time compared to sequential calls
+- **Error Handling**: Fails fast if any player doesn't exist
+
+### Usage Tips
+```python
+# Handle invalid formats
+try:
+    players = await client.get_players(["ValidName#TAG", "invalid_format"])
+except ValueError as e:
+    print(f"Invalid Riot ID format: {e}")
+
+# Empty list handling
+empty_players = await client.get_players([])  # Returns []
+
+# Single player (still uses async pattern)
+single_player = await client.get_players(["Player#TAG"])  # Returns [Player]
+```
+
 ## Basic Information
 
 ### Player Identity
