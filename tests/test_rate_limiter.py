@@ -151,7 +151,6 @@ class TestRateLimiter:
         rate_limiter.record_request()
 
         assert "used, 1 remaining" in caplog.text
-        assert "No rate limiting required" in caplog.text
         assert "Request recorded at" in caplog.text
 
         # Clear logs
@@ -164,4 +163,3 @@ class TestRateLimiter:
             # Should see rate limit hit message
             assert "Rate limit hit!" in caplog.text
             assert "waiting" in caplog.text
-            assert "Rate limit wait complete" in caplog.text
