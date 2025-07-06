@@ -455,6 +455,7 @@ class Player:
 
         Returns:
             LeagueEntry for solo queue, or None if unranked
+
         """
         from nexar.enums import Queue
 
@@ -474,6 +475,7 @@ class Player:
 
         Returns:
             LeagueEntry for flex queue, or None if unranked
+
         """
         from nexar.enums import Queue
 
@@ -493,6 +495,7 @@ class Player:
 
         Returns:
             Integer rank value, or None if unranked
+
         """
         rank = await self.get_rank()
         if rank is not None:
@@ -520,6 +523,7 @@ class Player:
 
         Returns:
             List of Match objects
+
         """
         import asyncio
 
@@ -544,7 +548,6 @@ class Player:
         top_n: int = 5,
         count: int = 20,
         queue: QueueId | int | None = None,
-        match_type: MatchType | str | None = None,
     ) -> list[ChampionStats]:
         """
         Get top played champions.
@@ -557,6 +560,7 @@ class Player:
 
         Returns:
             List of ChampionStats sorted by games played (descending)
+
         """
         champion_stats = await self.get_champion_stats(
             queue=queue,
@@ -570,7 +574,6 @@ class Player:
         self,
         count: int = 20,
         queue: QueueId | int | None = None,
-        match_type: MatchType | str | None = None,
     ) -> dict[str, Any]:
         """
         Get a performance summary from recent matches.
@@ -582,6 +585,7 @@ class Player:
 
         Returns:
             Dictionary containing performance statistics
+
         """
         matches = await self.get_matches(
             queue=queue,
@@ -670,6 +674,7 @@ class Player:
 
         Returns:
             Dictionary with role names as keys and performance stats as values
+
         """
         matches = await self.get_matches(queue=queue, count=count)
         account = await self.get_riot_account()
@@ -727,6 +732,7 @@ class Player:
 
         Returns:
             True if the player is on a win streak of at least min_games
+
         """
         matches = await self.get_matches(count=min_games * 2)  # Get extra to be safe
         account = await self.get_riot_account()

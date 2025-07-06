@@ -78,9 +78,7 @@ async def main() -> None:
     player_rank = await player.get_rank()
     player_flex_rank = await player.get_flex_rank()
     print(f"Solo Queue Rank: {player_rank.tier.value if player_rank else 'Unranked'}")
-    print(
-        f"Flex Queue Rank: {player_flex_rank.tier.value if player_flex_rank else 'Unranked'}",
-    )
+    print(f"Flex Queue Rank: {player_flex_rank.tier.value if player_flex_rank else 'Unranked'}")
 
     print("\n=== API Usage Notes ===")
     print("Direct API:")
