@@ -95,6 +95,49 @@ class Player:
     _summoner: Summoner | None = None
     _league_entries: list[LeagueEntry] | None = None
 
+    @classmethod
+    def by_riot_id(
+        cls,
+        client: NexarClient,
+        riot_id: str,
+        *,
+        v4_region: RegionV4 | None = None,
+        v5_region: RegionV5 | None = None,
+    ) -> Player:
+        """
+        Create a Player instance from a Riot ID in "username#tagline" format.
+
+        Args:
+            client: The client instance to use for API calls
+            riot_id: Riot ID in "username#tagline" format (e.g., "bexli#bex")
+            v4_region: Platform region for v4 endpoints (defaults to client default)
+            v5_region: Regional region for v5 endpoints (defaults to client default)
+
+        Returns:
+            Player instance
+
+        Raises:
+            ValueError: If riot_id is not in the correct format
+
+        """
+        if "#" not in riot_id:
+            msg = f"Invalid Riot ID format: '{riot_id}'. Expected 'username#tagline'"
+            raise ValueError(msg)
+
+        game_name, tag_line = riot_id.split("#", 1)
+
+        if not game_name or not tag_line:
+            msg = f"Invalid Riot ID format: '{riot_id}'. Both username and tagline must be non-empty"
+            raise ValueError(msg)
+
+        return cls(
+            client=client,
+            game_name=game_name,
+            tag_line=tag_line,
+            v4_region=v4_region,
+            v5_region=v5_region,
+        )
+
     async def get_riot_account(self) -> RiotAccount:
         """
         Get the player's Riot account.
