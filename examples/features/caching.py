@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Example demonstrating the caching functionality of Nexar."""
 
+import asyncio
 import os
 import sys
 import time
@@ -21,138 +22,150 @@ if not api_key:
     sys.exit("Please set RIOT_API_KEY environment variable")
 
 
-def time_operation(description: str, operation: callable) -> object:
-    """Time an operation and print the results."""
+async def time_operation(description: str, operation) -> object:
+    """Time an async operation and print the results."""
     print(f"\n{description}")
     start = time.time()
-    result = operation()
+    result = await operation()
     elapsed = time.time() - start
     print(f"  ⏱️  Time: {elapsed:.3f}s")
     return result
 
 
-# Example 1: No caching vs default caching
-print("=== Example 1: Caching Impact ===")
+async def main() -> None:
+    """Demonstrate the caching functionality of Nexar."""
+    # Example 1: No caching vs default caching
+    print("=== Example 1: Caching Impact ===")
 
-# Client without caching
-no_cache_client = NexarClient(
-    riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=NO_CACHE_CONFIG,
-)
+    # Client without caching
+    no_cache_client = NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=NO_CACHE_CONFIG,
+    )
 
-# Client with default caching
-cached_client = NexarClient(
-    riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=DEFAULT_CACHE_CONFIG,
-)
+    # Client with default caching
+    cached_client = NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=DEFAULT_CACHE_CONFIG,
+    )
 
-# Compare performance without cache
-player_no_cache = time_operation(
-    "Getting player info (no cache):",
-    lambda: no_cache_client.get_player("bexli", "bex"),
-)
+    # Compare performance without cache
+    player_no_cache = await time_operation(
+        "Getting player info (no cache):",
+        lambda: no_cache_client.get_player("bexli", "bex"),
+    )
 
-# First call with cache (fresh)
-player_cached = time_operation(
-    "Getting player info (first call with cache):",
-    lambda: cached_client.get_player("bexli", "bex"),
-)
+    # First call with cache (fresh)
+    player_cached = await time_operation(
+        "Getting player info (first call with cache):",
+        lambda: cached_client.get_player("bexli", "bex"),
+    )
 
-# Second call with cache (should be faster)
-player_cached_2 = time_operation(
-    "Getting player info (second call with cache):",
-    lambda: cached_client.get_player("bexli", "bex"),
-)
+    # Second call with cache (should be faster)
+    player_cached_2 = await time_operation(
+        "Getting player info (second call with cache):",
+        lambda: cached_client.get_player("bexli", "bex"),
+    )
 
-print(f"Cache info: {cached_client.get_cache_info()}")
+    print(f"Cache info: {cached_client.get_cache_info()}")
 
-# Example 2: Smart caching configuration
-print("\n\n=== Example 2: Smart Caching ===")
-smart_client = NexarClient(
-    riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=SMART_CACHE_CONFIG,
-)
+    # Example 2: Smart caching configuration
+    print("\n\n=== Example 2: Smart Caching ===")
+    smart_client = NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=SMART_CACHE_CONFIG,
+    )
 
-player = smart_client.get_player("bexli", "bex")
+    player = await smart_client.get_player("bexli", "bex")
 
-# Account data (cached for 24 hours in smart config)
-time_operation("Getting account data (fresh):", lambda: player.riot_account)
+    # Account data (cached for 24 hours in smart config)
+    await time_operation("Getting account data (fresh):", lambda: player.get_riot_account())
 
-time_operation("Getting account data (cached 24h):", lambda: player.riot_account)
+    await time_operation("Getting account data (cached 24h):", lambda: player.get_riot_account())
 
-# League entries (cached for 5 minutes in smart config)
-time_operation("Getting league entries (fresh):", lambda: player.league_entries)
+    # League entries (cached for 5 minutes in smart config)
+    await time_operation("Getting league entries (fresh):", lambda: player.get_league_entries())
 
-time_operation("Getting league entries (cached 5m):", lambda: player.league_entries)
+    await time_operation("Getting league entries (cached 5m):", lambda: player.get_league_entries())
 
-print(f"Smart cache info: {smart_client.get_cache_info()}")
+    print(f"Smart cache info: {smart_client.get_cache_info()}")
 
-# Example 3: Custom cache configuration
-print("\n\n=== Example 3: Custom Cache Configuration ===")
+    # Example 3: Custom cache configuration
+    print("\n\n=== Example 3: Custom Cache Configuration ===")
 
-# Create a custom cache configuration
-custom_cache_config = CacheConfig(
-    enabled=True,
-    cache_name="custom_nexar_cache",
-    backend="sqlite",
-    expire_after=1800,  # 30 minutes default
-    endpoint_config={
-        # Cache account data for 1 hour
-        "/riot/account/v1/accounts/by-riot-id": {"expire_after": 3600},
-        # Cache summoner data for 1 hour
-        "/lol/summoner/v4/summoners/by-puuid": {"expire_after": 3600},
-        # Cache match data forever (immutable)
-        "/lol/match/v5/matches": {"expire_after": None},
-        # Cache league data for only 2 minutes (frequently changing)
-        "/lol/league/v4/entries/by-puuid": {"expire_after": 120},
-    },
-)
+    # Create a custom cache configuration
+    custom_cache_config = CacheConfig(
+        enabled=True,
+        cache_name="custom_nexar_cache",
+        backend="sqlite",
+        expire_after=1800,  # 30 minutes default
+        endpoint_config={
+            # Cache account data for 1 hour
+            "/riot/account/v1/accounts/by-riot-id": {"expire_after": 3600},
+            # Cache summoner data for 1 hour
+            "/lol/summoner/v4/summoners/by-puuid": {"expire_after": 3600},
+            # Cache match data forever (immutable)
+            "/lol/match/v5/matches": {"expire_after": None},
+            # Cache league data for only 2 minutes (frequently changing)
+            "/lol/league/v4/entries/by-puuid": {"expire_after": 120},
+        },
+    )
 
-custom_client = NexarClient(
-    riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=custom_cache_config,
-)
+    custom_client = NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=custom_cache_config,
+    )
 
-print("Custom cache configuration:")
-print(f"  Default expire: {custom_cache_config.expire_after}s")
-print(f"  Cache backend: {custom_cache_config.backend}")
-print(f"  Cache name: {custom_cache_config.cache_name}")
+    print("Custom cache configuration:")
+    print(f"  Default expire: {custom_cache_config.expire_after}s")
+    print(f"  Cache backend: {custom_cache_config.backend}")
+    print(f"  Cache name: {custom_cache_config.cache_name}")
 
-# Example 4: Cache management
-print("\n\n=== Example 4: Cache Management ===")
+    # Example 4: Cache management
+    print("\n\n=== Example 4: Cache Management ===")
 
-# Show API call stats
-print("Making some API calls to populate cache...")
-player = smart_client.get_player("bexli", "bex")
-_ = player.riot_account
-_ = player.summoner
-_ = player.league_entries
+    # Show API call stats
+    print("Making some API calls to populate cache...")
+    player = await smart_client.get_player("bexli", "bex")
+    await player.get_riot_account()
+    await player.get_summoner()
+    await player.get_league_entries()
 
-# Print API call statistics
-print("\nAPI call statistics:")
-stats = smart_client.get_api_call_stats()
-for stat_name, count in stats.items():
-    print(f"  {stat_name}: {count}")
+    # Print API call statistics
+    print("\nAPI call statistics:")
+    stats = smart_client.get_api_call_stats()
+    for stat_name, count in stats.items():
+        print(f"  {stat_name}: {count}")
 
-# Clear cache
-print("\nClearing cache...")
-smart_client.clear_cache()
-print("Cache cleared!")
+    # Clear cache
+    print("\nClearing cache...")
+    smart_client.clear_cache()
+    print("Cache cleared!")
 
-# Show cache is now empty
-print(f"Cache info after clearing: {smart_client.get_cache_info()}")
+    # Show cache is now empty
+    print(f"Cache info after clearing: {smart_client.get_cache_info()}")
 
-print("\n=== Caching Demo Complete ===")
-print("Tips:")
-print("- Use SMART_CACHE_CONFIG for most applications")
-print("- Use NO_CACHE_CONFIG for development/testing")
-print("- Create custom configs for specific needs")
-print("- Monitor cache hits with get_api_call_stats()")
+    print("\n=== Caching Demo Complete ===")
+    print("Tips:")
+    print("- Use SMART_CACHE_CONFIG for most applications")
+    print("- Use NO_CACHE_CONFIG for development/testing")
+    print("- Create custom configs for specific needs")
+    print("- Monitor cache hits with get_api_call_stats()")
+
+    # Close clients
+    await no_cache_client.close()
+    await cached_client.close()
+    await smart_client.close()
+    await custom_client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

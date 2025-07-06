@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Advanced example comparing multiple players' performance using the Player API."""
 
+import asyncio
 import os
 import sys
 
@@ -14,16 +15,8 @@ api_key = os.getenv("RIOT_API_KEY")
 if not api_key:
     sys.exit("Please set RIOT_API_KEY environment variable")
 
-# Create client
-client = NexarClient(
-    riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=SMART_CACHE_CONFIG,
-)
 
-
-def compare_players(players: list[Player], analysis_games: int = 20):
+async def compare_players(players: list[Player], analysis_games: int = 20):
     """Compare performance metrics across multiple players."""
     print(f"\n=== Comparing {len(players)} Players (Last {analysis_games} Games) ===")
 
@@ -32,20 +25,21 @@ def compare_players(players: list[Player], analysis_games: int = 20):
     for player in players:
         try:
             # Get basic info
-            summoner_level = player.summoner.summoner_level
+            summoner = await player.get_summoner()
+            summoner_level = summoner.summoner_level
             rank_info = "Unranked"
-            if player.rank:
-                rank = player.rank
-                rank_info = f"{rank.tier.value} {rank.rank.value} ({rank.league_points} LP)"
+            player_rank = await player.get_rank()
+            if player_rank:
+                rank_info = f"{player_rank.tier.value} {player_rank.rank.value} ({player_rank.league_points} LP)"
 
             # Get performance summary
-            performance = player.get_performance_summary(
+            performance = await player.get_performance_summary(
                 count=analysis_games,
                 queue=QueueId.RANKED_SOLO_5x5,
             )
 
             # Get top champion
-            top_champions = player.get_top_champions(
+            top_champions = await player.get_top_champions(
                 top_n=1,
                 count=analysis_games,
                 queue=QueueId.RANKED_SOLO_5x5,
@@ -53,7 +47,7 @@ def compare_players(players: list[Player], analysis_games: int = 20):
             top_champion = top_champions[0].champion_name if top_champions else "None"
 
             # Check win streak
-            on_streak = player.is_on_win_streak(min_games=3)
+            on_streak = await player.is_on_win_streak(min_games=3)
 
             player_data.append(
                 {
@@ -138,7 +132,7 @@ def compare_players(players: list[Player], analysis_games: int = 20):
     return player_data
 
 
-def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
+async def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
     """Analyze what champions multiple players have in common."""
     print(f"\n=== Champion Pool Analysis (Last {analysis_games} Games) ===")
 
@@ -148,7 +142,7 @@ def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
     for player in players:
         try:
             player_name = f"{player.game_name}#{player.tag_line}"
-            champions = player.get_champion_stats(
+            champions = await player.get_champion_stats(
                 count=analysis_games,
                 queue=QueueId.RANKED_SOLO_5x5,
             )
@@ -205,34 +199,49 @@ def analyze_champion_overlap(players: list[Player], analysis_games: int = 30):
             )
 
 
-# Example usage
-print("=== Multi-Player Analysis Demo ===")
+async def main() -> None:
+    """Multi-Player Analysis Demo."""
+    # Create client
+    client = NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=SMART_CACHE_CONFIG,
+    )
 
-# Create player objects for comparison
-# You can add more players by adding their game names and tag lines
-players_to_compare = [
-    client.get_player("bexli", "bex"),
-    client.get_player("roninalex", "na1"),
-    # Add more players here for comparison
-    # client.get_player("other_player", "tag"),
-]
+    print("=== Multi-Player Analysis Demo ===")
 
-if len(players_to_compare) == 1:
-    print("Note: Only one player configured. To see comparison features,")
-    print("add more players to the players_to_compare list in the code.")
-    print(f"\nAnalyzing single player: {players_to_compare[0]}")
+    # Create player objects for comparison
+    # You can add more players by adding their game names and tag lines
+    players_to_compare = [
+        await client.get_player("bexli", "bex"),
+        await client.get_player("roninalex", "na1"),
+        # Add more players here for comparison
+        # await client.get_player("other_player", "tag"),
+    ]
 
-# Compare players
-compare_players(players_to_compare, analysis_games=20)
+    if len(players_to_compare) == 1:
+        print("Note: Only one player configured. To see comparison features,")
+        print("add more players to the players_to_compare list in the code.")
+        print(f"\nAnalyzing single player: {players_to_compare[0]}")
 
-# Analyze champion pools if multiple players
-if len(players_to_compare) > 1:
-    analyze_champion_overlap(players_to_compare, analysis_games=30)
+    # Compare players
+    await compare_players(players_to_compare, analysis_games=20)
 
-print("\n=== Multi-Player Analysis Complete ===")
-print("This example demonstrates:")
-print("- Comparing performance metrics across players")
-print("- Ranking players by different statistics")
-print("- Identifying champion pool overlaps and unique picks")
-print("- Finding players on win streaks")
-print("- Add more players to players_to_compare list for better comparison")
+    # Analyze champion pools if multiple players
+    if len(players_to_compare) > 1:
+        await analyze_champion_overlap(players_to_compare, analysis_games=30)
+
+    print("\n=== Multi-Player Analysis Complete ===")
+    print("This example demonstrates:")
+    print("- Comparing performance metrics across players")
+    print("- Ranking players by different statistics")
+    print("- Identifying champion pool overlaps and unique picks")
+    print("- Finding players on win streaks")
+    print("- Add more players to players_to_compare list for better comparison")
+
+    await client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

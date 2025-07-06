@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+"""Example showing how to sort players by solo queue rank."""
+
+import asyncio
 import os
 import sys
 
@@ -5,39 +9,45 @@ from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 from nexar.utils import sort_players
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if not api_key:
-    sys.exit("Please set RIOT_API_KEY environment variable")
 
-# Create client
-client = NexarClient(
-    riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-)
+async def main() -> None:
+    """Demonstrate sorting players by solo queue rank."""
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
 
-# Example player names and tags (replace with real ones as needed)
-players_info = [
-    ("bexli", "bex"),
-    ("roninalex", "na1"),
-    ("MltSimpleton", "na1"),
-]
+    # Create async client
+    async with NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+    ) as client:
+        # Example player names and tags (replace with real ones as needed)
+        players_info = [
+            ("bexli", "bex"),
+            ("roninalex", "na1"),
+            ("MltSimpleton", "na1"),
+        ]
 
-# Create list of Player objects
-players = [client.get_player(name, tag) for name, tag in players_info]
+        # Create list of Player objects
+        players = [client.get_player(name, tag) for name, tag in players_info]
 
-# Fetch solo queue ranks for all players (forces API call)
-for player in players:
-    _ = player.solo_rank_value  # Ensures rank is loaded
+        # Fetch league entries for all players to populate rank data
+        for player in players:
+            await player.get_league_entries()  # Forces data to be loaded
 
-# Sort list of players by solo queue rank (highest first)
-sorted_players = sort_players(players, key=lambda p: p.solo_rank_value)
+        # Sort list of players by solo queue rank (highest first)
+        sorted_players = sort_players(players, key=lambda p: p.solo_rank_value)
 
-print("Players sorted by solo queue rank (highest to lowest):")
-for player in sorted_players:
-    rank = player.rank
-    if rank:
-        print(f"{player.game_name}: {rank.tier.name.title()} {rank.rank.value}")
-    else:
-        print(f"{player.game_name}: Unranked")
+        print("Players sorted by solo queue rank (highest to lowest):")
+        for player in sorted_players:
+            rank = player.rank
+            if rank:
+                print(f"{player.game_name}: {rank.tier.value.title()} {rank.rank.value}")
+            else:
+                print(f"{player.game_name}: Unranked")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

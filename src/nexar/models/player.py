@@ -394,6 +394,363 @@ class Player:
             "avg_kda": avg_kda,
         }
 
+    # Convenience properties for sync access (for backward compatibility)
+    @property
+    def riot_account(self) -> RiotAccount:
+        """Get the player's Riot account. Cached after first access."""
+        if self._riot_account is None:
+            import asyncio
+
+            try:
+                asyncio.get_running_loop()
+                msg = "Cannot use sync property from async context. Use 'await player.get_riot_account()' instead."
+                raise RuntimeError(msg)
+            except RuntimeError:
+                # No running loop, we can safely run async code
+                self._riot_account = asyncio.run(self.get_riot_account())
+        return self._riot_account
+
+    @property
+    def summoner(self) -> Summoner:
+        """Get the player's summoner information. Cached after first access."""
+        if self._summoner is None:
+            import asyncio
+
+            try:
+                asyncio.get_running_loop()
+                msg = "Cannot use sync property from async context. Use 'await player.get_summoner()' instead."
+                raise RuntimeError(msg)
+            except RuntimeError:
+                # No running loop, we can safely run async code
+                self._summoner = asyncio.run(self.get_summoner())
+        return self._summoner
+
+    @property
+    def puuid(self) -> str:
+        """Get the player's PUUID."""
+        return self.riot_account.puuid
+
+    @property
+    def league_entries(self) -> list[LeagueEntry]:
+        """Get all league entries for the player. Cached after first access."""
+        if self._league_entries is None:
+            import asyncio
+
+            try:
+                asyncio.get_running_loop()
+                msg = "Cannot use sync property from async context. Use 'await player.get_league_entries()' instead."
+                raise RuntimeError(msg)
+            except RuntimeError:
+                # No running loop, we can safely run async code
+                self._league_entries = asyncio.run(self.get_league_entries())
+        return self._league_entries
+
+    async def get_rank(self) -> LeagueEntry | None:
+        """
+        Get the player's solo queue rank.
+
+        - API queue type: RANKED_SOLO_5x5
+        - Map: Summoner's Rift
+        - Colloquial name: Solo Queue or Solo/Duo Queue
+
+        Returns:
+            LeagueEntry for solo queue, or None if unranked
+        """
+        from nexar.enums import Queue
+
+        league_entries = await self.get_league_entries()
+        for entry in league_entries:
+            if entry.queue_type == Queue.RANKED_SOLO_5x5:
+                return entry
+        return None
+
+    async def get_flex_rank(self) -> LeagueEntry | None:
+        """
+        Get the player's flex queue rank.
+
+        - API queue type: RANKED_FLEX_SR
+        - Map: Summoner's Rift
+        - Colloquial name: Flex Queue
+
+        Returns:
+            LeagueEntry for flex queue, or None if unranked
+        """
+        from nexar.enums import Queue
+
+        league_entries = await self.get_league_entries()
+        for entry in league_entries:
+            if entry.queue_type == Queue.RANKED_FLEX_SR:
+                return entry
+        return None
+
+    async def get_solo_rank_value(self) -> int | None:
+        """
+        Combined tier/rank value for the player's solo queue rank.
+
+        Returns None if the player is unranked in solo queue.
+
+        Useful for comparing or sorting players by solo queue rank.
+
+        Returns:
+            Integer rank value, or None if unranked
+        """
+        rank = await self.get_rank()
+        if rank is not None:
+            return rank.rank_value
+        return None
+
+    # Additional convenience methods
+    def get_recent_matches(
+        self,
+        count: int = 20,
+        queue: QueueId | int | None = None,
+        match_type: MatchType | str | None = None,
+        start_time: int | datetime | None = None,
+        end_time: int | datetime | None = None,
+    ) -> list[Match]:
+        """
+        Get recent matches for the player (sync version).
+
+        Args:
+            count: Number of matches to retrieve (1-100, default 20)
+            queue: Queue type filter (None for all matches)
+            match_type: Match type filter
+            start_time: Start time filter
+            end_time: End time filter
+
+        Returns:
+            List of Match objects
+        """
+        import asyncio
+
+        try:
+            asyncio.get_running_loop()
+            msg = "Cannot use sync method from async context. Use 'await player.get_matches()' instead."
+            raise RuntimeError(msg)
+        except RuntimeError:
+            # No running loop, we can safely run async code
+            return asyncio.run(
+                self.get_matches(
+                    start_time=start_time,
+                    end_time=end_time,
+                    queue=queue,
+                    match_type=match_type,
+                    count=count,
+                ),
+            )
+
+    async def get_top_champions(
+        self,
+        top_n: int = 5,
+        count: int = 20,
+        queue: QueueId | int | None = None,
+        match_type: MatchType | str | None = None,
+    ) -> list[ChampionStats]:
+        """
+        Get top played champions.
+
+        Args:
+            top_n: Number of top champions to return (default 5)
+            count: Number of recent matches to analyze (default 20)
+            queue: Optional queue type filter
+            match_type: Optional match type filter
+
+        Returns:
+            List of ChampionStats sorted by games played (descending)
+        """
+        champion_stats = await self.get_champion_stats(
+            queue=queue,
+            count=count,
+            start_time=None,
+            end_time=None,
+        )
+        return sorted(champion_stats, key=lambda x: x.games_played, reverse=True)[:top_n]
+
+    async def get_performance_summary(
+        self,
+        count: int = 20,
+        queue: QueueId | int | None = None,
+        match_type: MatchType | str | None = None,
+    ) -> dict[str, Any]:
+        """
+        Get a performance summary from recent matches.
+
+        Args:
+            count: Number of recent matches to analyze (default 20)
+            queue: Optional queue type filter
+            match_type: Optional match type filter
+
+        Returns:
+            Dictionary containing performance statistics
+        """
+        matches = await self.get_matches(
+            queue=queue,
+            count=count,
+            start_time=None,
+            end_time=None,
+        )
+        account = await self.get_riot_account()
+        puuid = account.puuid
+
+        if not matches:
+            return {
+                "total_games": 0,
+                "wins": 0,
+                "losses": 0,
+                "win_rate": 0.0,
+                "avg_kills": 0.0,
+                "avg_deaths": 0.0,
+                "avg_assists": 0.0,
+                "avg_kda": 0.0,
+                "avg_cs": 0.0,
+                "avg_game_duration_minutes": 0.0,
+            }
+
+        total_games = len(matches)
+        wins = 0
+        total_kills = 0
+        total_deaths = 0
+        total_assists = 0
+        total_cs = 0
+        total_duration = 0
+
+        for match in matches:
+            # Find the participant for this player
+            participant = None
+            for p in match.info.participants:
+                if p.puuid == puuid:
+                    participant = p
+                    break
+
+            if not participant:
+                continue
+
+            if participant.win:
+                wins += 1
+
+            total_kills += participant.kills
+            total_deaths += participant.deaths
+            total_assists += participant.assists
+            total_cs += participant.total_minions_killed + participant.neutral_minions_killed
+            total_duration += match.info.game_duration
+
+        losses = total_games - wins
+        win_rate = (wins / total_games) * 100.0 if total_games > 0 else 0.0
+        avg_kills = total_kills / total_games if total_games > 0 else 0.0
+        avg_deaths = total_deaths / total_games if total_games > 0 else 0.0
+        avg_assists = total_assists / total_games if total_games > 0 else 0.0
+        avg_kda = (total_kills + total_assists) / total_deaths if total_deaths > 0 else 0.0
+        avg_cs = total_cs / total_games if total_games > 0 else 0.0
+        avg_game_duration_minutes = (total_duration / 60) / total_games if total_games > 0 else 0.0
+
+        return {
+            "total_games": total_games,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": win_rate,
+            "avg_kills": avg_kills,
+            "avg_deaths": avg_deaths,
+            "avg_assists": avg_assists,
+            "avg_kda": avg_kda,
+            "avg_cs": avg_cs,
+            "avg_game_duration_minutes": avg_game_duration_minutes,
+        }
+
+    async def get_recent_performance_by_role(
+        self,
+        count: int = 50,
+        queue: QueueId | int | None = None,
+    ) -> dict[str, dict[str, Any]]:
+        """
+        Get performance statistics grouped by role.
+
+        Args:
+            count: Number of recent matches to analyze (default 50)
+            queue: Optional queue type filter
+
+        Returns:
+            Dictionary with role names as keys and performance stats as values
+        """
+        matches = await self.get_matches(queue=queue, count=count)
+        account = await self.get_riot_account()
+        puuid = account.puuid
+
+        role_stats: dict[str, dict[str, Any]] = {}
+
+        for match in matches:
+            # Find the participant for this player
+            participant = None
+            for p in match.info.participants:
+                if p.puuid == puuid:
+                    participant = p
+                    break
+
+            if not participant:
+                continue
+
+            role = participant.team_position.value if participant.team_position else "UNKNOWN"
+
+            if role not in role_stats:
+                role_stats[role] = {
+                    "games": 0,
+                    "wins": 0,
+                    "kills": 0,
+                    "deaths": 0,
+                    "assists": 0,
+                }
+
+            role_stats[role]["games"] += 1
+            if participant.win:
+                role_stats[role]["wins"] += 1
+            role_stats[role]["kills"] += participant.kills
+            role_stats[role]["deaths"] += participant.deaths
+            role_stats[role]["assists"] += participant.assists
+
+        # Calculate averages and percentages
+        for stats in role_stats.values():
+            games = stats["games"]
+            if games > 0:
+                stats["win_rate"] = (stats["wins"] / games) * 100.0
+                stats["avg_kills"] = stats["kills"] / games
+                stats["avg_deaths"] = stats["deaths"] / games
+                stats["avg_assists"] = stats["assists"] / games
+                stats["avg_kda"] = (stats["kills"] + stats["assists"]) / stats["deaths"] if stats["deaths"] > 0 else 0.0
+
+        return role_stats
+
+    async def is_on_win_streak(self, min_games: int = 3) -> bool:
+        """
+        Check if the player is currently on a win streak.
+
+        Args:
+            min_games: Minimum number of games to consider a streak (default 3)
+
+        Returns:
+            True if the player is on a win streak of at least min_games
+        """
+        matches = await self.get_matches(count=min_games * 2)  # Get extra to be safe
+        account = await self.get_riot_account()
+        puuid = account.puuid
+
+        wins_in_a_row = 0
+        for match in matches:
+            # Find the participant for this player
+            participant = None
+            for p in match.info.participants:
+                if p.puuid == puuid:
+                    participant = p
+                    break
+
+            if not participant:
+                continue
+
+            if participant.win:
+                wins_in_a_row += 1
+            else:
+                break  # Streak broken
+
+        return wins_in_a_row >= min_games
+
     def __str__(self) -> str:
         """Return string representation of the player."""
         return f"{self.game_name}#{self.tag_line}"

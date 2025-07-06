@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Example demonstrating API monitoring and logging functionality."""
 
+import asyncio
 import logging
 import os
 import sys
@@ -16,110 +17,119 @@ api_key = os.getenv("RIOT_API_KEY")
 if not api_key:
     sys.exit("Please set RIOT_API_KEY environment variable")
 
-# Example 1: Basic logging
-print("=== Example 1: Basic Logging ===")
 
-# Enable INFO level logging to see API calls
-print("Enabling INFO level logging...")
-configure_logging(logging.INFO)
+async def main() -> None:
+    """Demonstrate API monitoring and logging functionality."""
+    # Example 1: Basic logging
+    print("=== Example 1: Basic Logging ===")
 
-client = NexarClient(
-    riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=SMART_CACHE_CONFIG,
-)
+    # Enable INFO level logging to see API calls
+    print("Enabling INFO level logging...")
+    configure_logging(logging.INFO)
 
-print("\nMaking API calls (watch the log output):")
-player = client.get_player("bexli", "bex")
+    client = NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=SMART_CACHE_CONFIG,
+    )
 
-# These calls will show in logs with timing and cache info
-print("- Getting account data...")
-account = player.riot_account
+    print("\nMaking API calls (watch the log output):")
+    player = await client.get_player("bexli", "bex")
 
-print("- Getting summoner data...")
-summoner = player.summoner
+    # These calls will show in logs with timing and cache info
+    print("- Getting account data...")
+    account = await player.get_riot_account()
 
-print("- Getting league entries...")
-league_entries = player.league_entries
+    print("- Getting summoner data...")
+    summoner = await player.get_summoner()
 
-print("- Getting recent matches...")
-matches = player.get_recent_matches(count=3)
+    print("- Getting league entries...")
+    league_entries = await player.get_league_entries()
 
-# Example 2: Debug logging
-print("\n\n=== Example 2: Debug Logging ===")
+    print("- Getting recent matches...")
+    matches = await player.get_recent_matches(count=3)
 
-print("Enabling DEBUG level logging for detailed information...")
-configure_logging(logging.DEBUG)
+    # Example 2: Debug logging
+    print("\n\n=== Example 2: Debug Logging ===")
 
-# Clear the client's cache to force fresh API calls
-client.clear_cache()
+    print("Enabling DEBUG level logging for detailed information...")
+    configure_logging(logging.DEBUG)
 
-print("\nMaking API calls with DEBUG logging:")
-# This will show even more detailed information
-performance_summary = player.get_performance_summary(count=5)
-print(f"Performance: {performance_summary['win_rate']}% win rate")
+    # Clear the client's cache to force fresh API calls
+    client.clear_cache()
 
-# Example 3: Logging statistics
-print("\n\n=== Example 3: API Call Statistics ===")
+    print("\nMaking API calls with DEBUG logging:")
+    # This will show even more detailed information
+    performance_summary = await player.get_performance_summary(count=5)
+    print(f"Performance: {performance_summary['win_rate']}% win rate")
 
-# Set back to INFO to reduce noise
-configure_logging(logging.INFO)
+    # Example 3: Logging statistics
+    print("\n\n=== Example 3: API Call Statistics ===")
 
-print("Current API call statistics:")
-stats = client.get_api_call_stats()
-for stat_name, count in stats.items():
-    print(f"  {stat_name}: {count}")
+    # Set back to INFO to reduce noise
+    configure_logging(logging.INFO)
 
-# Print a summary of all API calls made
-print("\nAPI call summary:")
-client.print_api_call_summary()
+    print("Current API call statistics:")
+    stats = client.get_api_call_stats()
+    for stat_name, count in stats.items():
+        print(f"  {stat_name}: {count}")
 
-# Example 4: Monitoring cache performance
-print("\n\n=== Example 4: Cache Performance Monitoring ===")
+    # Print a summary of all API calls made
+    print("\nAPI call summary:")
+    client.print_api_call_summary()
 
-# Reset stats to start fresh
-client._reset_api_call_count()
+    # Example 4: Monitoring cache performance
+    print("\n\n=== Example 4: Cache Performance Monitoring ===")
 
-print("Making duplicate API calls to demonstrate cache effectiveness:")
+    # Reset stats to start fresh
+    client._reset_api_call_count()
 
-# First round - fresh calls
-print("\nRound 1 (fresh calls):")
-player2 = client.get_player("bexli", "bex")
-_ = player2.riot_account
-_ = player2.summoner
-_ = player2.league_entries
+    print("Making duplicate API calls to demonstrate cache effectiveness:")
 
-client.print_api_call_summary()
+    # First round - fresh calls
+    print("\nRound 1 (fresh calls):")
+    player2 = await client.get_player("bexli", "bex")
+    await player2.get_riot_account()
+    await player2.get_summoner()
+    await player2.get_league_entries()
 
-# Second round - should be mostly cached
-print("\nRound 2 (cached calls):")
-player3 = client.get_player("bexli", "bex")
-_ = player3.riot_account
-_ = player3.summoner
-_ = player3.league_entries
+    client.print_api_call_summary()
 
-client.print_api_call_summary()
+    # Second round - should be mostly cached
+    print("\nRound 2 (cached calls):")
+    player3 = await client.get_player("bexli", "bex")
+    await player3.get_riot_account()
+    await player3.get_summoner()
+    await player3.get_league_entries()
 
-# Example 5: Disabling logging
-print("\n\n=== Example 5: Disabling Logging ===")
+    client.print_api_call_summary()
 
-print("Disabling logging...")
-configure_logging(logging.WARNING)  # Only show warnings and errors
+    # Example 5: Disabling logging
+    print("\n\n=== Example 5: Disabling Logging ===")
 
-print("Making API calls with minimal logging:")
-top_champions = player.get_top_champions(top_n=3, count=10)
-print(f"Top champions: {[champ.champion_name for champ in top_champions]}")
+    print("Disabling logging...")
+    configure_logging(logging.WARNING)  # Only show warnings and errors
 
-# Final statistics
-print("\nFinal API statistics:")
-stats = client.get_api_call_stats()
-for stat_name, count in stats.items():
-    print(f"  {stat_name}: {count}")
+    print("Making API calls with minimal logging:")
+    top_champions = await player.get_top_champions(top_n=3, count=10)
+    print(f"Top champions: {[champ.champion_name for champ in top_champions]}")
 
-print("\n=== Logging Demo Complete ===")
-print("Logging levels:")
-print("- DEBUG: Very detailed information for debugging")
-print("- INFO: General information about API calls and cache hits")
-print("- WARNING: Only warnings and errors (minimal output)")
-print("- Use configure_logging() to control verbosity")
+    # Final statistics
+    print("\nFinal API statistics:")
+    stats = client.get_api_call_stats()
+    for stat_name, count in stats.items():
+        print(f"  {stat_name}: {count}")
+
+    print("\n=== Logging Demo Complete ===")
+    print("Logging levels:")
+    print("- DEBUG: Very detailed information for debugging")
+    print("- INFO: General information about API calls and cache hits")
+    print("- WARNING: Only warnings and errors (minimal output)")
+    print("- Use configure_logging() to control verbosity")
+
+    await client.close()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
