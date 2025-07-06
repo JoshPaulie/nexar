@@ -10,11 +10,7 @@ requires-python = ">=3.13"
 dependencies = ["aiohttp>=3.12.13", "aiohttp-client-cache[all,sqlite]>=0.13.0"]
 
 [dependency-groups]
-dev = [
-    "mypy>=1.16.1",
-    "pytest>=8.4.1",
- "pytest-asyncio>=1.0.0",
-]
+dev = ["mypy>=1.16.1", "pytest>=8.4.1", "pytest-asyncio>=1.0.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -28,7 +24,7 @@ python_functions = ["test_*"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
-    "ignore:Cache access after closing the `Cachedsession` context manager:UserWarning"
+    "ignore:Cache access after closing the `Cachedsession` context manager:UserWarning",
 ]
 
 [tool.ruff.lint]
