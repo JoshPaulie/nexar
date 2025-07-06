@@ -1,19 +1,24 @@
 """Tests for league-related functionality."""
 
+from typing import TYPE_CHECKING
+
 from nexar import LeagueEntry, MiniSeries
 from nexar.enums import Division, Queue, Tier
+
+if TYPE_CHECKING:
+    from nexar.client import NexarClient
 
 
 class TestLeagueEntries:
     """Test league entry functionality."""
 
-    async def test_get_league_entries_by_puuid_success(self, async_client):
+    async def test_get_league_entries_by_puuid_success(self, async_client: "NexarClient") -> None:
         """Test successful league entries retrieval by PUUID."""
         # Use hardcoded PUUID to reduce API calls during testing
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 
         # Get league entries for the account
-        result = await async_client.get_league_entries_by_puuid(test_puuid)
+        result = await async_client.get_league_entries_by_puuid(test_puuid, None)
 
         # Should return a list of league entries
         assert isinstance(result, list)
@@ -47,7 +52,7 @@ class TestLeagueEntries:
 class TestLeagueModels:
     """Test league model creation."""
 
-    def test_mini_series_creation(self):
+    def test_mini_series_creation(self) -> None:
         """Test MiniSeries model creation from API response."""
         api_data = {"losses": 1, "progress": "WWN", "target": 3, "wins": 2}
 
@@ -58,7 +63,7 @@ class TestLeagueModels:
         assert mini_series.target == 3
         assert mini_series.wins == 2
 
-    def test_league_entry_creation_without_mini_series(self):
+    def test_league_entry_creation_without_mini_series(self) -> None:
         """Test LeagueEntry model creation without mini series."""
         api_data = {
             "leagueId": "test-league-id",
@@ -91,7 +96,7 @@ class TestLeagueModels:
         assert entry.inactive is False
         assert entry.mini_series is None
 
-    def test_league_entry_creation_with_mini_series(self):
+    def test_league_entry_creation_with_mini_series(self) -> None:
         """Test LeagueEntry model creation with mini series."""
         api_data = {
             "leagueId": "test-league-id",
@@ -131,7 +136,7 @@ class TestLeagueModels:
         assert entry.mini_series.target == 3
         assert entry.mini_series.wins == 2
 
-    def test_league_entry_win_rate_calculation(self):
+    def test_league_entry_win_rate_calculation(self) -> None:
         """Test LeagueEntry win rate calculation."""
         api_data = {
             "leagueId": "test-league-id",
@@ -153,7 +158,7 @@ class TestLeagueModels:
         # 60 wins out of 100 total games = 60% win rate
         assert entry.win_rate == 60.0
 
-    def test_league_entry_win_rate_no_games(self):
+    def test_league_entry_win_rate_no_games(self) -> None:
         """Test LeagueEntry win rate with no games played."""
         api_data = {
             "leagueId": "test-league-id",
@@ -175,7 +180,7 @@ class TestLeagueModels:
         # No games played should return 0% win rate
         assert entry.win_rate == 0.0
 
-    def test_league_entry_total_games(self):
+    def test_league_entry_total_games(self) -> None:
         """Test LeagueEntry total games calculation."""
         api_data = {
             "leagueId": "test-league-id",

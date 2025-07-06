@@ -163,7 +163,11 @@ class NexarClient:
         try:
             # Check if this request would be served from cache
             is_cached = False
-            if hasattr(self._session, "cache") and self._session.cache:
+            if (
+                isinstance(self._session, aiohttp_client_cache.CachedSession)
+                and hasattr(self._session, "cache")
+                and self._session.cache
+            ):
                 try:
                     # For aiohttp-client-cache, we'll check if cache exists differently
                     # This is a simplified approach - the actual implementation may vary
@@ -179,6 +183,7 @@ class NexarClient:
                 await self.rate_limiter.async_wait_if_needed()
 
             # Make the request (cached or not)
+            assert self._session is not None
             async with self._session.get(
                 url,
                 headers=headers,
@@ -278,8 +283,11 @@ class NexarClient:
             return
 
         # Log cache setup information
-        has_cache = hasattr(self._session, "cache")
-        cache_type = type(self._session.cache) if has_cache else None
+        has_cache = isinstance(self._session, aiohttp_client_cache.CachedSession) and hasattr(self._session, "cache")
+        cache_type = None
+        if has_cache and isinstance(self._session, aiohttp_client_cache.CachedSession) and self._session.cache:
+            cache_type = type(self._session.cache)
+
         self._logger.log_cache_setup(
             cache_name=self.cache_config.cache_name,
             backend=self.cache_config.backend,
@@ -287,16 +295,22 @@ class NexarClient:
             cache_type=cache_type,
         )
 
-        if has_cache:
+        if has_cache and isinstance(self._session, aiohttp_client_cache.CachedSession):
             # Log cache configuration details
-            self._logger.log_cache_config(
-                expire_after=self.cache_config.expire_after,
-                has_url_expiration=bool(getattr(self._session, "urls_expire_after", None)),
-            )
+            expire_after = self.cache_config.expire_after
+            if expire_after is not None:
+                self._logger.log_cache_config(
+                    expire_after=expire_after,
+                    has_url_expiration=bool(getattr(self._session, "urls_expire_after", None)),
+                )
 
     async def clear_cache(self) -> None:
         """Clear all cached responses."""
-        if hasattr(self._session, "cache") and self._session.cache:
+        if (
+            isinstance(self._session, aiohttp_client_cache.CachedSession)
+            and hasattr(self._session, "cache")
+            and self._session.cache
+        ):
             await self._session.cache.clear()
             self._logger.log_cache_cleared()
 
@@ -315,7 +329,11 @@ class NexarClient:
             "default_expire_after": self.cache_config.expire_after,
         }
 
-        if hasattr(self._session, "cache") and self._session.cache:
+        if (
+            isinstance(self._session, aiohttp_client_cache.CachedSession)
+            and hasattr(self._session, "cache")
+            and self._session.cache
+        ):
             try:
                 # Try to get cache size if the backend supports it
                 cache = self._session.cache
@@ -401,7 +419,9 @@ class NexarClient:
             f"/lol/league/v4/entries/by-puuid/{puuid}",
             region=region,
         )
-        return [LeagueEntry.from_api_response(entry) for entry in data]
+        # The league API returns a list, not the usual dict
+        entries_list: list[dict[str, Any]] = data  # type: ignore[assignment]
+        return [LeagueEntry.from_api_response(entry) for entry in entries_list]
 
     # Match API
     async def get_match(self, match_id: str, region: RegionV5 | None = None) -> Match:
@@ -468,7 +488,7 @@ class NexarClient:
             end_timestamp = int(end_time.timestamp()) if isinstance(end_time, datetime) else end_time
 
         # Build query parameters dict
-        params = {}
+        params: dict[str, int | str] = {}
         if start_timestamp is not None:
             params["startTime"] = start_timestamp
         if end_timestamp is not None:
@@ -483,7 +503,10 @@ class NexarClient:
             params["count"] = count
 
         endpoint = f"/lol/match/v5/matches/by-puuid/{puuid}/ids"
-        return await self._make_api_call(endpoint, region=region, params=params)
+        data = await self._make_api_call(endpoint, region=region, params=params)
+        # The match IDs API returns a list of strings, not the usual dict
+        match_ids: list[str] = data  # type: ignore[assignment]
+        return match_ids
 
     # High-level convenience methods
     def get_player(

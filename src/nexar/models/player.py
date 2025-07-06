@@ -352,7 +352,7 @@ class Player:
         # Convert to ChampionStats objects
         champion_stats = []
         for champion_id, data in champion_data.items():
-            stats = ChampionStats(
+            champion_stat = ChampionStats(
                 champion_id=champion_id,
                 champion_name=data["champion_name"],
                 games_played=data["games_played"],
@@ -362,7 +362,7 @@ class Player:
                 total_deaths=data["total_deaths"],
                 total_assists=data["total_assists"],
             )
-            champion_stats.append(stats)
+            champion_stats.append(champion_stat)
 
         # Sort by games played (descending)
         champion_stats.sort(key=lambda x: x.games_played, reverse=True)
