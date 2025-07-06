@@ -42,6 +42,7 @@ ignore = [
     "ERA001",  # Allow commented out code in examples
     "C901",    # Allow long main functions in examples
     "PLR2004", # Allow magic numbers in examples
+    "INP001",  # Disable implicit namespace package error in examples
 ]
 
 [tool.ruff]
