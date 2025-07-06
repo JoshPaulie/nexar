@@ -285,6 +285,7 @@ class Player:
         start_time: int | datetime | None = None,
         end_time: int | datetime | None = None,
         queue: QueueId | int | None = None,
+        match_type: MatchType | str | None = None,
         count: int = 100,
     ) -> list[ChampionStats]:
         """
@@ -294,6 +295,7 @@ class Player:
             start_time: Epoch timestamp in seconds or datetime for match start filter
             end_time: Epoch timestamp in seconds or datetime for match end filter
             queue: Queue ID filter (int or QueueId enum)
+            match_type: Match type filter (MatchType enum or string)
             count: Number of matches to analyze (0-100)
 
         Returns:
@@ -304,6 +306,7 @@ class Player:
             start_time=start_time,
             end_time=end_time,
             queue=queue,
+            match_type=match_type,
             count=count,
         )
 
@@ -591,6 +594,7 @@ class Player:
         top_n: int = 5,
         count: int = 20,
         queue: QueueId | int | None = None,
+        match_type: MatchType | str | None = None,
     ) -> list[ChampionStats]:
         """
         Get top played champions.
@@ -607,6 +611,7 @@ class Player:
         """
         champion_stats = await self.get_champion_stats(
             queue=queue,
+            match_type=match_type,
             count=count,
             start_time=None,
             end_time=None,
@@ -799,6 +804,12 @@ class Player:
                 break  # Streak broken
 
         return wins_in_a_row >= min_games
+
+    def refresh_cache(self) -> None:
+        """Clear all cached data to force fresh API calls."""
+        self._riot_account = None
+        self._summoner = None
+        self._league_entries = None
 
     def __str__(self) -> str:
         """Return string representation of the player."""

@@ -167,12 +167,18 @@ def create_test_participant(**overrides) -> Participant:
 class TestMatchModels:
     """Test match-related models."""
 
-    @pytest.mark.skip(
-        reason="Requires specific match ID - implement when match history endpoint is added",
-    )
-    def test_match_from_api_response(self):
+    async def test_match_from_api_response(self, client):
         """Test Match creation from real API response."""
-        # TODO: Implement when we add match history endpoints to get real match IDs
+        player = client.get_player("bexli", "bex")
+        matches = await player.get_matches(count=1)
+
+        if matches:
+            match = matches[0]
+            # Basic validation that the match was created properly
+            assert match.metadata is not None
+            assert match.info is not None
+            assert len(match.info.participants) == 10  # Standard 5v5 match
+            assert match.metadata.match_id is not None
 
     def test_ban_creation(self):
         """Test Ban model can be created directly."""

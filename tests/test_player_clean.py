@@ -121,15 +121,33 @@ class TestPlayer:
             assert stat.wins + stat.losses == stat.games_played
             assert 0 <= stat.win_rate <= 100
 
-    @pytest.mark.skip(reason="Method get_top_champions no longer exists after async conversion")
-    def test_player_get_top_champions(self, client):
+    async def test_player_get_top_champions(self, client):
         """Test getting top played champions."""
-        pass
+        player = client.get_player("bexli", "bex")
+        top_champions = await player.get_top_champions(top_n=3, count=10)
 
-    @pytest.mark.skip(reason="Method refresh_cache no longer exists after async conversion")
-    def test_player_refresh_cache(self, client):
+        # Should return a list
+        assert isinstance(top_champions, list)
+        # Should have at most 3 champions (or fewer if player hasn't played many)
+        assert len(top_champions) <= 3
+
+    async def test_player_refresh_cache(self, client):
         """Test cache refresh functionality."""
-        pass
+        player = client.get_player("bexli", "bex")
+
+        # Get initial data to populate cache
+        await player.get_riot_account()
+
+        # Verify cache is populated
+        assert player._riot_account is not None
+
+        # Refresh cache
+        player.refresh_cache()
+
+        # Verify cache is cleared
+        assert player._riot_account is None
+        assert player._summoner is None
+        assert player._league_entries is None
 
     def test_player_string_representations(self, client):
         """Test string representations of Player."""
@@ -186,20 +204,38 @@ class TestPlayer:
         assert isinstance(summary_large, dict)
         assert "total_games" in summary_large
 
-    @pytest.mark.skip(reason="Method is_on_win_streak no longer exists after async conversion")
-    def test_player_is_on_win_streak(self, client):
+    async def test_player_is_on_win_streak(self, client):
         """Test win streak detection."""
-        pass
+        player = client.get_player("bexli", "bex")
 
-    @pytest.mark.skip(reason="Method get_recent_performance_by_role no longer exists after async conversion")
-    def test_player_get_recent_performance_by_role(self, client):
+        # Test the method exists and returns a boolean
+        win_streak = await player.is_on_win_streak(min_games=2)
+        assert isinstance(win_streak, bool)
+
+    async def test_player_get_recent_performance_by_role(self, client):
         """Test getting performance statistics by role."""
-        pass
+        player = client.get_player("bexli", "bex")
 
-    @pytest.mark.skip(reason="Method get_recent_performance_by_role no longer exists after async conversion")
-    def test_player_get_recent_performance_by_role_with_queue(self, client):
+        role_performance = await player.get_recent_performance_by_role(count=10)
+        assert isinstance(role_performance, dict)
+
+        # Each role should have performance stats
+        for stats in role_performance.values():
+            assert "games" in stats
+            assert "wins" in stats
+            assert "win_rate" in stats
+
+    async def test_player_get_recent_performance_by_role_with_queue(self, client):
         """Test getting role performance with queue filter."""
-        pass
+        player = client.get_player("bexli", "bex")
+
+        from nexar.enums import QueueId
+
+        role_performance = await player.get_recent_performance_by_role(
+            count=5,
+            queue=QueueId.RANKED_SOLO_5x5,
+        )
+        assert isinstance(role_performance, dict)
 
     async def test_player_cache_behavior(self, client):
         """Test that Player properties are properly cached."""
@@ -265,15 +301,23 @@ class TestPlayer:
         for stat in stats:
             assert isinstance(stat, ChampionStats)
 
-    @pytest.mark.skip(reason="MatchType parameter not supported in get_champion_stats after conversion")
-    def test_champion_stats_with_match_type_filter(self, client):
+    async def test_champion_stats_with_match_type_filter(self, client):
         """Test champion stats with match type filter."""
-        pass
+        player = client.get_player("bexli", "bex")
 
-    @pytest.mark.skip(reason="Method get_top_champions no longer exists after async conversion")
-    def test_top_champions_edge_cases(self, client):
+        from nexar.enums import MatchType
+
+        stats = await player.get_champion_stats(count=10, match_type=MatchType.RANKED)
+        assert isinstance(stats, list)
+
+    async def test_top_champions_edge_cases(self, client):
         """Test top champions with edge cases."""
-        pass
+        player = client.get_player("bexli", "bex")
+
+        # Test with small count
+        top_champions = await player.get_top_champions(top_n=1, count=5)
+        assert isinstance(top_champions, list)
+        assert len(top_champions) <= 1
 
     async def test_player_methods_with_datetime_filters(self, client):
         """Test Player methods that accept datetime filters."""
