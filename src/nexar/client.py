@@ -1,10 +1,11 @@
 """Main client for the Nexar SDK."""
 
 from datetime import datetime
+from types import TracebackType
 from typing import Any
 
-import requests
-import requests_cache
+import aiohttp
+import aiohttp_client_cache
 
 from .cache import DEFAULT_CACHE_CONFIG, CacheConfig
 from .enums import MatchType, QueueId, RegionV4, RegionV5
@@ -16,8 +17,7 @@ from .exceptions import (
     UnauthorizedError,
 )
 from .logging import get_logger
-from .models import LeagueEntry, Match, RiotAccount, Summoner
-from .models.player import Player
+from .models import LeagueEntry, Match, Player, RiotAccount, Summoner
 from .rate_limiter import RateLimiter
 
 # HTTP status codes (module-level constants)
@@ -33,7 +33,7 @@ DEFAULT_MATCH_ID_COUNT = 20
 
 
 class NexarClient:
-    """Main client for interacting with the Riot Games API."""
+    """Client for interacting with the Riot Games API."""
 
     def __init__(
         self,
@@ -64,6 +64,29 @@ class NexarClient:
         # API call tracking (always enabled, debug display is conditional)
         self._api_call_count = 0
 
+        # Session will be created when needed
+        self._session: aiohttp_client_cache.CachedSession | aiohttp.ClientSession | None = None
+
+    async def __aenter__(self) -> "NexarClient":
+        """Async context manager entry."""
+        await self._ensure_session()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        """Async context manager exit."""
+        if self._session:
+            await self._session.close()
+
+    async def _ensure_session(self) -> None:
+        """Ensure the session is created and configured."""
+        if self._session:
+            return
+
         # Initialize caching if enabled
         if self.cache_config.enabled:
             # Create per-URL expiration mapping
@@ -76,32 +99,30 @@ class NexarClient:
                     )
                     # Map pattern to actual URLs that might match
                     urls_expire_after[f"*{endpoint_pattern}*"] = expire_time
-                elif isinstance(config, dict) and not config.get("enabled", True):
-                    # For disabled endpoints, we'll handle this differently
-                    continue
 
             # Create cached session
-            self._session = requests_cache.CachedSession(
-                cache_name=self.cache_config.cache_name,
-                backend=self.cache_config.backend,
-                expire_after=self.cache_config.expire_after,
+            self._session = aiohttp_client_cache.CachedSession(
+                cache=aiohttp_client_cache.SQLiteBackend(
+                    cache_name=self.cache_config.cache_name,
+                    expire_after=self.cache_config.expire_after,
+                ),
                 urls_expire_after=urls_expire_after if urls_expire_after else None,
-                allowable_codes=[200],  # Only cache successful responses
-                allowable_methods=["GET"],  # Only cache GET requests
             )
         else:
-            self._session = requests.Session()
+            # Create regular session
+            timeout = aiohttp.ClientTimeout(total=30)
+            self._session = aiohttp.ClientSession(timeout=timeout)
 
         self._setup_caching()
 
-    def _make_api_call(
+    async def _make_api_call(
         self,
         endpoint: str,
         region: RegionV4 | RegionV5,
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
-        Make an API call to the Riot Games API.
+        Make an async API call to the Riot Games API.
 
         Args:
             endpoint: The API endpoint path
@@ -115,6 +136,8 @@ class NexarClient:
             RiotAPIError: If the API returns an error status code
 
         """
+        await self._ensure_session()
+
         # Always increment API call counter
         self._api_call_count += 1
 
@@ -138,17 +161,13 @@ class NexarClient:
 
         try:
             # Check if this request would be served from cache
-            from requests import Request
-
-            request = Request("GET", url, headers=headers, params=params)
-            prepared_request = self._session.prepare_request(request)
-
-            # Only apply rate limiting if the request is not cached
             is_cached = False
             if hasattr(self._session, "cache") and self._session.cache:
                 try:
-                    cache_key = self._session.cache.create_key(prepared_request)
-                    is_cached = self._session.cache.contains(cache_key)
+                    # For aiohttp-client-cache, we'll check if cache exists differently
+                    # This is a simplified approach - the actual implementation may vary
+                    # Most cache implementations have a contains check
+                    is_cached = False  # For now, always apply rate limiting
                 except (AttributeError, KeyError, TypeError) as exc:
                     # If cache check fails, assume not cached and apply rate limiting
                     self._logger.logger.debug("Cache check failed: %s", exc)
@@ -156,42 +175,35 @@ class NexarClient:
 
             if not is_cached:
                 # Apply rate limiting for actual API calls
-                self.rate_limiter.wait_if_needed()
+                await self.rate_limiter.async_wait_if_needed()
 
             # Make the request (cached or not)
-            response = self._session.get(
+            async with self._session.get(
                 url,
                 headers=headers,
                 params=params,
-                timeout=30,
-            )
+            ) as response:
+                # Record the request only if it wasn't served from cache
+                from_cache = getattr(response, "from_cache", False)
+                if not from_cache:
+                    self.rate_limiter.record_request()
 
-            # Record the request only if it wasn't served from cache
-            from_cache = getattr(response, "from_cache", False)
-            if not from_cache:
-                self.rate_limiter.record_request()
+                await self._handle_response_errors(response)
 
-            self._handle_response_errors(response)
+                # Log successful response
+                self._logger.log_api_call_success(response.status, from_cache=from_cache)
 
-            # Log successful response
-            self._logger.log_api_call_success(response.status_code, from_cache=from_cache)
+                return await response.json()
 
-            return response.json()
-        except requests.RequestException as e:
-            # Record failed actual requests (RequestException means network/HTTP error)
+        except aiohttp.ClientError as e:
+            # Record failed actual requests (ClientError means network/HTTP error)
             self.rate_limiter.record_request()
             self._logger.log_api_call_error(e)
             raise RiotAPIError(0, f"Request failed: {e}") from e
         except (RateLimitError, RiotAPIError) as e:
             # These exceptions come after we have a response
-            # Only record if it wasn't from cache
-            if "response" in locals():
-                from_cache = getattr(response, "from_cache", False)
-                if not from_cache:
-                    self.rate_limiter.record_request()
-            else:
-                # If we don't have a response, it was likely a network error
-                self.rate_limiter.record_request()
+            # Record the request attempt
+            self.rate_limiter.record_request()
             self._logger.log_api_call_error(e)
             raise
 
@@ -238,26 +250,26 @@ class NexarClient:
         """Print a summary of API calls made so far."""
         self._logger.log_stats_summary()
 
-    def _handle_response_errors(self, response: requests.Response) -> None:
+    async def _handle_response_errors(self, response: aiohttp.ClientResponse) -> None:
         """Handle HTTP errors from the API response."""
-        if response.status_code == HTTP_OK:
+        if response.status == HTTP_OK:
             return
 
         try:
-            error_data = response.json()
+            error_data = await response.json()
             message = error_data.get("status", {}).get("message", "Unknown error")
-        except ValueError:
-            message = response.text or "Unknown error"
+        except (ValueError, aiohttp.ContentTypeError):
+            message = await response.text() or "Unknown error"
 
-        if response.status_code == HTTP_UNAUTHORIZED:
-            raise UnauthorizedError(response.status_code, message)
-        if response.status_code == HTTP_FORBIDDEN:
-            raise ForbiddenError(response.status_code, message)
-        if response.status_code == HTTP_NOT_FOUND:
-            raise NotFoundError(response.status_code, message)
-        if response.status_code == HTTP_TOO_MANY_REQUESTS:
-            raise RateLimitError(response.status_code, message)
-        raise RiotAPIError(response.status_code, message)
+        if response.status == HTTP_UNAUTHORIZED:
+            raise UnauthorizedError(response.status, message)
+        if response.status == HTTP_FORBIDDEN:
+            raise ForbiddenError(response.status, message)
+        if response.status == HTTP_NOT_FOUND:
+            raise NotFoundError(response.status, message)
+        if response.status == HTTP_TOO_MANY_REQUESTS:
+            raise RateLimitError(response.status, message)
+        raise RiotAPIError(response.status, message)
 
     def _setup_caching(self) -> None:
         """Set up caching for the HTTP session if enabled."""
@@ -276,23 +288,18 @@ class NexarClient:
 
         if has_cache:
             # Log cache configuration details
-            has_url_expiration = (
-                hasattr(self._session, "settings")
-                and hasattr(self._session.settings, "urls_expire_after")
-                and bool(self._session.settings.urls_expire_after)
-            )
             self._logger.log_cache_config(
                 expire_after=self.cache_config.expire_after,
-                has_url_expiration=has_url_expiration,
+                has_url_expiration=bool(getattr(self._session, "urls_expire_after", None)),
             )
 
-    def clear_cache(self) -> None:
+    async def clear_cache(self) -> None:
         """Clear all cached responses."""
         if hasattr(self._session, "cache") and self._session.cache:
-            self._session.cache.clear()
+            await self._session.cache.clear()
             self._logger.log_cache_cleared()
 
-    def get_cache_info(self) -> dict[str, Any]:
+    async def get_cache_info(self) -> dict[str, Any]:
         """
         Get information about the current cache state.
 
@@ -322,7 +329,7 @@ class NexarClient:
         return info
 
     # Account API
-    def get_riot_account(
+    async def get_riot_account(
         self,
         game_name: str,
         tag_line: str,
@@ -341,14 +348,14 @@ class NexarClient:
 
         """
         region = region or self.default_v5_region
-        data = self._make_api_call(
+        data = await self._make_api_call(
             f"/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}",
             region=region,
         )
         return RiotAccount.from_api_response(data)
 
     # Summoner API
-    def get_summoner_by_puuid(
+    async def get_summoner_by_puuid(
         self,
         puuid: str,
         region: RegionV4 | None = None,
@@ -365,14 +372,14 @@ class NexarClient:
 
         """
         region = region or self.default_v4_region
-        data = self._make_api_call(
+        data = await self._make_api_call(
             f"/lol/summoner/v4/summoners/by-puuid/{puuid}",
             region=region,
         )
         return Summoner.from_api_response(data)
 
     # League API
-    def get_league_entries_by_puuid(
+    async def get_league_entries_by_puuid(
         self,
         puuid: str,
         region: RegionV4 | None = None,
@@ -389,14 +396,14 @@ class NexarClient:
 
         """
         region = region or self.default_v4_region
-        data = self._make_api_call(
+        data = await self._make_api_call(
             f"/lol/league/v4/entries/by-puuid/{puuid}",
             region=region,
         )
         return [LeagueEntry.from_api_response(entry) for entry in data]
 
     # Match API
-    def get_match(self, match_id: str, region: RegionV5 | None = None) -> Match:
+    async def get_match(self, match_id: str, region: RegionV5 | None = None) -> Match:
         """
         Get match details by match ID.
 
@@ -409,13 +416,13 @@ class NexarClient:
 
         """
         region = region or self.default_v5_region
-        data = self._make_api_call(
+        data = await self._make_api_call(
             f"/lol/match/v5/matches/{match_id}",
             region=region,
         )
         return Match.from_api_response(data)
 
-    def get_match_ids_by_puuid(
+    async def get_match_ids_by_puuid(
         self,
         puuid: str,
         *,
@@ -475,7 +482,7 @@ class NexarClient:
             params["count"] = count
 
         endpoint = f"/lol/match/v5/matches/by-puuid/{puuid}/ids"
-        return self._make_api_call(endpoint, region=region, params=params)
+        return await self._make_api_call(endpoint, region=region, params=params)
 
     # High-level convenience methods
     def get_player(
@@ -484,7 +491,7 @@ class NexarClient:
         tag_line: str,
         v4_region: RegionV4 | None = None,
         v5_region: RegionV5 | None = None,
-    ) -> Player:
+    ) -> "Player":
         """
         Create a Player object for convenient high-level access.
 
@@ -498,6 +505,9 @@ class NexarClient:
             Player object providing high-level access to player data
 
         """
+        # Import here to avoid circular imports
+        from .models.player import Player
+
         return Player(
             client=self,
             game_name=game_name,
@@ -505,3 +515,8 @@ class NexarClient:
             v4_region=v4_region,
             v5_region=v5_region,
         )
+
+    async def close(self) -> None:
+        """Close the client session."""
+        if self._session:
+            await self._session.close()

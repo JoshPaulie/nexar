@@ -7,13 +7,13 @@ from nexar.enums import Division, Queue, Tier
 class TestLeagueEntries:
     """Test league entry functionality."""
 
-    def test_get_league_entries_by_puuid_success(self, client):
+    async def test_get_league_entries_by_puuid_success(self, async_client):
         """Test successful league entries retrieval by PUUID."""
         # Use hardcoded PUUID to reduce API calls during testing
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 
         # Get league entries for the account
-        result = client.get_league_entries_by_puuid(test_puuid)
+        result = await async_client.get_league_entries_by_puuid(test_puuid)
 
         # Should return a list of league entries
         assert isinstance(result, list)

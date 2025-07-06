@@ -14,17 +14,19 @@ class TestRiotAccount:
     def test_riot_account_creation(self):
         """Test RiotAccount can be created directly."""
         account = RiotAccount(
-            puuid="test-puuid", game_name="TestPlayer", tag_line="TEST",
+            puuid="test-puuid",
+            game_name="TestPlayer",
+            tag_line="TEST",
         )
 
         assert account.puuid == "test-puuid"
         assert account.game_name == "TestPlayer"
         assert account.tag_line == "TEST"
 
-    def test_riot_account_from_api_response(self, client):
+    async def test_riot_account_from_api_response(self, async_client):
         """Test RiotAccount creation from real API response."""
         # Get real API data and test the model parsing
-        account = client.get_riot_account("bexli", "bex")
+        account = await async_client.get_riot_account("bexli", "bex")
 
         assert account.puuid is not None
         assert account.game_name == "bexli"
@@ -33,7 +35,9 @@ class TestRiotAccount:
     def test_riot_account_immutable(self):
         """Test that RiotAccount is immutable."""
         account = RiotAccount(
-            puuid="test-puuid", game_name="TestPlayer", tag_line="TEST",
+            puuid="test-puuid",
+            game_name="TestPlayer",
+            tag_line="TEST",
         )
 
         with pytest.raises(AttributeError):
@@ -57,11 +61,11 @@ class TestSummoner:
         assert summoner.puuid == "test-puuid"
         assert summoner.summoner_level == 150
 
-    def test_summoner_from_api_response(self, client):
+    async def test_summoner_from_api_response(self, async_client):
         """Test Summoner creation from real API response."""
         # Use hardcoded PUUID to reduce API calls during testing
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
-        summoner = client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
+        summoner = await async_client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
 
         assert summoner.id is not None
         assert summoner.profile_icon_id is not None

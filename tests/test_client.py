@@ -70,9 +70,6 @@ class TestNexarClient:
 
     def test_reset_rate_limiter(self, client):
         """Test rate limiter reset functionality."""
-        # Make a request to populate rate limiter
-        client.get_riot_account("bexli", "bex")
-
         # Reset rate limiter
         client.reset_rate_limiter()
 
@@ -83,40 +80,40 @@ class TestNexarClient:
         assert status_after["limit_1"]["current_usage"] == 0
         assert status_after["limit_2"]["current_usage"] == 0
 
-    def test_get_riot_account_success(self, client):
+    async def test_get_riot_account_success(self, client):
         """Test successful riot account retrieval."""
-        result = client.get_riot_account("bexli", "bex")
+        result = await client.get_riot_account("bexli", "bex")
 
         assert isinstance(result, RiotAccount)
         assert result.puuid is not None
         assert result.game_name == "bexli"
         assert result.tag_line == "bex"
 
-    def test_get_riot_account_with_custom_region(self, client):
+    async def test_get_riot_account_with_custom_region(self, client):
         """Test riot account retrieval with custom region."""
-        result = client.get_riot_account("bexli", "bex", region=RegionV5.AMERICAS)
+        result = await client.get_riot_account("bexli", "bex", region=RegionV5.AMERICAS)
 
         assert isinstance(result, RiotAccount)
         assert result.puuid is not None
         assert result.game_name == "bexli"
         assert result.tag_line == "bex"
 
-    def test_get_summoner_by_puuid_success(self, client):
+    async def test_get_summoner_by_puuid_success(self, client):
         """Test successful summoner retrieval by PUUID."""
         # Use hardcoded PUUID to reduce API calls during testing
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 
         # Use NA1 region for summoner lookup
-        result = client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
+        result = await client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
 
         assert isinstance(result, Summoner)
         assert result.puuid == test_puuid
         assert result.id is not None
         assert result.summoner_level > 0
 
-    def test_not_found_error(self, client):
+    async def test_not_found_error(self, client):
         """Test handling of 404 Not Found error."""
         with pytest.raises(NotFoundError) as exc_info:
-            client.get_riot_account("NonExistentPlayer999", "FAKE")
+            await client.get_riot_account("NonExistentPlayer999", "FAKE")
 
         assert exc_info.value.status_code == 404

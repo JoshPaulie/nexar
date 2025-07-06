@@ -16,7 +16,7 @@ class TestPlayer:
 
         assert player.game_name == "bexli"
         assert player.tag_line == "bex"
-        assert player._client is client
+        assert player.client is client
 
     def test_player_from_client_convenience_method(self, client):
         """Test creating Player via client convenience method."""
@@ -25,38 +25,40 @@ class TestPlayer:
         assert isinstance(player, Player)
         assert player.game_name == "bexli"
         assert player.tag_line == "bex"
-        assert player._client is client
+        assert player.client is client
 
-    def test_player_riot_account_property(self, client):
+    async def test_player_riot_account_property(self, client):
         """Test accessing player's riot account."""
         player = client.get_player("bexli", "bex")
 
-        riot_account = player.riot_account
+        riot_account = await player.get_riot_account()
         assert riot_account.game_name == "bexli"
         assert riot_account.tag_line == "bex"
         assert riot_account.puuid is not None
 
-    def test_player_summoner_property(self, client):
+    async def test_player_summoner_property(self, client):
         """Test accessing player's summoner information."""
         player = client.get_player("bexli", "bex")
 
-        summoner = player.summoner
-        assert summoner.puuid == player.puuid
+        summoner = await player.get_summoner()
+        riot_account = await player.get_riot_account()
+        assert summoner.puuid == riot_account.puuid
         assert summoner.summoner_level > 0
 
-    def test_player_puuid_property(self, client):
+    async def test_player_puuid_property(self, client):
         """Test accessing player's PUUID."""
         player = client.get_player("bexli", "bex")
 
-        puuid = player.puuid
+        riot_account = await player.get_riot_account()
+        puuid = riot_account.puuid
         assert puuid is not None
         assert len(puuid) > 0
 
-    def test_player_league_entries_property(self, client):
+    async def test_player_league_entries_property(self, client):
         """Test accessing player's league entries."""
         player = client.get_player("bexli", "bex")
 
-        league_entries = player.league_entries
+        league_entries = await player.get_league_entries()
         assert isinstance(league_entries, list)
         # Note: May be empty if player is unranked
 
@@ -270,7 +272,8 @@ class TestPlayer:
         player = client.get_player("bexli", "bex")
 
         role_stats = player.get_recent_performance_by_role(
-            count=10, queue=QueueId.RANKED_SOLO_5x5,
+            count=10,
+            queue=QueueId.RANKED_SOLO_5x5,
         )
         assert isinstance(role_stats, dict)
 
@@ -304,8 +307,8 @@ class TestPlayer:
             v5_region=RegionV5.EUROPE,
         )
 
-        assert player._v4_region == RegionV4.EUW1
-        assert player._v5_region == RegionV5.EUROPE
+        assert player.v4_region == RegionV4.EUW1
+        assert player.v5_region == RegionV5.EUROPE
 
     def test_player_with_regions_fallback_to_defaults(self, client):
         """Test that Player falls back to client defaults when regions not specified."""
@@ -316,8 +319,10 @@ class TestPlayer:
             # No regions specified
         )
 
-        assert player._v4_region == client.default_v4_region
-        assert player._v5_region == client.default_v5_region
+        # When regions are not specified, they should be None
+        # The client will use its defaults when None is passed
+        assert player.v4_region is None
+        assert player.v5_region is None
 
     def test_player_performance_summary_minimal_count(self, client):
         """Test performance summary with minimal match count."""
@@ -372,7 +377,9 @@ class TestPlayer:
         start_time = end_time - timedelta(days=7)
 
         matches = player.get_recent_matches(
-            count=10, start_time=start_time, end_time=end_time,
+            count=10,
+            start_time=start_time,
+            end_time=end_time,
         )
         assert isinstance(matches, list)
 
@@ -381,7 +388,9 @@ class TestPlayer:
         start_epoch = int(start_time.timestamp())
 
         matches = player.get_recent_matches(
-            count=10, start_time=start_epoch, end_time=end_epoch,
+            count=10,
+            start_time=start_epoch,
+            end_time=end_epoch,
         )
         assert isinstance(matches, list)
 

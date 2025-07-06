@@ -1,5 +1,6 @@
 """Rate limiting for Riot API requests."""
 
+import asyncio
 import time
 from collections import deque
 from dataclasses import dataclass
@@ -98,6 +99,57 @@ class RateLimiter:
                 max_wait_time,
             )
             time.sleep(max_wait_time)
+
+    async def async_wait_if_needed(self) -> None:
+        """Async version of wait_if_needed."""
+        current_time = time.time()
+        max_wait_time = 0.0
+        limiting_constraint = None
+
+        for i, (rate_limit, request_queue) in enumerate(
+            zip(self.rate_limits, self._request_queues, strict=False),
+        ):
+            # Remove old requests outside the time window
+            cutoff_time = current_time - rate_limit.window_seconds
+            removed_count = 0
+            while request_queue and request_queue[0] <= cutoff_time:
+                request_queue.popleft()
+                removed_count += 1
+
+            if removed_count > 0:
+                self._logger.logger.debug(
+                    "Cleaned up %d expired requests from limit %d",
+                    removed_count,
+                    i + 1,
+                )
+
+            # Check current status
+            current_usage = len(request_queue)
+            remaining = rate_limit.requests - current_usage
+            self._logger.logger.debug(
+                "Limit %d: %d/%d used, %d remaining",
+                i + 1,
+                current_usage,
+                rate_limit.requests,
+                remaining,
+            )
+
+            # Check if we need to wait
+            if len(request_queue) >= rate_limit.requests:
+                # Calculate wait time until oldest request expires
+                oldest_request = request_queue[0]
+                wait_time = (oldest_request + rate_limit.window_seconds) - current_time
+                if wait_time > max_wait_time:
+                    max_wait_time = wait_time
+                    limiting_constraint = f"Limit {i + 1} ({rate_limit.requests} req/{rate_limit.window_seconds}s)"
+
+        if max_wait_time > 0:
+            self._logger.logger.info(
+                "Rate limit hit! %s - waiting %.2f seconds",
+                limiting_constraint,
+                max_wait_time,
+            )
+            await asyncio.sleep(max_wait_time)
             self._logger.logger.info(
                 "Rate limit wait complete - proceeding with request",
             )

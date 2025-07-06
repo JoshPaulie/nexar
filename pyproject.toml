@@ -7,10 +7,10 @@ authors = [
     { name = "bex", email = "30572280+JoshPaulie@users.noreply.github.com" },
 ]
 requires-python = ">=3.13"
-dependencies = ["requests>=2.32.4", "requests-cache>=1.2.1"]
+dependencies = ["aiohttp>=3.12.13", "aiohttp-client-cache[all,sqlite]>=0.13.0"]
 
 [dependency-groups]
-dev = ["pytest>=8.4.1"]
+dev = ["pytest>=8.4.1", "pytest-asyncio>=1.0.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -21,6 +21,8 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff.lint]
 # select = ["E4", "E7", "E9", "F", "I", "N", "UP"]
