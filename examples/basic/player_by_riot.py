@@ -9,24 +9,20 @@ from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 from nexar.models import Player
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if not api_key:
-    sys.exit("Please set RIOT_API_KEY environment variable")
-
-# Create client
-client = NexarClient(
-    riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=SMART_CACHE_CONFIG,
-)
-
-
 async def main() -> None:
     """Demonstrate Player.by_riot_id() usage."""
-    # Use async context manager to properly handle client lifecycle
-    async with client:
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
+
+    # Create async client
+    async with NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=SMART_CACHE_CONFIG,
+    ) as client:
         # Create a player using the convenient by_riot_id() method
         # This accepts the standard "username#tagline" format
         player = Player.by_riot_id(client, "bexli#bex")

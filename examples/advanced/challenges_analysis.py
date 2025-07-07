@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Example demonstrating match challenges analysis using the Player API."""
 
 import asyncio
@@ -9,35 +8,34 @@ from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import QueueId, RegionV4, RegionV5
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if not api_key:
-    sys.exit("Please set RIOT_API_KEY environment variable")
-
-
 async def main() -> None:
     """Demonstrate match challenges analysis using the Player API."""
-    # Create client
-    client = NexarClient(
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
+
+    # Create async client
+    async with NexarClient(
         riot_api_key=api_key,
         default_v4_region=RegionV4.NA1,
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
-    )
+    ) as client:
+        print("=== Match Challenges Analysis Example ===")
 
-    print("=== Match Challenges Analysis Example ===")
+        # Create player object
+        player = client.get_player("bexli", "bex")
+        riot_account = await player.get_riot_account()
+        print(f"Analyzing challenges for {riot_account.game_name}")
 
-    # Create player object
-    player = await client.get_player("bexli", "bex")
-    print(f"Analyzing challenges for {player}")
+        # Get recent ranked matches for challenges analysis
+        print("\nGetting recent ranked matches for challenges analysis...")
+        matches = await player.get_recent_matches(count=5, queue=QueueId.RANKED_SOLO_5x5)
 
-    # Get recent ranked matches for challenges analysis
-    print("\nGetting recent ranked matches for challenges analysis...")
-    matches = await player.get_recent_matches(count=5, queue=QueueId.RANKED_SOLO_5x5)
-
-    if not matches:
-        print("No recent ranked matches found.")
-        await client.close()
+        if not matches:
+            print("No recent ranked matches found.")
+            return
         return
 
     print(f"Found {len(matches)} recent ranked matches\n")
@@ -176,15 +174,13 @@ async def main() -> None:
         if count > 0:
             print(f"{achievement}: {count}")
 
-    print("\n=== Challenges Analysis Complete ===")
-    print("Challenges data provides detailed performance metrics beyond basic KDA.")
-    print("Use this data to identify strengths and areas for improvement:")
-    print("- High kill participation shows good teamfight presence")
-    print("- High damage per minute indicates strong damage output")
-    print("- High vision score shows good map awareness")
-    print("- Special achievements highlight exceptional plays")
-
-    await client.close()
+        print("\n=== Challenges Analysis Complete ===")
+        print("Challenges data provides detailed performance metrics beyond basic KDA.")
+        print("Use this data to identify strengths and areas for improvement:")
+        print("- High kill participation shows good teamfight presence")
+        print("- High damage per minute indicates strong damage output")
+        print("- High vision score shows good map awareness")
+        print("- Special achievements highlight exceptional plays")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,6 @@
+"""Example demonstrating the debug response feature."""
+
+import asyncio
 import os
 import sys
 
@@ -5,29 +8,26 @@ from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if not api_key:
-    sys.exit("Please set RIOT_API_KEY environment variable")
-
-# Enable debug output to see API responses
-os.environ["NEXAR_DEBUG_RESPONSES"] = "1"
-
-# Create client
-client = NexarClient(
-    riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=SMART_CACHE_CONFIG,
-)
-
 
 async def demonstrate_debug_responses():
     """Demonstrate the debug response feature."""
-    print("Debug responses are enabled. You'll see detailed output for each API call.")
-    print("=" * 80)
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
 
-    async with client:
+    # Enable debug output to see API responses
+    os.environ["NEXAR_DEBUG_RESPONSES"] = "1"
+
+    # Create async client
+    async with NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=SMART_CACHE_CONFIG,
+    ) as client:
+        print("Debug responses are enabled. You'll see detailed output for each API call.")
+        print("=" * 80)
         # Get a riot account - this will show the debug output
         print("1. Getting riot account...")
         riot_account = await client.get_riot_account("bexli", "bex")

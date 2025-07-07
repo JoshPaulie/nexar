@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Example from README showing async player information retrieval."""
 
 import asyncio

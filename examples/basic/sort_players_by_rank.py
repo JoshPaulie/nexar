@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Example showing how to sort players by solo queue rank."""
 
 import asyncio

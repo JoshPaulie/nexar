@@ -24,7 +24,8 @@ Packed with helpful doc strings and tips.
 ```python
 import asyncio
 import os
-from datetime import datetime, UTC
+import sys
+from datetime import UTC, datetime
 
 from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
@@ -32,10 +33,11 @@ from nexar.enums import RegionV4, RegionV5
 
 
 async def main() -> None:
+    """Demonstrate player information retrieval using the async API."""
     # Get API key from environment
     api_key = os.getenv("RIOT_API_KEY")
     if not api_key:
-        raise ValueError("Please set RIOT_API_KEY environment variable")
+        sys.exit("Please set RIOT_API_KEY environment variable")
 
     # Create async client
     async with NexarClient(
@@ -51,20 +53,17 @@ async def main() -> None:
         riot_account = await player.get_riot_account()
         summoner = await player.get_summoner()
         league_entries = await player.get_league_entries()
-        
+
         print(f"Summoner: {riot_account.game_name}")
         print(f"Level: {summoner.summoner_level}")
-        
+
         # Find Solo Queue rank
         solo_queue_entry = None
         for entry in league_entries:
-            if hasattr(entry.queue_type, 'value') and entry.queue_type.value == "RANKED_SOLO_5x5":
+            if entry.queue_type == "RANKED_SOLO_5x5":
                 solo_queue_entry = entry
                 break
-            elif entry.queue_type == "RANKED_SOLO_5x5":
-                solo_queue_entry = entry
-                break
-        
+
         if solo_queue_entry:
             rank_text = f"{solo_queue_entry.tier} {solo_queue_entry.rank}"
             print(f"Solo Queue rank: {rank_text}\n")
@@ -89,13 +88,28 @@ async def main() -> None:
                         f"{result:<9} "
                         f"{participant.champion_name:<8} "
                         f"{participant.team_position.value.title():<6} "
-                        f"{kda} ({kda_ratio})"
+                        f"{kda} ({kda_ratio})",
                     )
                     break
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+```
+
+### Output:
+
+```
+
+Summoner: bexli
+Level: 511
+Recent Match History (5 matches):
+
+1 day ago  Victory!  Jinx     Bottom 11/7/13 (3.43)
+1 day ago  Victory!  Jhin     Bottom 2/0/0 (2.00)
+1 day ago  Victory!  Jinx     Bottom 7/4/9 (4.00)
+1 day ago  Defeat.   Jinx     Bottom 4/5/4 (1.60)
+1 day ago  Defeat.   Warwick  Jungle 11/7/5 (2.29)
 
 ```
 

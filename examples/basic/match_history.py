@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Basic example showing how to get recent match history for a player."""
 
 import asyncio

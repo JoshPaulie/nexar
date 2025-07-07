@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Example demonstrating API monitoring and logging functionality."""
 
 import asyncio
@@ -12,14 +11,13 @@ from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 from nexar.logging import configure_logging
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if not api_key:
-    sys.exit("Please set RIOT_API_KEY environment variable")
-
-
 async def main() -> None:
     """Demonstrate API monitoring and logging functionality."""
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
+
     # Example 1: Basic logging
     print("=== Example 1: Basic Logging ===")
 
@@ -27,18 +25,17 @@ async def main() -> None:
     print("Enabling INFO level logging...")
     configure_logging(logging.INFO)
 
-    client = NexarClient(
+    async with NexarClient(
         riot_api_key=api_key,
         default_v4_region=RegionV4.NA1,
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
-    )
+    ) as client:
+        print("\nMaking API calls (watch the log output):")
+        player = client.get_player("bexli", "bex")
 
-    print("\nMaking API calls (watch the log output):")
-    player = await client.get_player("bexli", "bex")
-
-    # These calls will show in logs with timing and cache info
-    print("- Getting account data...")
+        # These calls will show in logs with timing and cache info
+        print("- Getting account data...")
     account = await player.get_riot_account()
 
     print("- Getting summoner data...")
@@ -121,14 +118,12 @@ async def main() -> None:
     for stat_name, count in stats.items():
         print(f"  {stat_name}: {count}")
 
-    print("\n=== Logging Demo Complete ===")
-    print("Logging levels:")
-    print("- DEBUG: Very detailed information for debugging")
-    print("- INFO: General information about API calls and cache hits")
-    print("- WARNING: Only warnings and errors (minimal output)")
-    print("- Use configure_logging() to control verbosity")
-
-    await client.close()
+        print("\n=== Logging Demo Complete ===")
+        print("Logging levels:")
+        print("- DEBUG: Very detailed information for debugging")
+        print("- INFO: General information about API calls and cache hits")
+        print("- WARNING: Only warnings and errors (minimal output)")
+        print("- Use configure_logging() to control verbosity")
 
 
 if __name__ == "__main__":

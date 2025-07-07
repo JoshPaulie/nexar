@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Advanced example showing role-based performance analysis using the Player API."""
 
 import asyncio
@@ -16,37 +15,35 @@ MIN_GAMES_PER_ROLE = 3  # Minimum games played to consider a role for best/worst
 CHUNK_SIZE = 5  # Number of games per trend chunk
 TOTAL_RECENT = 20  # Number of recent games to analyze for trends
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if not api_key:
-    sys.exit("Please set RIOT_API_KEY environment variable")
-
-
 async def main() -> None:
     """Advanced role-based performance analysis using the Player API."""
-    # Create client
-    client = NexarClient(
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
+
+    # Create async client
+    async with NexarClient(
         riot_api_key=api_key,
         default_v4_region=RegionV4.NA1,
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
-    )
+    ) as client:
+        # Create player object
+        player = client.get_player("bexli", "bex")
+        riot_account = await player.get_riot_account()
+        print(f"Advanced role analysis for {riot_account.game_name}")
 
-    # Create player object
-    player = await client.get_player("bexli", "bex")
-    print(f"Advanced role analysis for {player}")
+        # Get performance by role from recent ranked games
+        print("\n=== Performance by Role (Ranked Solo Queue) ===")
+        role_performance = await player.get_recent_performance_by_role(
+            count=50,
+            queue=QueueId.RANKED_SOLO_5x5,
+        )
 
-    # Get performance by role from recent ranked games
-    print("\n=== Performance by Role (Ranked Solo Queue) ===")
-    role_performance = await player.get_recent_performance_by_role(
-        count=50,
-        queue=QueueId.RANKED_SOLO_5x5,
-    )
-
-    if not role_performance:
-        print("No recent ranked games found")
-        await client.close()
-        return
+        if not role_performance:
+            print("No recent ranked games found")
+            return
 
     # Sort roles by games played
     sorted_roles = sorted(role_performance.items(), key=lambda x: x[1]["games_played"], reverse=True)
@@ -193,16 +190,14 @@ async def main() -> None:
 
         print(f"Last {CHUNK_SIZE} games: {win_rate:.1f}% WR, {avg_kda:.2f} avg KDA")
 
-    print("\n=== Analysis Complete ===")
-    print("Tips for improvement based on role performance:")
-    if best_role[0]:
-        print(f"- Focus on playing {best_role[0]} (your best role)")
-    if worst_role[0] and worst_role[0] != best_role[0]:
-        print(f"- Consider avoiding {worst_role[0]} or practice it more")
-    print("- Play your most successful champions in ranked")
-    print("- Track performance trends to identify improvement or decline")
-
-    await client.close()
+        print("\n=== Analysis Complete ===")
+        print("Tips for improvement based on role performance:")
+        if best_role[0]:
+            print(f"- Focus on playing {best_role[0]} (your best role)")
+        if worst_role[0] and worst_role[0] != best_role[0]:
+            print(f"- Consider avoiding {worst_role[0]} or practice it more")
+        print("- Play your most successful champions in ranked")
+        print("- Track performance trends to identify improvement or decline")
 
 
 if __name__ == "__main__":

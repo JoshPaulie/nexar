@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Basic example showing champion statistics and performance summary."""
 
 import asyncio

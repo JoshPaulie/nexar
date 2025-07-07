@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Basic example showing how to get player information using the Player API."""
 
 import asyncio

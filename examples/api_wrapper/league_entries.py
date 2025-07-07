@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Example demonstrating direct API usage for league entries."""
 
 import asyncio
@@ -10,25 +9,23 @@ from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 from nexar.models.player import Player
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if not api_key:
-    sys.exit("Please set RIOT_API_KEY environment variable")
-
-
 async def main() -> None:
     """Demonstrate direct API usage for league entries."""
-    # Create client
-    client = NexarClient(
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
+
+    # Create async client
+    async with NexarClient(
         riot_api_key=api_key,
         default_v4_region=RegionV4.NA1,
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
-    )
+    ) as client:
+        print("=== League Entries API Example ===")
 
-    print("=== League Entries API Example ===")
-
-    # Get PUUID using the account lookup
+        # Get PUUID using the account lookup
     account = await client.get_riot_account("bexli", "bex")
     puuid = account.puuid
     print(f"Found account: {account.game_name}#{account.tag_line}")
@@ -95,9 +92,7 @@ async def main() -> None:
     print()
     print(
         "Recommendation: Use Player API unless you need all queue types or custom processing",
-    )
-
-    await client.close()
+        )
 
 
 if __name__ == "__main__":

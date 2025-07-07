@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Example demonstrating direct API usage for getting match IDs with various filters."""
 
 import asyncio
@@ -10,25 +9,23 @@ from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import MatchType, QueueId, RegionV4, RegionV5
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if not api_key:
-    sys.exit("Please set RIOT_API_KEY environment variable")
-
-
 async def main() -> None:
     """Demonstrate direct API usage for getting match IDs with various filters."""
-    # Create client
-    client = NexarClient(
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
+
+    # Create async client
+    async with NexarClient(
         riot_api_key=api_key,
         default_v4_region=RegionV4.NA1,
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
-    )
+    ) as client:
+        print("=== Match IDs API Example ===")
 
-    print("=== Match IDs API Example ===")
-
-    # Get PUUID using Player API for convenience
+        # Get PUUID using Player API for convenience
     player = await client.get_player("bexli", "bex")
     puuid = player.puuid
     print(f"Analyzing matches for: {player}\n")
@@ -115,12 +112,10 @@ async def main() -> None:
                 )
                 break
 
-    print("\n=== Match IDs API Example Complete ===")
-    print("This demonstrates the low-level match IDs API.")
-    print("For most use cases, prefer the high-level Player API:")
-    print("  await player.get_recent_matches(count=20, queue=QueueId.RANKED_SOLO_5x5)")
-
-    await client.close()
+        print("\n=== Match IDs API Example Complete ===")
+        print("This demonstrates the low-level match IDs API.")
+        print("For most use cases, prefer the high-level Player API:")
+        print("  await player.get_recent_matches(count=20, queue=QueueId.RANKED_SOLO_5x5)")
 
 
 if __name__ == "__main__":
