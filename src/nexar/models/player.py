@@ -518,7 +518,7 @@ class Player:
         """Get the player's PUUID."""
         return self.riot_account.puuid
 
-    async def get_rank(self) -> LeagueEntry | None:
+    async def get_solo_rank(self) -> LeagueEntry | None:
         """
         Get the player's solo queue rank.
 
@@ -566,7 +566,7 @@ class Player:
             Integer rank value, or None if unranked
 
         """
-        rank = await self.get_rank()
+        rank = await self.get_solo_rank()
         if rank is not None:
             return rank.rank_value
         return None

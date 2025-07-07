@@ -73,7 +73,7 @@ async def main() -> None:
     player = Player(client=client, game_name="bexli", tag_line="bex")
 
     print("Using Player API for the same data:")
-    player_rank = await player.get_rank()
+    player_rank = await player.get_solo_rank()
     player_flex_rank = await player.get_flex_rank()
     print(f"Solo Queue Rank: {player_rank.tier.value if player_rank else 'Unranked'}")
     print(f"Flex Queue Rank: {player_flex_rank.tier.value if player_flex_rank else 'Unranked'}")
@@ -86,7 +86,7 @@ async def main() -> None:
     print("- Full control over data processing")
     print()
     print("Player API:")
-    print("- Use await player.get_rank() or await player.get_flex_rank()")
+    print("- Use await player.get_solo_rank() or await player.get_flex_rank()")
     print("- Automatically filters to specific queue types")
     print("- Handles PUUID lookup automatically")
     print("- Simpler for common use cases")

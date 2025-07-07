@@ -35,7 +35,7 @@ async def main() -> None:
         print(f"Summoner level: {summoner.summoner_level}")
 
         # Get rank information
-        rank = await player.get_rank()
+        rank = await player.get_solo_rank()
         if rank:
             print(f"Solo queue rank: {rank.tier} {rank.rank} ({rank.league_points} LP)")
         else:

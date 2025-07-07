@@ -109,12 +109,12 @@ single_player = await client.get_players(["Player#TAG"])  # Returns [Player]
 - `player.summoner.profile_icon_id` - Profile icon ID
 
 ### Ranking Information
-- `await player.get_rank()` - Solo queue rank
+- `await player.get_solo_rank()` - Solo queue rank
 - `await player.get_flex_rank()` - Flex queue rank
 
 ```python
 # Check rank information
-rank = await player.get_rank()
+rank = await player.get_solo_rank()
 if rank:
     print(f"Solo Queue: {rank.tier.value} {rank.rank.value}")
     print(f"LP: {rank.league_points}")

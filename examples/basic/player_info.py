@@ -36,7 +36,7 @@ async def main() -> None:
         print(f"PUUID: {riot_account.puuid}")
 
         # Find Solo Queue rank using the async helper methods
-        solo_queue_entry = await player.get_rank()
+        solo_queue_entry = await player.get_solo_rank()
         flex_queue_entry = await player.get_flex_rank()
 
         # Check Solo Queue rank

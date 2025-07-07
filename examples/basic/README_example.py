@@ -30,7 +30,7 @@ async def main() -> None:
         print()
         riot_account = player.riot_account  # Immediately available!
         summoner = await player.get_summoner()
-        rank = await player.get_rank()
+        rank = await player.get_solo_rank()
 
         print(f"Summoner: {riot_account.game_name}")
         print(f"Level: {summoner.summoner_level}")

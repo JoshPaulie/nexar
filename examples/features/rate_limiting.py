@@ -60,7 +60,7 @@ async def main() -> None:
                     await player.get_matches(count=3)
                     print("  ✓ Got recent matches")
                 else:
-                    await player.get_rank()
+                    await player.get_solo_rank()
                     print("  ✓ Got rank info")
 
                 print_rate_limit_status(client, f"Rate limits after call {i + 1}:")
@@ -101,7 +101,7 @@ async def main() -> None:
             ("Get summoner", lambda: player.get_summoner()),
             ("Get league entries", lambda: player.get_league_entries()),
             ("Get matches", lambda: player.get_matches(count=3)),
-            ("Get rank", lambda: player.get_rank()),
+            ("Get rank", lambda: player.get_solo_rank()),
         ]
 
         for i, (operation_name, operation) in enumerate(operations):
