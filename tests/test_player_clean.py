@@ -2,7 +2,7 @@
 
 import pytest
 
-from nexar import ChampionStats, Player, QueueId
+from nexar import ChampionStats, PerformanceStats, Player, QueueId
 
 
 class TestPlayer:
@@ -164,29 +164,21 @@ class TestPlayer:
         player = await real_client.get_player("bexli", "bex")
 
         summary = await player.get_recent_performance(count=10)
-        assert isinstance(summary, dict)
+        assert isinstance(summary, PerformanceStats)
 
-        # Check expected keys
-        expected_keys = [
-            "total_games",
-            "wins",
-            "losses",
-            "win_rate",
-            "avg_kills",
-            "avg_deaths",
-            "avg_assists",
-            "avg_kda",
-        ]
+        # Check that all fields are present and have correct types
+        assert isinstance(summary.total_games, int)
+        assert isinstance(summary.wins, int)
+        assert isinstance(summary.losses, int)
+        assert isinstance(summary.win_rate, float)
+        assert isinstance(summary.avg_kills, float)
+        assert isinstance(summary.avg_deaths, float)
+        assert isinstance(summary.avg_assists, float)
+        assert isinstance(summary.avg_kda, float)
 
-        for key in expected_keys:
-            assert key in summary
-
-        # Check value types and ranges
-        assert isinstance(summary["total_games"], int)
-        assert isinstance(summary["wins"], int)
-        assert isinstance(summary["losses"], int)
-        assert isinstance(summary["win_rate"], float)
-        assert 0 <= summary["win_rate"] <= 100
+        # Check value ranges
+        assert 0 <= summary.win_rate <= 100
+        assert summary.wins + summary.losses == summary.total_games
 
     async def test_player_get_performance_summary_with_filters(self, real_client):
         """Test getting performance summary with queue and match type filters."""
@@ -194,13 +186,13 @@ class TestPlayer:
 
         # Test with queue filter
         summary = await player.get_recent_performance(count=5)
-        assert isinstance(summary, dict)
-        assert "total_games" in summary
+        assert isinstance(summary, PerformanceStats)
+        assert summary.total_games >= 0
 
         # Test with different count
         summary_large = await player.get_recent_performance(count=15)
-        assert isinstance(summary_large, dict)
-        assert "total_games" in summary_large
+        assert isinstance(summary_large, PerformanceStats)
+        assert summary_large.total_games >= 0
 
     async def test_player_is_on_win_streak(self, real_client):
         """Test win streak detection."""
@@ -285,9 +277,8 @@ class TestPlayer:
 
         # Test with very small count to verify method handles edge cases
         summary = await player.get_recent_performance(count=1)
-        assert isinstance(summary, dict)
-        assert "total_games" in summary
-        assert summary["total_games"] >= 0
+        assert isinstance(summary, PerformanceStats)
+        assert summary.total_games >= 0
 
     async def test_champion_stats_with_queue_filter(self, real_client):
         """Test champion stats with queue filter."""

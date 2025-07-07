@@ -20,7 +20,7 @@ from .match import (
     TeamInfo,
     TeamsInfo,
 )
-from .player import ChampionStats, Player
+from .player import ChampionStats, PerformanceStats, Player
 
 __all__ = [
     "Ban",
@@ -35,6 +35,7 @@ __all__ = [
     "Objective",
     "Objectives",
     "Participant",
+    "PerformanceStats",
     "PerkStats",
     "PerkStyle",
     "PerkStyleSelection",

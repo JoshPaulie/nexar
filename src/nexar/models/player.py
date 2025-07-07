@@ -69,6 +69,41 @@ class ChampionStats:
 
 
 @dataclass
+class PerformanceStats:
+    """Performance statistics for a player over a set of matches."""
+
+    total_games: int
+    """Total number of games analyzed."""
+
+    wins: int
+    """Number of wins."""
+
+    losses: int
+    """Number of losses."""
+
+    win_rate: float
+    """Win rate as a percentage (0.0 to 100.0)."""
+
+    avg_kills: float
+    """Average kills per game."""
+
+    avg_deaths: float
+    """Average deaths per game."""
+
+    avg_assists: float
+    """Average assists per game."""
+
+    avg_kda: float
+    """Average KDA ratio ((kills + assists) / deaths)."""
+
+    avg_cs: float
+    """Average creep score (minions + neutral minions killed) per game."""
+
+    avg_game_duration_minutes: float
+    """Average game duration in minutes."""
+
+
+@dataclass
 class Player:
     """
     High-level player object for convenient access to player data.
@@ -395,37 +430,46 @@ class Player:
         champion_stats.sort(key=lambda x: x.games_played, reverse=True)
         return champion_stats
 
-    async def get_recent_performance(self, count: int = 10) -> dict[str, Any]:
+    async def get_recent_performance(
+        self,
+        count: int = 20,
+        queue: QueueId | int | None = None,
+    ) -> PerformanceStats:
         """
         Get recent performance summary for the player.
 
         Args:
             count: Number of recent matches to analyze (1-100)
+            queue: Optional queue type filter
 
         Returns:
-            Dictionary with performance metrics
+            PerformanceStats with comprehensive performance metrics
 
         """
-        matches = await self.get_matches(count=count)
+        matches = await self.get_matches(queue=queue, count=count)
         puuid = self.riot_account.puuid
 
         if not matches:
-            return {
-                "total_games": 0,
-                "wins": 0,
-                "losses": 0,
-                "win_rate": 0.0,
-                "avg_kills": 0.0,
-                "avg_deaths": 0.0,
-                "avg_assists": 0.0,
-                "avg_kda": 0.0,
-            }
+            return PerformanceStats(
+                total_games=0,
+                wins=0,
+                losses=0,
+                win_rate=0.0,
+                avg_kills=0.0,
+                avg_deaths=0.0,
+                avg_assists=0.0,
+                avg_kda=0.0,
+                avg_cs=0.0,
+                avg_game_duration_minutes=0.0,
+            )
 
         total_games = len(matches)
         wins = 0
         total_kills = 0
         total_deaths = 0
         total_assists = 0
+        total_cs = 0
+        total_duration = 0
 
         for match in matches:
             # Find the participant for this player
@@ -444,6 +488,8 @@ class Player:
             total_kills += participant.kills
             total_deaths += participant.deaths
             total_assists += participant.assists
+            total_cs += participant.total_minions_killed + participant.neutral_minions_killed
+            total_duration += match.info.game_duration
 
         losses = total_games - wins
         win_rate = (wins / total_games) * 100.0 if total_games > 0 else 0.0
@@ -451,17 +497,21 @@ class Player:
         avg_deaths = total_deaths / total_games if total_games > 0 else 0.0
         avg_assists = total_assists / total_games if total_games > 0 else 0.0
         avg_kda = (total_kills + total_assists) / total_deaths if total_deaths > 0 else 0.0
+        avg_cs = total_cs / total_games if total_games > 0 else 0.0
+        avg_game_duration_minutes = (total_duration / 60) / total_games if total_games > 0 else 0.0
 
-        return {
-            "total_games": total_games,
-            "wins": wins,
-            "losses": losses,
-            "win_rate": win_rate,
-            "avg_kills": avg_kills,
-            "avg_deaths": avg_deaths,
-            "avg_assists": avg_assists,
-            "avg_kda": avg_kda,
-        }
+        return PerformanceStats(
+            total_games=total_games,
+            wins=wins,
+            losses=losses,
+            win_rate=win_rate,
+            avg_kills=avg_kills,
+            avg_deaths=avg_deaths,
+            avg_assists=avg_assists,
+            avg_kda=avg_kda,
+            avg_cs=avg_cs,
+            avg_game_duration_minutes=avg_game_duration_minutes,
+        )
 
     # Convenience properties for sync access (for backward compatibility)
     @property
@@ -615,95 +665,6 @@ class Player:
             end_time=None,
         )
         return sorted(champion_stats, key=lambda x: x.games_played, reverse=True)[:top_n]
-
-    async def get_performance_summary(
-        self,
-        count: int = 20,
-        queue: QueueId | int | None = None,
-    ) -> dict[str, Any]:
-        """
-        Get a performance summary from recent matches.
-
-        Args:
-            count: Number of recent matches to analyze (default 20)
-            queue: Optional queue type filter
-            match_type: Optional match type filter
-
-        Returns:
-            Dictionary containing performance statistics
-
-        """
-        matches = await self.get_matches(
-            queue=queue,
-            count=count,
-            start_time=None,
-            end_time=None,
-        )
-        puuid = self.riot_account.puuid
-
-        if not matches:
-            return {
-                "total_games": 0,
-                "wins": 0,
-                "losses": 0,
-                "win_rate": 0.0,
-                "avg_kills": 0.0,
-                "avg_deaths": 0.0,
-                "avg_assists": 0.0,
-                "avg_kda": 0.0,
-                "avg_cs": 0.0,
-                "avg_game_duration_minutes": 0.0,
-            }
-
-        total_games = len(matches)
-        wins = 0
-        total_kills = 0
-        total_deaths = 0
-        total_assists = 0
-        total_cs = 0
-        total_duration = 0
-
-        for match in matches:
-            # Find the participant for this player
-            participant = None
-            for p in match.info.participants:
-                if p.puuid == puuid:
-                    participant = p
-                    break
-
-            if not participant:
-                continue
-
-            if participant.win:
-                wins += 1
-
-            total_kills += participant.kills
-            total_deaths += participant.deaths
-            total_assists += participant.assists
-            total_cs += participant.total_minions_killed + participant.neutral_minions_killed
-            total_duration += match.info.game_duration
-
-        losses = total_games - wins
-        win_rate = (wins / total_games) * 100.0 if total_games > 0 else 0.0
-        avg_kills = total_kills / total_games if total_games > 0 else 0.0
-        avg_deaths = total_deaths / total_games if total_games > 0 else 0.0
-        avg_assists = total_assists / total_games if total_games > 0 else 0.0
-        avg_kda = (total_kills + total_assists) / total_deaths if total_deaths > 0 else 0.0
-        avg_cs = total_cs / total_games if total_games > 0 else 0.0
-        avg_game_duration_minutes = (total_duration / 60) / total_games if total_games > 0 else 0.0
-
-        return {
-            "total_games": total_games,
-            "wins": wins,
-            "losses": losses,
-            "win_rate": win_rate,
-            "avg_kills": avg_kills,
-            "avg_deaths": avg_deaths,
-            "avg_assists": avg_assists,
-            "avg_kda": avg_kda,
-            "avg_cs": avg_cs,
-            "avg_game_duration_minutes": avg_game_duration_minutes,
-        }
 
     async def get_recent_performance_by_role(
         self,
