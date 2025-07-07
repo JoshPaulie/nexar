@@ -48,9 +48,10 @@ ignore = [
     "INP001",  # Disable implicit namespace package error in examples
 ]
 "tests/*.py" = [
-    "S101",   # Allow assert statements in tests
-    "W293",   # Blank line contains whitespace
-    "SLF001", # Allow private member access
+    "S101",    # Allow assert statements in tests
+    "W293",    # Blank line contains whitespace
+    "SLF001",  # Allow private member access
+    "PLR2004", # Allow magic numbers in tests
 ]
 "playground*.py" = ["D1"]
 

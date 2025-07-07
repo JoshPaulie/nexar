@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .participant import Participant
-    from .team import Team, TeamsInfo
+    from .participant_list import ParticipantList
+    from .team import Team
 
 from nexar.enums import MapId, PlatformId, QueueId
 
@@ -74,7 +75,7 @@ class MatchInfo:
     queue_id: QueueId
     """Queue identifier."""
 
-    participants: list["Participant"]
+    participants: "ParticipantList"
     """List of all participants in the match."""
 
     teams: list["Team"]
@@ -101,6 +102,7 @@ class MatchInfo:
     def from_api_response(cls, data: dict[str, Any]) -> "MatchInfo":
         """Create MatchInfo from API response."""
         from .participant import Participant
+        from .participant_list import ParticipantList
         from .team import Team
 
         return cls(
@@ -116,7 +118,9 @@ class MatchInfo:
             map_id=MapId(data["mapId"]),
             platform_id=PlatformId(data["platformId"]),
             queue_id=QueueId(data["queueId"]),
-            participants=[Participant.from_api_response(participant) for participant in data["participants"]],
+            participants=ParticipantList(
+                Participant.from_api_response(participant) for participant in data["participants"]
+            ),
             teams=[Team.from_api_response(team) for team in data["teams"]],
             game_end_timestamp=datetime.fromtimestamp(data["gameEndTimestamp"] / 1000)
             if data.get("gameEndTimestamp")
@@ -138,40 +142,9 @@ class Match:
     """Detailed match information including participants and teams."""
 
     @property
-    def participants(self) -> list["Participant"]:
+    def participants(self) -> "ParticipantList":
         """Get all participants in the match."""
         return self.info.participants
-
-    @property
-    def teams(self) -> "TeamsInfo":
-        """Get enhanced team information with participants grouped by side."""
-        from .team import TeamInfo, TeamsInfo
-
-        # Separate participants by team ID (100 = blue, 200 = red)
-        blue_participants = [p for p in self.participants if p.team_id == BLUE_TEAM_ID]
-        red_participants = [p for p in self.participants if p.team_id == RED_TEAM_ID]
-
-        # Find the corresponding team data
-        blue_team_data = next(t for t in self.info.teams if t.team_id == BLUE_TEAM_ID)
-        red_team_data = next(t for t in self.info.teams if t.team_id == RED_TEAM_ID)
-
-        blue_team = TeamInfo(
-            team_id=blue_team_data.team_id,
-            win=blue_team_data.win,
-            bans=blue_team_data.bans,
-            objectives=blue_team_data.objectives,
-            participants=blue_participants,
-        )
-
-        red_team = TeamInfo(
-            team_id=red_team_data.team_id,
-            win=red_team_data.win,
-            bans=red_team_data.bans,
-            objectives=red_team_data.objectives,
-            participants=red_participants,
-        )
-
-        return TeamsInfo(blue=blue_team, red=red_team)
 
     def __iter__(self) -> Iterator["Participant"]:
         """Allow iteration over participants."""
