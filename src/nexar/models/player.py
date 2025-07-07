@@ -513,37 +513,10 @@ class Player:
             avg_game_duration_minutes=avg_game_duration_minutes,
         )
 
-    # Convenience properties for sync access (for backward compatibility)
-    @property
-    def summoner(self) -> Summoner:
-        """Get the player's summoner information. Cached after first access."""
-        if self._summoner is None:
-            try:
-                asyncio.get_running_loop()
-                msg = "Cannot use sync property from async context. Use 'await player.get_summoner()' instead."
-                raise RuntimeError(msg)
-            except RuntimeError:
-                # No running loop, we can safely run async code
-                self._summoner = asyncio.run(self.get_summoner())
-        return self._summoner
-
     @property
     def puuid(self) -> str:
         """Get the player's PUUID."""
         return self.riot_account.puuid
-
-    @property
-    def league_entries(self) -> list[LeagueEntry]:
-        """Get all league entries for the player. Cached after first access."""
-        if self._league_entries is None:
-            try:
-                asyncio.get_running_loop()
-                msg = "Cannot use sync property from async context. Use 'await player.get_league_entries()' instead."
-                raise RuntimeError(msg)
-            except RuntimeError:
-                # No running loop, we can safely run async code
-                self._league_entries = asyncio.run(self.get_league_entries())
-        return self._league_entries
 
     async def get_rank(self) -> LeagueEntry | None:
         """
@@ -597,45 +570,6 @@ class Player:
         if rank is not None:
             return rank.rank_value
         return None
-
-    # Additional convenience methods
-    def get_recent_matches(
-        self,
-        count: int = 20,
-        queue: QueueId | int | None = None,
-        match_type: MatchType | str | None = None,
-        start_time: int | datetime | None = None,
-        end_time: int | datetime | None = None,
-    ) -> list[Match]:
-        """
-        Get recent matches for the player (sync version).
-
-        Args:
-            count: Number of matches to retrieve (1-100, default 20)
-            queue: Queue type filter (None for all matches)
-            match_type: Match type filter
-            start_time: Start time filter
-            end_time: End time filter
-
-        Returns:
-            List of Match objects
-
-        """
-        try:
-            asyncio.get_running_loop()
-            msg = "Cannot use sync method from async context. Use 'await player.get_matches()' instead."
-            raise RuntimeError(msg)
-        except RuntimeError:
-            # No running loop, we can safely run async code
-            return asyncio.run(
-                self.get_matches(
-                    start_time=start_time,
-                    end_time=end_time,
-                    queue=queue,
-                    match_type=match_type,
-                    count=count,
-                ),
-            )
 
     async def get_top_champions(
         self,
