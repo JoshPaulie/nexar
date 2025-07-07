@@ -5,16 +5,38 @@ The `Player` class provides high-level access to player data with automatic cach
 ## Basic Usage
 
 ```python
-from nexar import NexarClient, RegionV4, RegionV5
+import asyncio
+import os
+import sys
 
-client = NexarClient(
-    riot_api_key="your_api_key",
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-)
+from nexar.client import NexarClient
+from nexar.enums import RegionV4, RegionV5
+from nexar.cache import SMART_CACHE_CONFIG
 
-# Create a player object
-player = client.get_player("game_name", "tag_line")
+async def main() -> None:
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
+
+    # Create async client
+    async with NexarClient(
+        riot_api_key=api_key,
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=SMART_CACHE_CONFIG,
+    ) as client:
+        # Create a player object
+        player = client.get_player("bexli", "bex")
+        
+        # Access player data
+        riot_account = await player.get_riot_account()
+        summoner = await player.get_summoner()
+        print(f"Player: {riot_account.game_name}#{riot_account.tag_line}")
+        print(f"Level: {summoner.summoner_level}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## Batch Player Retrieval
@@ -67,32 +89,34 @@ single_player = await client.get_players(["Player#TAG"])  # Returns [Player]
 - `player.summoner.profile_icon_id` - Profile icon ID
 
 ### Ranking Information
-- `player.rank` - Solo queue rank
-- `player.flex_rank` - Flex queue rank
+- `await player.get_rank()` - Solo queue rank
+- `await player.get_flex_rank()` - Flex queue rank
 
 ```python
 # Check rank information
-if player.rank:
-    print(f"Solo Queue: {player.rank.tier.value} {player.rank.rank.value}")
-    print(f"LP: {player.rank.league_points}")
-    print(f"Win Rate: {player.rank.wins}/{player.rank.wins + player.rank.losses}")
+rank = await player.get_rank()
+if rank:
+    print(f"Solo Queue: {rank.tier.value} {rank.rank.value}")
+    print(f"LP: {rank.league_points}")
+    print(f"Win Rate: {rank.wins}/{rank.wins + rank.losses}")
 
-if player.flex_rank:
-    print(f"Flex Queue: {player.flex_rank.tier.value} {player.flex_rank.rank.value}")
+flex_rank = await player.get_flex_rank()
+if flex_rank:
+    print(f"Flex Queue: {flex_rank.tier.value} {flex_rank.rank.value}")
 ```
 
 ## Match History
 
 ### Basic Match Retrieval
 ```python
-# Get last 20 matches
-recent_matches = player.get_last_20()
+# Get recent matches (replaces the non-existent get_last_20 method)
+recent_matches = await player.get_matches(count=20)
 
-# Get custom number of matches
-matches = player.get_recent_matches(count=50)
+# Get custom number of matches  
+matches = await player.get_matches(count=50)
 
 # Filter by queue type
-ranked_matches = player.get_recent_matches(
+ranked_matches = await player.get_matches(
     count=30, 
     queue=QueueId.RANKED_SOLO_5x5
 )
@@ -101,10 +125,17 @@ ranked_matches = player.get_recent_matches(
 ### Match Analysis
 ```python
 for match in recent_matches:
-    participant = match.get_participant_by_puuid(player.puuid)
-    print(f"Champion: {participant.champion_name}")
-    print(f"KDA: {participant.kills}/{participant.deaths}/{participant.assists}")
-    print(f"Result: {'Win' if participant.win else 'Loss'}")
+    # Find the participant for this player
+    participant = None
+    for p in match.info.participants:
+        if p.puuid == player.puuid:
+            participant = p
+            break
+    
+    if participant:
+        print(f"Champion: {participant.champion_name}")
+        print(f"KDA: {participant.kills}/{participant.deaths}/{participant.assists}")
+        print(f"Result: {'Win' if participant.win else 'Loss'}")
 ```
 
 ## Champion Statistics
@@ -112,7 +143,7 @@ for match in recent_matches:
 ### Top Champions
 ```python
 # Get most played champions
-top_champions = player.get_top_champions(top_n=5)
+top_champions = await player.get_top_champions(top_n=5)
 
 for champ in top_champions:
     print(f"{champ.champion_name}:")
@@ -124,7 +155,7 @@ for champ in top_champions:
 ### Detailed Champion Stats
 ```python
 # Get all champion statistics
-all_champion_stats = player.get_champion_stats()
+all_champion_stats = await player.get_champion_stats()
 
 # Filter for specific champion
 yasuo_stats = [
@@ -138,22 +169,23 @@ yasuo_stats = [
 ### Overall Performance
 ```python
 # Get performance summary
-stats = player.get_performance_summary(count=20)
+stats = await player.get_performance_summary(count=20)
 
 print(f"Win Rate: {stats['win_rate']:.1f}%")
 print(f"Total Games: {stats['total_games']}")
 print(f"Average KDA: {stats['avg_kda']:.2f}")
-print(f"Average CS/min: {stats['avg_cs_per_min']:.1f}")
+print(f"Average CS: {stats['avg_cs']:.1f}")
+print(f"Average Game Duration: {stats['avg_game_duration_minutes']:.1f}m")
 ```
 
 ### Win Streaks
 ```python
 # Check for win streaks
-if player.is_on_win_streak():
+if await player.is_on_win_streak():
     print("Player is on a win streak!")
     
 # Get recent performance by role
-role_performance = player.get_recent_performance_by_role()
+role_performance = await player.get_recent_performance_by_role()
 for role, stats in role_performance.items():
     print(f"{role}: {stats['games']} games, {stats['win_rate']:.1f}% WR")
 ```
@@ -162,12 +194,13 @@ for role, stats in role_performance.items():
 
 ### Custom Match Filtering
 ```python
+import asyncio
 from datetime import datetime, timedelta
-from nexar import QueueId
+from nexar.enums import QueueId
 
 # Get matches from the last week
 one_week_ago = datetime.now() - timedelta(days=7)
-recent_week = player.get_recent_matches(
+recent_week = await player.get_matches(
     count=100,
     start_time=one_week_ago,
     queue=QueueId.RANKED_SOLO_5x5
@@ -177,12 +210,29 @@ recent_week = player.get_recent_matches(
 ### Performance Trends
 ```python
 # Analyze performance over time
-matches = player.get_recent_matches(count=50)
+matches = await player.get_matches(count=50)
 recent_10 = matches[:10]
 older_10 = matches[40:50]
 
-recent_wr = sum(1 for m in recent_10 if m.get_participant_by_puuid(player.puuid).win) / len(recent_10)
-older_wr = sum(1 for m in older_10 if m.get_participant_by_puuid(player.puuid).win) / len(older_10)
+# Calculate win rates for recent vs older matches
+recent_wr = 0
+older_wr = 0
+account = await player.get_riot_account()
+puuid = account.puuid
+
+for m in recent_10:
+    for p in m.info.participants:
+        if p.puuid == puuid and p.win:
+            recent_wr += 1
+            break
+recent_wr = recent_wr / len(recent_10) if recent_10 else 0
+
+for m in older_10:
+    for p in m.info.participants:
+        if p.puuid == puuid and p.win:
+            older_wr += 1
+            break
+older_wr = older_wr / len(older_10) if older_10 else 0
 
 print(f"Recent 10 games: {recent_wr:.1%} WR")
 print(f"Games 40-50: {older_wr:.1%} WR")
@@ -194,7 +244,7 @@ print(f"Trend: {'Improving' if recent_wr > older_wr else 'Declining'}")
 Player objects automatically benefit from caching when the underlying `NexarClient` has caching enabled:
 
 ```python
-from nexar import SMART_CACHE_CONFIG
+from nexar.cache import SMART_CACHE_CONFIG
 
 # Client with caching
 client = NexarClient(
@@ -206,7 +256,7 @@ client = NexarClient(
 
 # All player operations will use caching
 player = client.get_player("bexli", "bex")  # May be cached
-recent_matches = player.get_last_20()        # May be cached
+recent_matches = await player.get_matches(count=20)  # May be cached
 ```
 
 ### Manual Cache Management
@@ -215,7 +265,7 @@ recent_matches = player.get_last_20()        # May be cached
 player.refresh_cache()
 
 # Check if data is likely cached
-info = player.client.get_cache_info()
+info = await client.get_cache_info()
 print(f"Cache enabled: {info['enabled']}")
 ```
 
@@ -226,7 +276,7 @@ from nexar.exceptions import NotFoundError, RateLimitError
 
 try:
     player = client.get_player("nonexistent", "player")
-    matches = player.get_last_20()
+    matches = await player.get_matches(count=20)
 except NotFoundError:
     print("Player not found")
 except RateLimitError:

@@ -5,29 +5,38 @@ Nexar includes built-in caching functionality using `aiohttp-client-cache` to re
 ## Quick Start
 
 ```python
+import asyncio
 from nexar import NexarClient, CacheConfig, RegionV4, RegionV5
 
-# Basic caching (1 hour default TTL)
-client = NexarClient(
-    riot_api_key="your_api_key",
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-)
+async def main() -> None:
+    # Basic caching (1 hour default TTL)
+    async with NexarClient(
+        riot_api_key="your_api_key",
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+    ) as client:
+        # Use client here
+        pass
 
-# Custom cache configuration
-cache_config = CacheConfig(
-    enabled=True,
-    cache_name="my_cache",
-    expire_after=3600,  # 1 hour in seconds
-    backend="sqlite",   # or "memory", "filesystem", etc.
-)
+    # Custom cache configuration
+    cache_config = CacheConfig(
+        enabled=True,
+        cache_name="my_cache",
+        expire_after=3600,  # 1 hour in seconds
+        backend="sqlite",   # or "memory", "filesystem", etc.
+    )
 
-client = NexarClient(
-    riot_api_key="your_api_key",
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=cache_config,
-)
+    async with NexarClient(
+        riot_api_key="your_api_key",
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=cache_config,
+    ) as client:
+        # Use client here
+        pass
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## Performance Comparison
@@ -35,29 +44,25 @@ client = NexarClient(
 Real-world performance improvements with caching:
 
 ```python
-from nexar import NexarClient, SMART_CACHE_CONFIG
+import asyncio
+from nexar import NexarClient, SMART_CACHE_CONFIG, RegionV4, RegionV5
 
-client = NexarClient(
-    riot_api_key="your_api_key",
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=SMART_CACHE_CONFIG,
-)
+async def main() -> None:
+    async with NexarClient(
+        riot_api_key="your_api_key",
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=SMART_CACHE_CONFIG,
+    ) as client:
+        # First call hits the API (~200-400ms)
+        player = client.get_player("bexli", "bex")
 
-# First call hits the API (~200-400ms)
-player = client.get_player("bexli", "bex")
+        # Second call uses cache (~2-5ms, 80-100x faster!)
+        player = client.get_player("bexli", "bex")
 
-# Second call uses cache (~2-5ms, 80-100x faster!)
-player = client.get_player("bexli", "bex")
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
-
-**Typical Performance Improvements:**
-- Account lookup: 409ms → 5ms (81x faster)
-- Summoner lookup: 376ms → 2ms (188x faster)  
-- League entries: 133ms → 2ms (66x faster)
-- Speed improvement: 80-200x faster
-- Typical cache hit rate: 70-90%
-
 ## Predefined Configurations
 
 Nexar provides several predefined cache configurations:
@@ -87,14 +92,21 @@ Nexar provides several predefined cache configurations:
 - Every request hits the API
 
 ```python
-from nexar import NexarClient, SMART_CACHE_CONFIG
+import asyncio
+from nexar import NexarClient, SMART_CACHE_CONFIG, RegionV4, RegionV5
 
-client = NexarClient(
-    riot_api_key="your_api_key",
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
-    cache_config=SMART_CACHE_CONFIG,
-)
+async def main() -> None:
+    async with NexarClient(
+        riot_api_key="your_api_key",
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=SMART_CACHE_CONFIG,
+    ) as client:
+        # Use client here
+        pass
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## Custom Endpoint Configuration
@@ -102,35 +114,63 @@ client = NexarClient(
 You can configure caching per endpoint:
 
 ```python
-cache_config = CacheConfig(
-    enabled=True,
-    expire_after=60,  # Default 1 minute
-    endpoint_config={
-        # Cache account lookups for 1 hour
-        "/riot/account/v1/accounts/by-riot-id": {"expire_after": 3600},
-        
-        # Cache match data forever (matches don't change)
-        "/lol/match/v5/matches": {"expire_after": None},
-        
-        # Don't cache league entries at all
-        "/lol/league/v4/entries/by-puuid": {"enabled": False},
-    }
-)
+import asyncio
+from nexar import NexarClient, CacheConfig, RegionV4, RegionV5
+
+async def main() -> None:
+    cache_config = CacheConfig(
+        enabled=True,
+        expire_after=60,  # Default 1 minute
+        endpoint_config={
+            # Cache account lookups for 1 hour
+            "/riot/account/v1/accounts/by-riot-id": {"expire_after": 3600},
+            
+            # Cache match data forever (matches don't change)
+            "/lol/match/v5/matches": {"expire_after": None},
+            
+            # Don't cache league entries at all
+            "/lol/league/v4/entries/by-puuid": {"enabled": False},
+        }
+    )
+
+    async with NexarClient(
+        riot_api_key="your_api_key",
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+        cache_config=cache_config,
+    ) as client:
+        # Use client here
+        pass
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## Cache Management
 
 ```python
-# Get cache information
-info = client.get_cache_info()
-print(info)
-# {'enabled': True, 'backend': 'sqlite', 'cache_name': 'nexar_cache', ...}
+import asyncio
+from nexar import NexarClient, RegionV4, RegionV5
 
-# Clear all cached data
-client.clear_cache()
+async def main() -> None:
+    async with NexarClient(
+        riot_api_key="your_api_key",
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+    ) as client:
+        # Get cache information
+        info = await client.get_cache_info()
+        print(info)
+        # {'enabled': True, 'backend': 'sqlite', 'cache_name': 'nexar_cache', ...}
 
-# Check API call count (includes both fresh and cached calls)
-client.print_api_call_summary()
+        # Clear all cached data
+        await client.clear_cache()
+
+        # Check API call count (includes both fresh and cached calls)
+        client.print_api_call_summary()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## Logging
@@ -138,17 +178,28 @@ client.print_api_call_summary()
 Enable logging to see cache hits and misses:
 
 ```python
+import asyncio
 import logging
-import nexar
+from nexar import NexarClient, configure_logging, RegionV4, RegionV5
 
-# Configure Nexar logging (default level is INFO)
-nexar.configure_logging(logging.INFO)
+async def main() -> None:
+    # Configure Nexar logging (default level is INFO)
+    configure_logging(logging.INFO)
 
-# Or enable debug logging for more details
-nexar.configure_logging(logging.DEBUG)
+    # Or enable debug logging for more details
+    configure_logging(logging.DEBUG)
 
-# Create your client and make API calls
-client = nexar.NexarClient(api_key, region_v4, region_v5)
+    # Create your client and make API calls
+    async with NexarClient(
+        riot_api_key="your_api_key",
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+    ) as client:
+        # Make API calls here
+        pass
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 This will show output like:
@@ -170,14 +221,26 @@ This will show output like:
 You can programmatically access API call statistics:
 
 ```python
-# Get detailed statistics
-stats = client.get_api_call_stats()
-print(f"Total calls: {stats['total_calls']}")
-print(f"Cache hits: {stats['cache_hits']}")
-print(f"Fresh calls: {stats['fresh_calls']}")
+import asyncio
+from nexar import NexarClient, RegionV4, RegionV5
 
-# Print formatted summary
-client.print_api_call_summary()
+async def main() -> None:
+    async with NexarClient(
+        riot_api_key="your_api_key",
+        default_v4_region=RegionV4.NA1,
+        default_v5_region=RegionV5.AMERICAS,
+    ) as client:
+        # Get detailed statistics
+        stats = client.get_api_call_stats()
+        print(f"Total calls: {stats['total_calls']}")
+        print(f"Cache hits: {stats['cache_hits']}")
+        print(f"Fresh calls: {stats['fresh_calls']}")
+
+        # Print formatted summary
+        client.print_api_call_summary()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## Cache Storage
