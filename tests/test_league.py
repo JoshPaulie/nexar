@@ -12,13 +12,13 @@ if TYPE_CHECKING:
 class TestLeagueEntries:
     """Test league entry functionality."""
 
-    async def test_get_league_entries_by_puuid_success(self, async_client: "NexarClient") -> None:
+    async def test_get_league_entries_by_puuid_success(self, client: "NexarClient") -> None:
         """Test successful league entries retrieval by PUUID."""
         # Use hardcoded PUUID to reduce API calls during testing
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 
         # Get league entries for the account
-        result = await async_client.get_league_entries_by_puuid(test_puuid, None)
+        result = await client.get_league_entries_by_puuid(test_puuid, None)
 
         # Should return a list of league entries
         assert isinstance(result, list)

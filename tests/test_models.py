@@ -23,10 +23,10 @@ class TestRiotAccount:
         assert account.game_name == "TestPlayer"
         assert account.tag_line == "TEST"
 
-    async def test_riot_account_from_api_response(self, async_client):
+    async def test_riot_account_from_api_response(self, client):
         """Test RiotAccount creation from real API response."""
         # Get real API data and test the model parsing
-        account = await async_client.get_riot_account("bexli", "bex")
+        account = await client.get_riot_account("bexli", "bex")
 
         assert account.puuid is not None
         assert account.game_name == "bexli"
@@ -61,11 +61,11 @@ class TestSummoner:
         assert summoner.puuid == "test-puuid"
         assert summoner.summoner_level == 150
 
-    async def test_summoner_from_api_response(self, async_client):
+    async def test_summoner_from_api_response(self, client):
         """Test Summoner creation from real API response."""
         # Use hardcoded PUUID to reduce API calls during testing
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
-        summoner = await async_client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
+        summoner = await client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
 
         assert summoner.id is not None
         assert summoner.profile_icon_id is not None

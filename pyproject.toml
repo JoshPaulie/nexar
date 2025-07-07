@@ -28,7 +28,6 @@ filterwarnings = [
 ]
 
 [tool.ruff.lint]
-# select = ["E4", "E7", "E9", "F", "I", "N", "UP"]
 select = ["ALL"]
 ignore = [
     "T201",    # Allow print statements
@@ -48,8 +47,11 @@ ignore = [
     "INP001",  # Disable implicit namespace package error in examples
 ]
 "tests/*.py" = [
-    "S101", # Allow assert statements in tests
+    "S101",   # Allow assert statements in tests
+    "W293",   # Blank line contains whitespace
+    "SLF001", # Allow private member access
 ]
+"playground*.py" = ["D1"]
 
 [tool.ruff]
 line-length = 120

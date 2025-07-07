@@ -79,9 +79,9 @@ class TestPlayer:
             assert hasattr(entry, "tier")
             assert hasattr(entry, "rank")
 
-    async def test_player_get_recent_matches(self, client):
+    async def test_player_get_recent_matches(self, real_client):
         """Test getting recent matches."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         matches = await player.get_matches(count=5)
         assert isinstance(matches, list)
@@ -91,9 +91,9 @@ class TestPlayer:
             assert hasattr(match, "info")
             assert hasattr(match, "metadata")
 
-    async def test_player_get_recent_matches_with_filters(self, client):
+    async def test_player_get_recent_matches_with_filters(self, real_client):
         """Test getting recent matches with various filters."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         # Test with queue filter
         matches = await player.get_matches(count=10, queue=QueueId.RANKED_SOLO_5x5)
@@ -107,9 +107,9 @@ class TestPlayer:
         assert isinstance(matches, list)
         assert len(matches) <= 5
 
-    async def test_player_get_champion_stats(self, client):
+    async def test_player_get_champion_stats(self, real_client):
         """Test getting champion statistics."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         stats = await player.get_champion_stats(count=10)
         assert isinstance(stats, list)
@@ -121,9 +121,9 @@ class TestPlayer:
             assert stat.wins + stat.losses == stat.games_played
             assert 0 <= stat.win_rate <= 100
 
-    async def test_player_get_top_champions(self, client):
+    async def test_player_get_top_champions(self, real_client):
         """Test getting top played champions."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
         top_champions = await player.get_top_champions(top_n=3, count=10)
 
         # Should return a list
@@ -161,9 +161,9 @@ class TestPlayer:
         assert "bexli" in repr_repr
         assert "bex" in repr_repr
 
-    async def test_player_get_performance_summary(self, client):
+    async def test_player_get_performance_summary(self, real_client):
         """Test getting performance summary."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         summary = await player.get_recent_performance(count=10)
         assert isinstance(summary, dict)
@@ -190,9 +190,9 @@ class TestPlayer:
         assert isinstance(summary["win_rate"], float)
         assert 0 <= summary["win_rate"] <= 100
 
-    async def test_player_get_performance_summary_with_filters(self, client):
+    async def test_player_get_performance_summary_with_filters(self, real_client):
         """Test getting performance summary with queue and match type filters."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         # Test with queue filter
         summary = await player.get_recent_performance(count=5)
@@ -204,17 +204,17 @@ class TestPlayer:
         assert isinstance(summary_large, dict)
         assert "total_games" in summary_large
 
-    async def test_player_is_on_win_streak(self, client):
+    async def test_player_is_on_win_streak(self, real_client):
         """Test win streak detection."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         # Test the method exists and returns a boolean
         win_streak = await player.is_on_win_streak(min_games=2)
         assert isinstance(win_streak, bool)
 
-    async def test_player_get_recent_performance_by_role(self, client):
+    async def test_player_get_recent_performance_by_role(self, real_client):
         """Test getting performance statistics by role."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         role_performance = await player.get_recent_performance_by_role(count=10)
         assert isinstance(role_performance, dict)
@@ -225,9 +225,9 @@ class TestPlayer:
             assert "wins" in stats
             assert "win_rate" in stats
 
-    async def test_player_get_recent_performance_by_role_with_queue(self, client):
+    async def test_player_get_recent_performance_by_role_with_queue(self, real_client):
         """Test getting role performance with queue filter."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         from nexar.enums import QueueId
 
@@ -278,9 +278,9 @@ class TestPlayer:
         assert player.v4_region is None
         assert player.v5_region is None
 
-    async def test_player_performance_summary_minimal_count(self, client):
+    async def test_player_performance_summary_minimal_count(self, real_client):
         """Test performance summary with minimal match count."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         # Test with very small count to verify method handles edge cases
         summary = await player.get_recent_performance(count=1)
@@ -288,9 +288,9 @@ class TestPlayer:
         assert "total_games" in summary
         assert summary["total_games"] >= 0
 
-    async def test_champion_stats_with_queue_filter(self, client):
+    async def test_champion_stats_with_queue_filter(self, real_client):
         """Test champion stats with queue filter."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         stats = await player.get_champion_stats(count=20, queue=QueueId.RANKED_SOLO_5x5)
         assert isinstance(stats, list)
@@ -298,29 +298,29 @@ class TestPlayer:
         for stat in stats:
             assert isinstance(stat, ChampionStats)
 
-    async def test_champion_stats_with_match_type_filter(self, client):
+    async def test_champion_stats_with_match_type_filter(self, real_client):
         """Test champion stats with match type filter."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         from nexar.enums import MatchType
 
         stats = await player.get_champion_stats(count=10, match_type=MatchType.RANKED)
         assert isinstance(stats, list)
 
-    async def test_top_champions_edge_cases(self, client):
+    async def test_top_champions_edge_cases(self, real_client):
         """Test top champions with edge cases."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         # Test with small count
         top_champions = await player.get_top_champions(top_n=1, count=5)
         assert isinstance(top_champions, list)
         assert len(top_champions) <= 1
 
-    async def test_player_methods_with_datetime_filters(self, client):
+    async def test_player_methods_with_datetime_filters(self, real_client):
         """Test Player methods that accept datetime filters."""
         from datetime import datetime, timedelta
 
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
 
         # Test with datetime objects
         end_time = datetime.now()

@@ -20,5 +20,5 @@ if [ -z "$RIOT_API_KEY" ]; then
     exit 1
 fi
 
-echo "Running tests with uv..."
-uv run pytest tests/ -v
+echo "Running tests with uv (sequential execution to avoid database locks)..."
+uv run pytest tests/ -v --maxfail=1 -x

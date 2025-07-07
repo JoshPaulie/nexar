@@ -111,16 +111,16 @@ class TestNexarClient:
         assert result.id is not None
         assert result.summoner_level > 0
 
-    async def test_not_found_error(self, client):
+    async def test_not_found_error(self, real_client):
         """Test handling of 404 Not Found error."""
         with pytest.raises(NotFoundError) as exc_info:
-            await client.get_riot_account("NonExistentPlayer999", "FAKE")
+            await real_client.get_riot_account("NonExistentPlayer999", "FAKE")
 
         assert exc_info.value.status_code == 404
 
     async def test_get_players_success(self, client):
         """Test successful multiple player retrieval."""
-        riot_ids = ["mltsimpleton#na1", "roninalex#na1"]
+        riot_ids = ["bexli#bex", "bexli#bex"]  # Use the mocked data
 
         players = await client.get_players(riot_ids)
 
@@ -128,12 +128,12 @@ class TestNexarClient:
         assert len(players) == 2
 
         # Check first player
-        assert players[0].game_name == "mltsimpleton"
-        assert players[0].tag_line == "na1"
+        assert players[0].game_name == "bexli"
+        assert players[0].tag_line == "bex"
 
         # Check second player
-        assert players[1].game_name == "roninalex"
-        assert players[1].tag_line == "na1"
+        assert players[1].game_name == "bexli"
+        assert players[1].tag_line == "bex"
 
         # Verify that riot accounts were pre-fetched
         for player in players:
@@ -159,9 +159,9 @@ class TestNexarClient:
 
     async def test_get_players_single_player(self, client):
         """Test get_players with single player."""
-        players = await client.get_players(["mltsimpleton#na1"])
+        players = await client.get_players(["bexli#bex"])
 
         assert isinstance(players, list)
         assert len(players) == 1
-        assert players[0].game_name == "mltsimpleton"
-        assert players[0].tag_line == "na1"
+        assert players[0].game_name == "bexli"
+        assert players[0].tag_line == "bex"

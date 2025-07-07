@@ -167,9 +167,9 @@ def create_test_participant(**overrides) -> Participant:
 class TestMatchModels:
     """Test match-related models."""
 
-    async def test_match_from_api_response(self, client):
+    async def test_match_from_api_response(self, real_client):
         """Test Match creation from real API response."""
-        player = client.get_player("bexli", "bex")
+        player = real_client.get_player("bexli", "bex")
         matches = await player.get_matches(count=1)
 
         if matches:
