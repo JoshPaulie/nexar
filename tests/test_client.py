@@ -138,8 +138,7 @@ class TestNexarClient:
         # Verify that riot accounts were pre-fetched
         for player in players:
             # Should not make additional API calls since accounts were pre-fetched
-            riot_account = await player.get_riot_account()
-            assert riot_account.puuid is not None
+            assert player.riot_account.puuid is not None
 
     async def test_get_players_with_invalid_riot_id(self, client):
         """Test get_players with invalid riot ID format."""

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
+
+from nexar.enums import Queue
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -71,8 +74,9 @@ class Player:
     High-level player object for convenient access to player data.
 
     This class provides a convenient interface for accessing player data
-    across multiple API endpoints. All data is fetched lazily and cached
-    within the object to avoid repeated API calls.
+    across multiple API endpoints. The riot account data is fetched immediately
+    during creation, while other data is fetched lazily and cached within the
+    object to avoid repeated API calls.
     """
 
     client: NexarClient
@@ -84,6 +88,9 @@ class Player:
     tag_line: str
     """Player's tag line (without #)."""
 
+    riot_account: RiotAccount
+    """The player's Riot account information."""
+
     v4_region: RegionV4 | None = None
     """Platform region for v4 endpoints (defaults to client default)."""
 
@@ -91,12 +98,50 @@ class Player:
     """Regional region for v5 endpoints (defaults to client default)."""
 
     # Cached data (set after first fetch)
-    _riot_account: RiotAccount | None = None
     _summoner: Summoner | None = None
     _league_entries: list[LeagueEntry] | None = None
 
     @classmethod
-    def by_riot_id(
+    async def create(
+        cls,
+        client: NexarClient,
+        game_name: str,
+        tag_line: str,
+        *,
+        v4_region: RegionV4 | None = None,
+        v5_region: RegionV5 | None = None,
+    ) -> Player:
+        """
+        Create a Player instance and fetch the riot account data immediately.
+
+        Args:
+            client: The client instance to use for API calls
+            game_name: Player's game name (without #)
+            tag_line: Player's tag line (without #)
+            v4_region: Platform region for v4 endpoints (defaults to client default)
+            v5_region: Regional region for v5 endpoints (defaults to client default)
+
+        Returns:
+            Player instance with riot account data pre-fetched
+
+        """
+        riot_account = await client.get_riot_account(
+            game_name,
+            tag_line,
+            region=v5_region,
+        )
+
+        return cls(
+            client=client,
+            game_name=game_name,
+            tag_line=tag_line,
+            riot_account=riot_account,
+            v4_region=v4_region,
+            v5_region=v5_region,
+        )
+
+    @classmethod
+    async def by_riot_id(
         cls,
         client: NexarClient,
         riot_id: str,
@@ -114,7 +159,7 @@ class Player:
             v5_region: Regional region for v5 endpoints (defaults to client default)
 
         Returns:
-            Player instance
+            Player instance with riot account data pre-fetched
 
         Raises:
             ValueError: If riot_id is not in the correct format
@@ -130,29 +175,13 @@ class Player:
             msg = f"Invalid Riot ID format: '{riot_id}'. Both username and tagline must be non-empty"
             raise ValueError(msg)
 
-        return cls(
+        return await cls.create(
             client=client,
             game_name=game_name,
             tag_line=tag_line,
             v4_region=v4_region,
             v5_region=v5_region,
         )
-
-    async def get_riot_account(self) -> RiotAccount:
-        """
-        Get the player's Riot account.
-
-        Returns:
-            RiotAccount with account information
-
-        """
-        if self._riot_account is None:
-            self._riot_account = await self.client.get_riot_account(
-                self.game_name,
-                self.tag_line,
-                region=self.v5_region,
-            )
-        return self._riot_account
 
     async def get_summoner(self) -> Summoner:
         """
@@ -163,9 +192,8 @@ class Player:
 
         """
         if self._summoner is None:
-            account = await self.get_riot_account()
             self._summoner = await self.client.get_summoner_by_puuid(
-                account.puuid,
+                self.riot_account.puuid,
                 region=self.v4_region,
             )
         return self._summoner
@@ -179,9 +207,8 @@ class Player:
 
         """
         if self._league_entries is None:
-            account = await self.get_riot_account()
             self._league_entries = await self.client.get_league_entries_by_puuid(
-                account.puuid,
+                self.riot_account.puuid,
                 region=self.v4_region,
             )
         return self._league_entries
@@ -211,9 +238,8 @@ class Player:
             List of match IDs
 
         """
-        account = await self.get_riot_account()
         return await self.client.get_match_ids_by_puuid(
-            account.puuid,
+            self.riot_account.puuid,
             start_time=start_time,
             end_time=end_time,
             queue=queue,
@@ -258,7 +284,6 @@ class Player:
         )
 
         # Fetch all matches concurrently
-        import asyncio
 
         async def fetch_match(match_id: str) -> Match:
             return await self.client.get_match(match_id, region=self.v5_region)
@@ -310,8 +335,7 @@ class Player:
             count=count,
         )
 
-        account = await self.get_riot_account()
-        puuid = account.puuid
+        puuid = self.riot_account.puuid
 
         # Aggregate stats by champion
         champion_data: dict[int, dict[str, Any]] = {}
@@ -383,8 +407,7 @@ class Player:
 
         """
         matches = await self.get_matches(count=count)
-        account = await self.get_riot_account()
-        puuid = account.puuid
+        puuid = self.riot_account.puuid
 
         if not matches:
             return {
@@ -442,26 +465,9 @@ class Player:
 
     # Convenience properties for sync access (for backward compatibility)
     @property
-    def riot_account(self) -> RiotAccount:
-        """Get the player's Riot account. Cached after first access."""
-        if self._riot_account is None:
-            import asyncio
-
-            try:
-                asyncio.get_running_loop()
-                msg = "Cannot use sync property from async context. Use 'await player.get_riot_account()' instead."
-                raise RuntimeError(msg)
-            except RuntimeError:
-                # No running loop, we can safely run async code
-                self._riot_account = asyncio.run(self.get_riot_account())
-        return self._riot_account
-
-    @property
     def summoner(self) -> Summoner:
         """Get the player's summoner information. Cached after first access."""
         if self._summoner is None:
-            import asyncio
-
             try:
                 asyncio.get_running_loop()
                 msg = "Cannot use sync property from async context. Use 'await player.get_summoner()' instead."
@@ -480,8 +486,6 @@ class Player:
     def league_entries(self) -> list[LeagueEntry]:
         """Get all league entries for the player. Cached after first access."""
         if self._league_entries is None:
-            import asyncio
-
             try:
                 asyncio.get_running_loop()
                 msg = "Cannot use sync property from async context. Use 'await player.get_league_entries()' instead."
@@ -503,8 +507,6 @@ class Player:
             LeagueEntry for solo queue, or None if unranked
 
         """
-        from nexar.enums import Queue
-
         league_entries = await self.get_league_entries()
         for entry in league_entries:
             if entry.queue_type == Queue.RANKED_SOLO_5x5:
@@ -523,8 +525,6 @@ class Player:
             LeagueEntry for flex queue, or None if unranked
 
         """
-        from nexar.enums import Queue
-
         league_entries = await self.get_league_entries()
         for entry in league_entries:
             if entry.queue_type == Queue.RANKED_FLEX_SR:
@@ -571,8 +571,6 @@ class Player:
             List of Match objects
 
         """
-        import asyncio
-
         try:
             asyncio.get_running_loop()
             msg = "Cannot use sync method from async context. Use 'await player.get_matches()' instead."
@@ -641,8 +639,7 @@ class Player:
             start_time=None,
             end_time=None,
         )
-        account = await self.get_riot_account()
-        puuid = account.puuid
+        puuid = self.riot_account.puuid
 
         if not matches:
             return {
@@ -725,8 +722,7 @@ class Player:
 
         """
         matches = await self.get_matches(queue=queue, count=count)
-        account = await self.get_riot_account()
-        puuid = account.puuid
+        puuid = self.riot_account.puuid
 
         role_stats: dict[str, dict[str, Any]] = {}
 
@@ -783,8 +779,7 @@ class Player:
 
         """
         matches = await self.get_matches(count=min_games * 2)  # Get extra to be safe
-        account = await self.get_riot_account()
-        puuid = account.puuid
+        puuid = self.riot_account.puuid
 
         wins_in_a_row = 0
         for match in matches:
@@ -807,7 +802,6 @@ class Player:
 
     def refresh_cache(self) -> None:
         """Clear all cached data to force fresh API calls."""
-        self._riot_account = None
         self._summoner = None
         self._league_entries = None
 
