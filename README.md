@@ -46,26 +46,19 @@ async def main() -> None:
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
     ) as client:
-        # Get player information (riot account fetched immediately)
+        # Get player information
         player = await client.get_player("bexli", "bex")
 
         print()
         riot_account = player.riot_account  # Immediately available!
         summoner = await player.get_summoner()
-        league_entries = await player.get_league_entries()
+        rank = await player.get_rank()
 
         print(f"Summoner: {riot_account.game_name}")
         print(f"Level: {summoner.summoner_level}")
 
-        # Find Solo Queue rank
-        solo_queue_entry = None
-        for entry in league_entries:
-            if entry.queue_type == "RANKED_SOLO_5x5":
-                solo_queue_entry = entry
-                break
-
-        if solo_queue_entry:
-            rank_text = f"{solo_queue_entry.tier} {solo_queue_entry.rank}"
+        if rank:
+            rank_text = f"{rank.tier.value.title()} {rank.rank.value}"
             print(f"Solo Queue rank: {rank_text}\n")
 
         # Get and display recent matches
