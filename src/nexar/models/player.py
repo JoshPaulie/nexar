@@ -346,7 +346,7 @@ class Player:
         end_time: int | datetime | None = None,
         queue: QueueId | int | None = None,
         match_type: MatchType | str | None = None,
-        count: int = 100,
+        count: int = 20,
     ) -> list[ChampionStats]:
         """
         Get champion statistics for the player.
