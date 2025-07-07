@@ -1,6 +1,6 @@
 # Caching in Nexar
 
-Nexar includes built-in caching functionality using `requests-cache` to reduce API calls and improve performance.
+Nexar includes built-in caching functionality using `aiohttp-client-cache` to reduce API calls and improve performance.
 
 ## Quick Start
 
