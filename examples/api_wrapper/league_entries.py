@@ -9,6 +9,7 @@ from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 from nexar.models.player import Player
 
+
 async def main() -> None:
     """Demonstrate direct API usage for league entries."""
     # Get API key from environment
@@ -92,7 +93,7 @@ async def main() -> None:
     print()
     print(
         "Recommendation: Use Player API unless you need all queue types or custom processing",
-        )
+    )
 
 
 if __name__ == "__main__":

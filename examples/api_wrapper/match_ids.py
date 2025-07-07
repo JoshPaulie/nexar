@@ -9,6 +9,7 @@ from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import MatchType, QueueId, RegionV4, RegionV5
 
+
 async def main() -> None:
     """Demonstrate direct API usage for getting match IDs with various filters."""
     # Get API key from environment

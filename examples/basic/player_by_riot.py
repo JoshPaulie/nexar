@@ -9,6 +9,7 @@ from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 from nexar.models import Player
 
+
 async def main() -> None:
     """Demonstrate Player.by_riot_id() usage."""
     # Get API key from environment

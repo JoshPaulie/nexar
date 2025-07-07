@@ -15,6 +15,7 @@ MIN_GAMES_PER_ROLE = 3  # Minimum games played to consider a role for best/worst
 CHUNK_SIZE = 5  # Number of games per trend chunk
 TOTAL_RECENT = 20  # Number of recent games to analyze for trends
 
+
 async def main() -> None:
     """Advanced role-based performance analysis using the Player API."""
     # Get API key from environment

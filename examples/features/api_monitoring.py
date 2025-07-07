@@ -11,6 +11,7 @@ from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 from nexar.logging import configure_logging
 
+
 async def main() -> None:
     """Demonstrate API monitoring and logging functionality."""
     # Get API key from environment

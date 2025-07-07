@@ -8,6 +8,7 @@ from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import QueueId, RegionV4, RegionV5
 
+
 async def main() -> None:
     """Demonstrate match challenges analysis using the Player API."""
     # Get API key from environment

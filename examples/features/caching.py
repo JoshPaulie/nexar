@@ -56,7 +56,7 @@ async def main() -> None:
         cache_config=DEFAULT_CACHE_CONFIG,
     ) as cached_client:
         player = cached_client.get_player("bexli", "bex")
-        
+
         # First call with cache (fresh)
         player_cached = await time_operation(
             "Getting player info (first call with cache):",

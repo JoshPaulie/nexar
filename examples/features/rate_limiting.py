@@ -62,7 +62,7 @@ async def main() -> None:
                 else:
                     await player.get_rank()
                     print("  ✓ Got rank info")
-                    
+
                 print_rate_limit_status(client, f"Rate limits after call {i + 1}:")
             except Exception as e:
                 print(f"  ✗ Failed: {e}")
@@ -73,7 +73,7 @@ async def main() -> None:
     # Create a more conservative rate limiter
     conservative_rate_limiter = RateLimiter(
         rate_limits=[
-            RateLimit(requests=10, window_seconds=60),   # 10 requests per minute
+            RateLimit(requests=10, window_seconds=60),  # 10 requests per minute
             RateLimit(requests=50, window_seconds=120),  # 50 requests per 2 minutes
         ],
     )
@@ -93,7 +93,7 @@ async def main() -> None:
 
         print("Attempting to fetch data for multiple operations rapidly...")
         start_time = time.time()
-        
+
         # Make aggressive API calls
         player = conservative_client.get_player("bexli", "bex")
         operations = [
