@@ -45,7 +45,7 @@ async def main() -> None:
         # Compare performance without cache
         player_no_cache = await time_operation(
             "Getting player info (no cache):",
-            lambda: no_cache_client.get_player("bexli", "bex").get_riot_account(),
+            lambda: no_cache_client.get_player("bexli", "bex"),
         )
 
     # Test with default caching
@@ -55,18 +55,18 @@ async def main() -> None:
         default_v5_region=RegionV5.AMERICAS,
         cache_config=DEFAULT_CACHE_CONFIG,
     ) as cached_client:
-        player = cached_client.get_player("bexli", "bex")
+        player = await cached_client.get_player("bexli", "bex")
 
         # First call with cache (fresh)
         player_cached = await time_operation(
             "Getting player info (first call with cache):",
-            lambda: player.get_riot_account(),
+            lambda: cached_client.get_player("bexli", "bex"),
         )
 
         # Second call with cache (should be faster)
         player_cached_2 = await time_operation(
             "Getting player info (second call with cache):",
-            lambda: player.get_riot_account(),
+            lambda: cached_client.get_player("bexli", "bex"),
         )
 
         print(f"Cache info: {cached_client.get_cache_info()}")
@@ -79,11 +79,11 @@ async def main() -> None:
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
     ) as smart_client:
-        player = smart_client.get_player("bexli", "bex")
+        player = await smart_client.get_player("bexli", "bex")
 
         # Account data (cached for 24 hours in smart config)
-        await time_operation("Getting account data (fresh):", lambda: player.get_riot_account())
-        await time_operation("Getting account data (cached 24h):", lambda: player.get_riot_account())
+        await time_operation("Getting account data (fresh):", lambda: smart_client.get_player("bexli", "bex"))
+        await time_operation("Getting account data (cached 24h):", lambda: smart_client.get_player("bexli", "bex"))
 
         # League entries (cached for 5 minutes in smart config)
         await time_operation("Getting league entries (fresh):", lambda: player.get_league_entries())
@@ -98,14 +98,17 @@ async def main() -> None:
     # Example 3: Custom cache configuration
     print("\n\n=== Example 3: Custom Cache Configuration ===")
     custom_cache_config = CacheConfig(
-        # Cache riot account for 2 hours
-        riot_account_by_riot_id=7200,
-        # Cache league entries for 30 seconds (very short for demo)
-        league_entries_by_summoner=30,
-        # No caching for matches
-        matches_by_puuid=0,
-        # Cache summoner for 1 hour
-        summoner_by_puuid=3600,
+        expire_after=3600,  # 1 hour default
+        endpoint_config={
+            # Cache riot account for 2 hours
+            "/riot/account/v1/accounts/by-riot-id": {"expire_after": 7200},
+            # Cache league entries for 30 seconds (very short for demo)
+            "/lol/league/v4/entries/by-puuid": {"expire_after": 30},
+            # No caching for matches
+            "/lol/match/v5/matches/by-puuid": {"expire_after": 0},
+            # Cache summoner for 1 hour
+            "/lol/summoner/v4/summoners/by-puuid": {"expire_after": 3600},
+        },
     )
 
     async with NexarClient(
@@ -114,7 +117,7 @@ async def main() -> None:
         default_v5_region=RegionV5.AMERICAS,
         cache_config=custom_cache_config,
     ) as custom_client:
-        player = custom_client.get_player("bexli", "bex")
+        player = await custom_client.get_player("bexli", "bex")
 
         print("Using custom cache configuration:")
         print("- Riot account: 2 hours")
@@ -123,8 +126,8 @@ async def main() -> None:
         print("- Summoner: 1 hour")
 
         # Test the custom configuration
-        await time_operation("Getting account (2h cache):", lambda: player.get_riot_account())
-        await time_operation("Getting account (cached):", lambda: player.get_riot_account())
+        await time_operation("Getting account (2h cache):", lambda: custom_client.get_player("bexli", "bex"))
+        await time_operation("Getting account (cached):", lambda: custom_client.get_player("bexli", "bex"))
 
         await time_operation("Getting league entries (30s cache):", lambda: player.get_league_entries())
         await time_operation("Getting league entries (cached):", lambda: player.get_league_entries())

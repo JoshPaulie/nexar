@@ -212,10 +212,10 @@ async def main() -> None:
         # Create player objects for comparison
         # You can add more players by adding their game names and tag lines
         players_to_compare = [
-            client.get_player("bexli", "bex"),
-            client.get_player("roninalex", "na1"),
+            await client.get_player("bexli", "bex"),
+            await client.get_player("roninalex", "na1"),
             # Add more players here for comparison
-            # client.get_player("other_player", "tag"),
+            # await client.get_player("other_player", "tag"),
         ]
 
         if len(players_to_compare) == 1:

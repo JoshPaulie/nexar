@@ -24,8 +24,8 @@ async def main() -> None:
         cache_config=SMART_CACHE_CONFIG,
     ) as client:
         # Create player object
-        player = client.get_player("bexli", "bex")
-        riot_account = await player.get_riot_account()
+        player = await client.get_player("bexli", "bex")
+        riot_account = player.riot_account  # Immediately available!
         print(f"Getting recent matches for {player}")
 
         # Get recent matches (last 5 games)

@@ -24,7 +24,7 @@ async def main() -> None:
         cache_config=SMART_CACHE_CONFIG,
     ) as client:
         # Create player object
-        player = client.get_player("bexli", "bex")
+        player = await client.get_player("bexli", "bex")
         print(f"Analyzing performance for {player}")
 
         # Get performance summary from last 20 games

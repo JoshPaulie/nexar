@@ -33,20 +33,20 @@ async def main() -> None:
         cache_config=SMART_CACHE_CONFIG,
     ) as client:
         print("\nMaking API calls (watch the log output):")
-        player = client.get_player("bexli", "bex")
+        player = await client.get_player("bexli", "bex")
 
         # These calls will show in logs with timing and cache info
         print("- Getting account data...")
-    account = await player.get_riot_account()
+        account = player.riot_account  # Immediately available!
 
-    print("- Getting summoner data...")
-    summoner = await player.get_summoner()
+        print("- Getting summoner data...")
+        summoner = await player.get_summoner()
 
-    print("- Getting league entries...")
-    league_entries = await player.get_league_entries()
+        print("- Getting league entries...")
+        league_entries = await player.get_league_entries()
 
-    print("- Getting recent matches...")
-    matches = await player.get_recent_matches(count=3)
+        print("- Getting recent matches...")
+        matches = await player.get_matches(count=3)
 
     # Example 2: Debug logging
     print("\n\n=== Example 2: Debug Logging ===")
@@ -88,7 +88,7 @@ async def main() -> None:
     # First round - fresh calls
     print("\nRound 1 (fresh calls):")
     player2 = await client.get_player("bexli", "bex")
-    await player2.get_riot_account()
+    # riot_account immediately available
     await player2.get_summoner()
     await player2.get_league_entries()
 
@@ -97,7 +97,7 @@ async def main() -> None:
     # Second round - should be mostly cached
     print("\nRound 2 (cached calls):")
     player3 = await client.get_player("bexli", "bex")
-    await player3.get_riot_account()
+    # riot_account immediately available
     await player3.get_summoner()
     await player3.get_league_entries()
 

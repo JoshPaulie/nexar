@@ -40,7 +40,7 @@ async def main() -> None:
         for i, player in enumerate(players, 1):
             print(f"=== Player {i}: {player} ===")
 
-            # Get summoner info (riot account was pre-fetched during get_players)
+            # Get summoner info (riot account was already fetched during get_players)
             summoner = await player.get_summoner()
             print(f"Level: {summoner.summoner_level}")
 

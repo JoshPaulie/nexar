@@ -23,12 +23,12 @@ async def main() -> None:
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
     ) as client:
-        # Create a player object (abstracts away riot id lookup)
-        player = client.get_player("bexli", "bex")
+        # Create a player object (riot account fetched immediately)
+        player = await client.get_player("bexli", "bex")
         print(f"Analyzing player: {player}")
 
-        # Access basic player info
-        riot_account = await player.get_riot_account()
+        # Access basic player info (riot account already available)
+        riot_account = player.riot_account  # No await needed!
         summoner = await player.get_summoner()
         league_entries = await player.get_league_entries()
 

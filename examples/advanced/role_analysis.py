@@ -31,8 +31,8 @@ async def main() -> None:
         cache_config=SMART_CACHE_CONFIG,
     ) as client:
         # Create player object
-        player = client.get_player("bexli", "bex")
-        riot_account = await player.get_riot_account()
+        player = await client.get_player("bexli", "bex")
+        riot_account = player.riot_account  # Immediately available!
         print(f"Advanced role analysis for {riot_account.game_name}")
 
         # Get performance by role from recent ranked games
@@ -47,27 +47,26 @@ async def main() -> None:
             return
 
     # Sort roles by games played
-    sorted_roles = sorted(role_performance.items(), key=lambda x: x[1]["games_played"], reverse=True)
+    sorted_roles = sorted(role_performance.items(), key=lambda x: x[1]["games"], reverse=True)
 
     for role, stats in sorted_roles:
-        if stats["games_played"] == 0:
+        if stats["games"] == 0:
             continue
 
         print(f"\n{role}:")
-        print(f"  Games Played: {stats['games_played']}")
-        print(f"  Win Rate: {stats['win_rate']}% ({stats['wins']}W/{stats['games_played'] - stats['wins']}L)")
+        print(f"  Games Played: {stats['games']}")
+        print(f"  Win Rate: {stats['win_rate']}% ({stats['wins']}W/{stats['games'] - stats['wins']}L)")
         print(f"  Average KDA: {stats['avg_kills']}/{stats['avg_deaths']}/{stats['avg_assists']} ({stats['avg_kda']})")
-        print(f"  Average CS: {stats['avg_cs']}")
 
     # Find best and worst performing roles
     best_role = max(
-        [(role, stats) for role, stats in role_performance.items() if stats["games_played"] >= MIN_GAMES_PER_ROLE],
+        [(role, stats) for role, stats in role_performance.items() if stats["games"] >= MIN_GAMES_PER_ROLE],
         key=lambda x: x[1]["win_rate"],
         default=(None, None),
     )
 
     worst_role = min(
-        [(role, stats) for role, stats in role_performance.items() if stats["games_played"] >= MIN_GAMES_PER_ROLE],
+        [(role, stats) for role, stats in role_performance.items() if stats["games"] >= MIN_GAMES_PER_ROLE],
         key=lambda x: x[1]["win_rate"],
         default=(None, None),
     )
@@ -80,7 +79,7 @@ async def main() -> None:
     print("\n=== Champion Performance by Role ===")
 
     # Get recent matches for detailed analysis
-    recent_matches = await player.get_recent_matches(count=50, queue=QueueId.RANKED_SOLO_5x5)
+    recent_matches = await player.get_matches(count=50, queue=QueueId.RANKED_SOLO_5x5)
 
     role_champion_stats = {}
 
@@ -154,13 +153,13 @@ async def main() -> None:
     for i in range(0, TOTAL_RECENT, CHUNK_SIZE):
         if i == 0:
             chunk_matches = (
-                await player.get_recent_matches(
+                await player.get_matches(
                     count=CHUNK_SIZE,
                     queue=QueueId.RANKED_SOLO_5x5,
                 )
             )[:CHUNK_SIZE]
         else:
-            break  # Skip chunks after first since get_recent_matches always gets most recent
+            break  # Skip chunks after first since get_matches always gets most recent
 
         if not chunk_matches:
             continue

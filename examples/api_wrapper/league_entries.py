@@ -27,13 +27,13 @@ async def main() -> None:
         print("=== League Entries API Example ===")
 
         # Get PUUID using the account lookup
-    account = await client.get_riot_account("bexli", "bex")
-    puuid = account.puuid
-    print(f"Found account: {account.game_name}#{account.tag_line}")
-    print(f"PUUID: {puuid}\n")
+        account = await client.get_riot_account("bexli", "bex")
+        puuid = account.puuid
+        print(f"Found account: {account.game_name}#{account.tag_line}")
+        print(f"PUUID: {puuid}\n")
 
-    # Get league entries using direct API call
-    league_entries = await client.get_league_entries_by_puuid(puuid)
+        # Get league entries using direct API call
+        league_entries = await client.get_league_entries_by_puuid(puuid)
 
     if not league_entries:
         print("No ranked entries found for this player.")

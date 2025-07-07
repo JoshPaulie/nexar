@@ -1,6 +1,6 @@
 # Player API
 
-The `Player` class provides high-level access to player data with automatic caching and data aggregation.
+The `Player` class provides high-level access to player data with automatic caching and data aggregation. Player objects now use **eager loading** for Riot account data, meaning the account information is fetched immediately when the player is created.
 
 ## Basic Usage
 
@@ -26,17 +26,36 @@ async def main() -> None:
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
     ) as client:
-        # Create a player object
-        player = client.get_player("bexli", "bex")
+        # Create a player object (riot account fetched immediately)
+        player = await client.get_player("bexli", "bex")
         
-        # Access player data
-        riot_account = await player.get_riot_account()
+        # Access player data (riot account already available)
+        riot_account = player.riot_account  # No await needed!
         summoner = await player.get_summoner()
         print(f"Player: {riot_account.game_name}#{riot_account.tag_line}")
         print(f"Level: {summoner.summoner_level}")
 
 if __name__ == "__main__":
     asyncio.run(main())
+```
+
+## Alternative Player Creation
+
+You can also create players directly using the factory methods:
+
+```python
+# Using Player.create()
+player = await Player.create(
+    client=client,
+    game_name="bexli", 
+    tag_line="bex"
+)
+
+# Using Player.by_riot_id()
+player = await Player.by_riot_id(
+    client=client,
+    riot_id="bexli#bex"
+)
 ```
 
 ## Batch Player Retrieval
@@ -79,9 +98,10 @@ single_player = await client.get_players(["Player#TAG"])  # Returns [Player]
 ## Basic Information
 
 ### Player Identity
-- `player.puuid` - Player's PUUID
-- `player.game_name` - Riot ID game name
-- `player.tag_line` - Riot ID tag line
+- `player.puuid` - Player's PUUID (immediately available)
+- `player.game_name` - Riot ID game name (immediately available)
+- `player.tag_line` - Riot ID tag line (immediately available)
+- `player.riot_account` - Complete riot account data (immediately available)
 
 ### Summoner Data
 - `player.summoner` - Summoner details (level, etc.)
@@ -217,8 +237,7 @@ older_10 = matches[40:50]
 # Calculate win rates for recent vs older matches
 recent_wr = 0
 older_wr = 0
-account = await player.get_riot_account()
-puuid = account.puuid
+puuid = player.riot_account.puuid  # Direct access, no await needed
 
 for m in recent_10:
     for p in m.info.participants:
@@ -255,7 +274,7 @@ client = NexarClient(
 )
 
 # All player operations will use caching
-player = client.get_player("bexli", "bex")  # May be cached
+player = await client.get_player("bexli", "bex")  # May be cached
 recent_matches = await player.get_matches(count=20)  # May be cached
 ```
 
@@ -275,7 +294,7 @@ print(f"Cache enabled: {info['enabled']}")
 from nexar.exceptions import NotFoundError, RateLimitError
 
 try:
-    player = client.get_player("nonexistent", "player")
+    player = await client.get_player("nonexistent", "player")
     matches = await player.get_matches(count=20)
 except NotFoundError:
     print("Player not found")
@@ -290,3 +309,11 @@ except RateLimitError:
 3. **Handle errors gracefully** for better user experience
 4. **Cache player objects** in your application to avoid repeated lookups
 5. **Use appropriate match counts** - don't request more data than you need
+6. **Take advantage of eager loading** - riot account data is immediately available without additional API calls
+
+## Key Benefits of Eager Loading
+
+- **Immediate Access**: `player.riot_account` is available instantly without await
+- **Better Performance**: No repeated API calls for riot account data
+- **Cleaner Code**: No need to manage riot account fetching state
+- **Consistent Behavior**: All players always have complete identity information

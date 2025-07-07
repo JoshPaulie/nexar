@@ -42,14 +42,14 @@ async def main() -> None:
 
         # Make several API calls and monitor rate limiting
         print("\nMaking API calls with default rate limiting...")
-        player = client.get_player("bexli", "bex")
+        player = await client.get_player("bexli", "bex")
 
         for i in range(5):
             print(f"\nAPI call {i + 1}:")
             try:
                 if i == 0:
-                    await player.get_riot_account()
-                    print("  ✓ Got riot account")
+                    # riot account immediately available
+                    print("  ✓ Got riot account (immediate)")
                 elif i == 1:
                     await player.get_summoner()
                     print("  ✓ Got summoner data")
@@ -95,9 +95,9 @@ async def main() -> None:
         start_time = time.time()
 
         # Make aggressive API calls
-        player = conservative_client.get_player("bexli", "bex")
+        player = await conservative_client.get_player("bexli", "bex")
         operations = [
-            ("Get riot account", lambda: player.get_riot_account()),
+            ("Get riot account", lambda: conservative_client.get_player("bexli", "bex")),
             ("Get summoner", lambda: player.get_summoner()),
             ("Get league entries", lambda: player.get_league_entries()),
             ("Get matches", lambda: player.get_matches(count=3)),

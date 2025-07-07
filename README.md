@@ -46,11 +46,11 @@ async def main() -> None:
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
     ) as client:
-        # Get player information
-        player = client.get_player("bexli", "bex")
+        # Get player information (riot account fetched immediately)
+        player = await client.get_player("bexli", "bex")
 
         print()
-        riot_account = await player.get_riot_account()
+        riot_account = player.riot_account  # Immediately available!
         summoner = await player.get_summoner()
         league_entries = await player.get_league_entries()
 

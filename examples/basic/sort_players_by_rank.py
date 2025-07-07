@@ -30,7 +30,10 @@ async def main() -> None:
         ]
 
         # Create list of Player objects
-        players = [client.get_player(name, tag) for name, tag in players_info]
+        players = []
+        for name, tag in players_info:
+            player = await client.get_player(name, tag)
+            players.append(player)
 
         # Fetch league entries for all players to populate rank data
         for player in players:

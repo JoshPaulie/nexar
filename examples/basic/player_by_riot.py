@@ -26,7 +26,7 @@ async def main() -> None:
     ) as client:
         # Create a player using the convenient by_riot_id() method
         # This accepts the standard "username#tagline" format
-        player = Player.by_riot_id(client, "bexli#bex")
+        player = await Player.by_riot_id(client, "bexli#bex")
 
         print(f"Player: {player}")
 
@@ -49,7 +49,7 @@ async def main() -> None:
 
         # You can also specify custom regions when creating the player
         print("\n=== Creating EU player ===")
-        eu_player = Player.by_riot_id(
+        eu_player = await Player.by_riot_id(
             client,
             "Thebausffs#COOL",
             v4_region=RegionV4.EUW1,
