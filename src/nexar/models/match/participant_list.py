@@ -30,22 +30,6 @@ class ParticipantList(list["Participant"]):
         """
         return next((p for p in self if p.puuid == puuid), None)
 
-    def by_summoner_name(self, summoner_name: str) -> "Participant | None":
-        """
-        Find a participant by their summoner name.
-
-        Args:
-            summoner_name: The player's summoner name (case-insensitive)
-
-        Returns:
-            The participant with the matching summoner name, or None if not found
-
-        """
-        return next(
-            (p for p in self if p.summoner_name.lower() == summoner_name.lower()),
-            None,
-        )
-
     def by_champion(self, champion_name: str) -> "ParticipantList":
         """
         Filter participants by champion name.

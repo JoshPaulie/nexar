@@ -391,20 +391,6 @@ class TestParticipantList:
         # Test non-existent PUUID
         assert participant_list.by_puuid("nonexistent") is None
 
-    def test_by_summoner_name(self, participant_list: ParticipantList) -> None:
-        """Test finding participant by summoner name."""
-        participant = participant_list.by_summoner_name("Player1")
-        assert participant is not None
-        assert participant.champion_name == "Annie"
-
-        # Test case insensitive
-        participant = participant_list.by_summoner_name("player1")
-        assert participant is not None
-        assert participant.champion_name == "Annie"
-
-        # Test non-existent name
-        assert participant_list.by_summoner_name("nonexistent") is None
-
     def test_by_champion(self, participant_list: ParticipantList) -> None:
         """Test filtering by champion name."""
         jinx_players = participant_list.by_champion("Jinx")
