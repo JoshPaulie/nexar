@@ -62,3 +62,9 @@ ignore = [
 
 [tool.ruff]
 line-length = 120
+
+[tool.mypy]
+files = "src"
+strict = true
+python_version = "3.13"
+mypy_path = "src"
