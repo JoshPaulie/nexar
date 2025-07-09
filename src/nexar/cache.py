@@ -36,7 +36,8 @@ class CacheConfig:
 
         """
         if endpoint in self.endpoint_config:
-            return self.endpoint_config[endpoint].get("expire_after", self.expire_after)
+            expire = self.endpoint_config[endpoint].get("expire_after", self.expire_after)
+            return expire if expire is None else int(expire)
         return self.expire_after
 
     def is_endpoint_cached(self, endpoint: str) -> bool:
@@ -54,7 +55,7 @@ class CacheConfig:
             return False
 
         if endpoint in self.endpoint_config:
-            return self.endpoint_config[endpoint].get("enabled", True)
+            return bool(self.endpoint_config[endpoint].get("enabled", True))
 
         return True
 

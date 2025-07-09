@@ -8,7 +8,8 @@ from types import TracebackType
 from typing import Any
 
 import aiohttp
-import aiohttp_client_cache
+from aiohttp_client_cache.backends.sqlite import SQLiteBackend
+from aiohttp_client_cache.session import CachedSession
 
 from .cache import DEFAULT_CACHE_CONFIG, CacheConfig
 from .enums import MatchType, QueueId, RegionV4, RegionV5
@@ -68,7 +69,7 @@ class NexarClient:
         self._api_call_count = 0
 
         # Session will be created when needed
-        self._session: aiohttp_client_cache.CachedSession | aiohttp.ClientSession | None = None
+        self._session: CachedSession | aiohttp.ClientSession | None = None
 
     async def __aenter__(self) -> "NexarClient":
         """Async context manager entry."""
@@ -104,8 +105,8 @@ class NexarClient:
                     urls_expire_after[f"*{endpoint_pattern}*"] = expire_time
 
             # Create cached session
-            self._session = aiohttp_client_cache.CachedSession(
-                cache=aiohttp_client_cache.SQLiteBackend(
+            self._session = CachedSession(
+                cache=SQLiteBackend(
                     cache_name=self.cache_config.cache_name,
                     expire_after=self.cache_config.expire_after,
                 ),
@@ -165,11 +166,7 @@ class NexarClient:
         try:
             # Check if this request would be served from cache
             is_cached = False
-            if (
-                isinstance(self._session, aiohttp_client_cache.CachedSession)
-                and hasattr(self._session, "cache")
-                and self._session.cache
-            ):
+            if isinstance(self._session, CachedSession) and hasattr(self._session, "cache") and self._session.cache:
                 try:
                     # For aiohttp-client-cache, we'll check if cache exists differently
                     # This is a simplified approach - the actual implementation may vary
@@ -185,7 +182,9 @@ class NexarClient:
                 await self.rate_limiter.async_wait_if_needed()
 
             # Make the request (cached or not)
-            assert self._session is not None
+            if self._session is None:
+                msg = "Session is not initialized."
+                raise RuntimeError(msg)
             async with self._session.get(
                 url,
                 headers=headers,
@@ -216,7 +215,7 @@ class NexarClient:
                     print(json.dumps(response_data, indent=2))
                     print(f"{'=' * 60}\n")
 
-                return response_data
+                return response_data  # type: ignore[no-any-return]
 
         except aiohttp.ClientError as e:
             # Record failed actual requests (ClientError means network/HTTP error)
@@ -300,9 +299,9 @@ class NexarClient:
             return
 
         # Log cache setup information
-        has_cache = isinstance(self._session, aiohttp_client_cache.CachedSession) and hasattr(self._session, "cache")
+        has_cache = isinstance(self._session, CachedSession) and hasattr(self._session, "cache")
         cache_type = None
-        if has_cache and isinstance(self._session, aiohttp_client_cache.CachedSession) and self._session.cache:
+        if has_cache and isinstance(self._session, CachedSession) and self._session.cache:
             cache_type = type(self._session.cache)
 
         self._logger.log_cache_setup(
@@ -312,7 +311,7 @@ class NexarClient:
             cache_type=cache_type,
         )
 
-        if has_cache and isinstance(self._session, aiohttp_client_cache.CachedSession):
+        if has_cache and isinstance(self._session, CachedSession):
             # Log cache configuration details
             expire_after = self.cache_config.expire_after
             if expire_after is not None:
@@ -323,11 +322,7 @@ class NexarClient:
 
     async def clear_cache(self) -> None:
         """Clear all cached responses."""
-        if (
-            isinstance(self._session, aiohttp_client_cache.CachedSession)
-            and hasattr(self._session, "cache")
-            and self._session.cache
-        ):
+        if isinstance(self._session, CachedSession) and hasattr(self._session, "cache") and self._session.cache:
             await self._session.cache.clear()
             self._logger.log_cache_cleared()
 
@@ -346,11 +341,7 @@ class NexarClient:
             "default_expire_after": self.cache_config.expire_after,
         }
 
-        if (
-            isinstance(self._session, aiohttp_client_cache.CachedSession)
-            and hasattr(self._session, "cache")
-            and self._session.cache
-        ):
+        if isinstance(self._session, CachedSession) and hasattr(self._session, "cache") and self._session.cache:
             try:
                 # Try to get cache size if the backend supports it
                 cache = self._session.cache
@@ -394,7 +385,7 @@ class NexarClient:
     async def get_summoner_by_puuid(
         self,
         puuid: str,
-        region: RegionV4 | None = None,
+        region: RegionV4 | None,
     ) -> Summoner:
         """
         Get a summoner by PUUID.

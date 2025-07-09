@@ -300,7 +300,7 @@ class QueueId(Enum):
     @property
     def is_ranked(self) -> bool:
         """Check if this queue is a ranked queue."""
-        return self in (self.RANKED_SOLO_5x5, self.RANKED_FLEX_SR)
+        return self.value in {420, 440}
 
     @classmethod
     def get_ranked_queues(cls) -> tuple["QueueId", "QueueId"]:

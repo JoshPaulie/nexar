@@ -1,7 +1,7 @@
 """Specialized list class for working with match participants."""
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, SupportsIndex, cast, overload
 
 if TYPE_CHECKING:
     from .participant import Participant
@@ -158,7 +158,7 @@ class ParticipantList(list["Participant"]):
                 return float(participant.kills + participant.assists)
             return (participant.kills + participant.assists) / participant.deaths
 
-        return self.sort_by(kda_ratio, reverse=True)[:count]
+        return ParticipantList(self.sort_by(kda_ratio, reverse=True)[:count])
 
     def most_kills(self, count: int = 1) -> "ParticipantList":
         """
@@ -171,7 +171,7 @@ class ParticipantList(list["Participant"]):
             A new ParticipantList with the most kills
 
         """
-        return self.sort_by(lambda p: p.kills, reverse=True)[:count]
+        return ParticipantList(self.sort_by(lambda p: p.kills, reverse=True)[:count])
 
     def most_damage(self, count: int = 1) -> "ParticipantList":
         """
@@ -184,11 +184,29 @@ class ParticipantList(list["Participant"]):
             A new ParticipantList with the highest damage dealers
 
         """
-        return self.sort_by(lambda p: p.total_damage_dealt_to_champions, reverse=True)[:count]
+        return ParticipantList(self.sort_by(lambda p: p.total_damage_dealt_to_champions, reverse=True)[:count])
 
-    def __getitem__(self, key: int | slice) -> "Participant | ParticipantList":
-        """Override indexing to return ParticipantList for slices."""
+    @overload
+    def __getitem__(self, key: SupportsIndex) -> "Participant": ...
+
+    @overload
+    def __getitem__(self, key: slice) -> "ParticipantList": ...
+
+    def __getitem__(self, key: SupportsIndex | slice) -> "Participant | ParticipantList":
         result = super().__getitem__(key)
         if isinstance(key, slice):
+            msg = "Slicing a ParticipantList did not return a list as expected."
+            if not isinstance(result, list):
+                raise TypeError(msg)
             return ParticipantList(result)
-        return result
+        # Defensive: ensure only a Participant is returned for int
+        if not isinstance(result, self._participant_type()):
+            msg = "Indexing a ParticipantList did not return a Participant as expected."
+            raise TypeError(msg)
+        return cast("Participant", result)
+
+    @staticmethod
+    def _participant_type() -> type:
+        from .participant import Participant
+
+        return Participant
