@@ -1,4 +1,4 @@
-"""Example showing how to sort players by solo queue rank."""
+"""Example showing how to sort players by solo queue rank using async sort function."""
 
 import asyncio
 import os
@@ -6,7 +6,7 @@ import sys
 
 from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
-from nexar.utils import sort_players
+from nexar.utils import sort_players_by_rank
 
 
 async def main() -> None:
@@ -35,20 +35,20 @@ async def main() -> None:
             player = await client.get_player(name, tag)
             players.append(player)
 
-        # Fetch league entries for all players to populate rank data
-        for player in players:
-            await player.get_league_entries()  # Forces data to be loaded
-
         # Sort list of players by solo queue rank (highest first)
-        sorted_players = sort_players(players, key=lambda p: p.solo_rank_value)
+        sorted_players = await sort_players_by_rank(players)
 
         print("Players sorted by solo queue rank (highest to lowest):")
         for player in sorted_players:
-            rank = player.rank
+            rank = await player.get_solo_rank()
             if rank:
                 print(f"{player.game_name}: {rank.tier.value.title()} {rank.rank.value}")
             else:
                 print(f"{player.game_name}: Unranked")
+
+        # To sort by flex queue rank instead, use:
+        # from nexar.enums import Queue
+        # sorted_players = await sort_players_by_rank(players, queue_type=Queue.RANKED_FLEX_SR)
 
 
 if __name__ == "__main__":
