@@ -10,7 +10,12 @@ requires-python = ">=3.13"
 dependencies = ["aiohttp>=3.12.13", "aiohttp-client-cache[all,sqlite]>=0.13.0"]
 
 [dependency-groups]
-dev = ["mypy>=1.16.1", "pytest>=8.4.1", "pytest-asyncio>=1.0.0"]
+dev = [
+    "mkdocs-material>=9.6.15",
+    "mypy>=1.16.1",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+]
 
 [build-system]
 requires = ["hatchling"]
