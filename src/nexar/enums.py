@@ -55,13 +55,6 @@ class RegionV5(Enum):
     SEA = "sea"
 
 
-class Queue(Enum):
-    """Queue types for ranked games."""
-
-    RANKED_SOLO_5x5 = "RANKED_SOLO_5x5"
-    RANKED_FLEX_SR = "RANKED_FLEX_SR"
-
-
 class Tier(Enum):
     """Ranked tiers (Iron, Bronze, etc.)."""
 
@@ -303,6 +296,16 @@ class QueueId(Enum):
 
     TUTORIAL_3 = 2020
     """Tutorial 3"""
+
+    @property
+    def is_ranked(self) -> bool:
+        """Check if this queue is a ranked queue."""
+        return self in (self.RANKED_SOLO_5x5, self.RANKED_FLEX_SR)
+
+    @classmethod
+    def get_ranked_queues(cls) -> tuple["QueueId", "QueueId"]:
+        """Get the ranked queue IDs."""
+        return (cls.RANKED_SOLO_5x5, cls.RANKED_FLEX_SR)
 
 
 class MapId(Enum):

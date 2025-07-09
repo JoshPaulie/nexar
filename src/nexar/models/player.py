@@ -6,13 +6,13 @@ import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from nexar.enums import Queue
+from nexar.enums import QueueId
 
 if TYPE_CHECKING:
     from datetime import datetime
 
     from nexar.client import NexarClient
-    from nexar.enums import MatchType, QueueId, RegionV4, RegionV5
+    from nexar.enums import MatchType, RegionV4, RegionV5
 
     from .account import RiotAccount, Summoner
     from .league import LeagueEntry
@@ -532,7 +532,7 @@ class Player:
         """
         league_entries = await self.get_league_entries()
         for entry in league_entries:
-            if entry.queue_type == Queue.RANKED_SOLO_5x5:
+            if entry.queue_type == QueueId.RANKED_SOLO_5x5:
                 return entry
         return None
 
@@ -550,7 +550,7 @@ class Player:
         """
         league_entries = await self.get_league_entries()
         for entry in league_entries:
-            if entry.queue_type == Queue.RANKED_FLEX_SR:
+            if entry.queue_type == QueueId.RANKED_FLEX_SR:
                 return entry
         return None
 

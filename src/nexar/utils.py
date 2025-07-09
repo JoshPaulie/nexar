@@ -1,9 +1,8 @@
 """Utility functions for working with Nexar models."""
 
-from collections.abc import Callable, Sequence
-from typing import Any
+from collections.abc import Sequence
 
-from nexar.enums import RankedGameQueue
+from nexar.enums import QueueId
 from nexar.models.player import Player
 
 
@@ -11,7 +10,7 @@ async def sort_players_by_rank(
     players: Sequence[Player],
     *,
     descending: bool = True,
-    ranked_queue_type: RankedGameQueue = RankedGameQueue.RANKED_SOLO_5x5,
+    ranked_queue_type: QueueId = QueueId.RANKED_SOLO_5x5,
 ) -> list[Player]:
     """
     Return a list of Player objects sorted by their ranked queue rank.
@@ -21,18 +20,15 @@ async def sort_players_by_rank(
     Args:
         players: Sequence of Player objects
         descending: If True (default), highest rank first. If False, lowest first.
-        queue_type: Type of queue to sort by. Default is Queue.RANKED_SOLO_5x5.
+        ranked_queue_type: QueueID.RANKED_SOLO_5x5 or RANKED_FLEX_SR
 
     Returns:
         List of Player objects sorted by rank (unranked players last).
 
     Examples:
         from nexar.utils import sort_players_by_rank
-        from nexar.enums import Queue
-        # Sort by solo queue rank (highest first)
-        sorted_players = await sort_players_by_rank(players)
         # Sort by flex queue rank (lowest first)
-        sorted_players = await sort_players_by_rank(players, descending=False, queue_type=Queue.RANKED_FLEX_SR)
+        sorted_players = await sort_players_by_rank(players, descending=False, queue_type=QueueId.RANKED_FLEX_SR)
 
     """
     # Ensure all players have league entries loaded
@@ -41,13 +37,13 @@ async def sort_players_by_rank(
 
     async def get_rank_value(player: Player) -> int:
         """Get rank value for sorting, with unranked players getting -1."""
-        if ranked_queue_type == RankedGameQueue.RANKED_SOLO_5x5:
+        if ranked_queue_type == QueueId.RANKED_SOLO_5x5:
             rank_value = await player.get_solo_rank_value()
-        elif ranked_queue_type == RankedGameQueue.RANKED_FLEX_SR:
+        elif ranked_queue_type == QueueId.RANKED_FLEX_SR:
             flex_rank = await player.get_flex_rank()
             rank_value = flex_rank.rank_value if flex_rank else None
         else:
-            msg = f"Invalid queue_type: {ranked_queue_type}. Must be Queue.RANKED_SOLO_5x5 or Queue.RANKED_FLEX_SR."
+            msg = f"Invalid queue_type: {ranked_queue_type}. Must be QueueId.RANKED_SOLO_5x5 or QueueId.RANKED_FLEX_SR."
             raise ValueError(msg)
 
         return rank_value if rank_value is not None else -1

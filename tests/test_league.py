@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 from nexar import LeagueEntry, MiniSeries
-from nexar.enums import Division, Queue, Tier
+from nexar.enums import Division, QueueId, Tier
 
 if TYPE_CHECKING:
     from nexar.client import NexarClient
@@ -84,7 +84,7 @@ class TestLeagueModels:
 
         assert entry.league_id == "test-league-id"
         assert entry.puuid == "test-puuid"
-        assert entry.queue_type == Queue.RANKED_SOLO_5x5
+        assert entry.queue_type == QueueId.RANKED_SOLO_5x5
         assert entry.tier == Tier.GOLD
         assert entry.rank == Division.THREE
         assert entry.league_points == 75
@@ -118,7 +118,7 @@ class TestLeagueModels:
 
         assert entry.league_id == "test-league-id"
         assert entry.puuid == "test-puuid"
-        assert entry.queue_type == Queue.RANKED_SOLO_5x5
+        assert entry.queue_type == QueueId.RANKED_SOLO_5x5
         assert entry.tier == Tier.SILVER
         assert entry.rank == Division.ONE
         assert entry.league_points == 85
