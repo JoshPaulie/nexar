@@ -246,21 +246,6 @@ class QueueId(Enum):
     ODYSSEY_ONSLAUGHT = 1070
     """Odyssey Extraction: Onslaught games"""
 
-    TFT = 1090
-    """Teamfight Tactics games"""
-
-    TFT_RANKED = 1100
-    """Ranked Teamfight Tactics games"""
-
-    TFT_TUTORIAL = 1110
-    """Teamfight Tactics Tutorial games"""
-
-    TFT_TEST = 1111
-    """Teamfight Tactics test games"""
-
-    TFT_CHONCC_TREASURE = 1210
-    """Teamfight Tactics Choncc's Treasure Mode"""
-
     NEXUS_BLITZ = 1300
     """Nexus Blitz games"""
 
@@ -358,9 +343,6 @@ class MapId(Enum):
 
     NEXUS_BLITZ = 21
     """Nexus Blitz map"""
-
-    CONVERGENCE = 22
-    """Teamfight Tactics map"""
 
     RINGS_OF_WRATH = 30
     """Arena map"""
