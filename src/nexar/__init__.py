@@ -2,7 +2,6 @@
 
 from .cache import (
     DEFAULT_CACHE_CONFIG,
-    LONG_CACHE_CONFIG,
     NO_CACHE_CONFIG,
     PERMANENT_CACHE_CONFIG,
     SMART_CACHE_CONFIG,
@@ -53,7 +52,6 @@ __all__ = [
     "SMART_CACHE_CONFIG",
     "CacheConfig",
     "ChampionStats",
-    "RankDivision",
     "ForbiddenError",
     "LeagueEntry",
     "MapId",
@@ -68,6 +66,8 @@ __all__ = [
     "PlatformId",
     "Player",
     "QueueId",
+    "RankDivision",
+    "RankTier",
     "RateLimit",
     "RateLimitError",
     "RateLimiter",
@@ -78,7 +78,6 @@ __all__ = [
     "Summoner",
     "TeamInfo",
     "TeamsInfo",
-    "RankTier",
     "UnauthorizedError",
     "configure_logging",
 ]

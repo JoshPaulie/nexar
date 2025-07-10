@@ -8,10 +8,9 @@ from types import TracebackType
 from typing import Any
 
 import aiohttp
-from aiohttp_client_cache.backends.sqlite import SQLiteBackend
 from aiohttp_client_cache.session import CachedSession
 
-from .cache import DEFAULT_CACHE_CONFIG, CacheConfig
+from .cache import DEFAULT_CACHE_CONFIG, CacheConfig, create_cache_backend
 from .enums import MatchType, QueueId, RegionV4, RegionV5
 from .exceptions import (
     ForbiddenError,
@@ -106,10 +105,7 @@ class NexarClient:
 
             # Create cached session
             self._session = CachedSession(
-                cache=SQLiteBackend(
-                    cache_name=self.cache_config.cache_name,
-                    expire_after=self.cache_config.expire_after,
-                ),
+                cache=create_cache_backend(self.cache_config),
                 urls_expire_after=urls_expire_after if urls_expire_after else None,
             )
         else:

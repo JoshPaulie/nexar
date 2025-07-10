@@ -1,7 +1,42 @@
 """Cache configuration for the Nexar SDK."""
 
 from dataclasses import dataclass, field
-from typing import Any
+from pathlib import Path
+from typing import Any, Literal
+
+try:
+    from aiohttp_client_cache.backends import DictCache
+    from aiohttp_client_cache.backends.sqlite import SQLiteBackend
+except ImportError as e:
+    msg = "aiohttp-client-cache is required for caching functionality. Install it with: uv add aiohttp-client-cache"
+    raise ImportError(msg) from e
+
+
+def create_cache_backend(config: "CacheConfig") -> SQLiteBackend | DictCache:
+    """
+    Create a cache backend based on the configuration.
+
+    Args:
+        config: Cache configuration
+
+    Returns:
+        Configured cache backend
+
+    Raises:
+        ValueError: If an unsupported backend is specified
+
+    """
+    if config.backend == "sqlite":
+        cache_path = config.get_full_cache_path()
+        return SQLiteBackend(
+            cache_name=str(cache_path.with_suffix("")),  # Remove .sqlite extension
+            expire_after=config.expire_after,
+        )
+    if config.backend == "memory":
+        return DictCache(expire_after=config.expire_after)
+
+    msg = f"Unsupported cache backend: {config.backend}"
+    raise ValueError(msg)
 
 
 @dataclass
@@ -12,7 +47,8 @@ class CacheConfig:
     Attributes:
         enabled: Whether caching is enabled
         cache_name: Name of the cache file (without extension)
-        backend: Cache backend to use ('sqlite', 'filesystem', 'memory', etc.)
+        backend: Cache backend to use ('sqlite', 'memory')
+        cache_dir: Directory path for cache storage (None for current working directory)
         expire_after: Default expiration time in seconds (None for no expiration)
         endpoint_config: Per-endpoint cache configuration
 
@@ -20,9 +56,33 @@ class CacheConfig:
 
     enabled: bool = True
     cache_name: str = "nexar_cache"
-    backend: str = "sqlite"
+    backend: Literal["sqlite", "memory"] = "sqlite"
+    cache_dir: str | Path | None = None
     expire_after: int | None = 3600  # 1 hour default
     endpoint_config: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    def get_cache_path(self) -> Path:
+        """
+        Get the full path for cache storage.
+
+        Returns:
+            Path object for cache storage location
+
+        """
+        base_dir = Path.cwd() if self.cache_dir is None else Path(self.cache_dir)
+        base_dir.mkdir(parents=True, exist_ok=True)
+        return base_dir
+
+    def get_full_cache_path(self) -> Path:
+        """
+        Get the full path including cache name for SQLite backend.
+
+        Returns:
+            Full path to cache file
+
+        """
+        cache_path = self.get_cache_path()
+        return cache_path / f"{self.cache_name}.sqlite"
 
     def get_endpoint_expire_after(self, endpoint: str) -> int | None:
         """
@@ -82,11 +142,6 @@ Inteligently cache different endpoints for varying durations.
 
 Static data is cached longer, immutable data is cached forever, live data is cached shorter.
 """
-
-LONG_CACHE_CONFIG = CacheConfig(
-    expire_after=86400,  # 24 hours
-)
-"""Cache everything for 24 hours"""
 
 PERMANENT_CACHE_CONFIG = CacheConfig(expire_after=None)
 """Cache everything forever (use with caution, almost certainly a bad idea)"""
