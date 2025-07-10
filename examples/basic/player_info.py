@@ -42,7 +42,7 @@ async def main() -> None:
         # Check Solo Queue rank
         if solo_queue_entry:
             print(
-                f"Solo Queue Rank: {solo_queue_entry.tier.value} {solo_queue_entry.rank.value} "
+                f"Solo Queue Rank: {solo_queue_entry.tier.value} {solo_queue_entry.division.value} "
                 f"({solo_queue_entry.league_points} LP)",
             )
             total_games = solo_queue_entry.wins + solo_queue_entry.losses
@@ -56,7 +56,7 @@ async def main() -> None:
         # Check Flex Queue rank
         if flex_queue_entry:
             print(
-                f"Flex Queue Rank: {flex_queue_entry.tier.value} {flex_queue_entry.rank.value} "
+                f"Flex Queue Rank: {flex_queue_entry.tier.value} {flex_queue_entry.division.value} "
                 f"({flex_queue_entry.league_points} LP)",
             )
         else:
@@ -65,7 +65,7 @@ async def main() -> None:
         # Show all league entries
         print("\nAll League Entries:")
         for entry in league_entries:
-            print(f"  {entry.queue_type.value}: {entry.tier.value} {entry.rank.value}")
+            print(f"  {entry.queue_type.value}: {entry.tier.value} {entry.division.value}")
 
 
 if __name__ == "__main__":

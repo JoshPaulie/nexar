@@ -69,6 +69,9 @@ class RankTier(Enum):
     GRANDMASTER = "GRANDMASTER"
     CHALLENGER = "CHALLENGER"
 
+    def __str__(self) -> str:
+        return self.value.title()
+
 
 class RankDivision(Enum):
     """Ranked divisions. (I, II, etc.)."""
@@ -77,6 +80,9 @@ class RankDivision(Enum):
     TWO = "II"
     THREE = "III"
     FOUR = "IV"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 class QueueId(Enum):

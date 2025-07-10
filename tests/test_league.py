@@ -31,7 +31,7 @@ class TestLeagueEntries:
                 assert entry.league_id is not None
                 assert entry.queue_type is not None
                 assert entry.tier is not None
-                assert entry.rank is not None
+                assert entry.division is not None
                 assert isinstance(entry.league_points, int)
                 assert isinstance(entry.wins, int)
                 assert isinstance(entry.losses, int)
@@ -86,7 +86,7 @@ class TestLeagueModels:
         assert entry.puuid == "test-puuid"
         assert entry.queue_type == QueueId.RANKED_SOLO_5x5
         assert entry.tier == RankTier.GOLD
-        assert entry.rank == RankDivision.THREE
+        assert entry.division == RankDivision.THREE
         assert entry.league_points == 75
         assert entry.wins == 50
         assert entry.losses == 30
@@ -120,7 +120,7 @@ class TestLeagueModels:
         assert entry.puuid == "test-puuid"
         assert entry.queue_type == QueueId.RANKED_SOLO_5x5
         assert entry.tier == RankTier.SILVER
-        assert entry.rank == RankDivision.ONE
+        assert entry.division == RankDivision.ONE
         assert entry.league_points == 85
         assert entry.wins == 25
         assert entry.losses == 20

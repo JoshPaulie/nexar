@@ -37,7 +37,7 @@ async def main() -> None:
         # Get rank information
         rank = await player.get_solo_rank()
         if rank:
-            print(f"Solo queue rank: {rank.tier} {rank.rank} ({rank.league_points} LP)")
+            print(f"Solo queue rank: {rank.tier} {rank.division} ({rank.league_points} LP)")
         else:
             print("Player is unranked in solo queue")
 

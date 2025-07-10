@@ -100,7 +100,7 @@ async def generate_mock_responses() -> None:
                 {
                     "queue_type": entry.queue_type.value,
                     "tier": entry.tier.value,
-                    "rank": entry.rank.value,
+                    "rank": entry.division.value,
                     "league_points": entry.league_points,
                     "wins": entry.wins,
                     "losses": entry.losses,

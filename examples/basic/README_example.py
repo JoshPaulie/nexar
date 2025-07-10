@@ -38,8 +38,7 @@ async def main() -> None:
         print(f"Level: {summoner.summoner_level}")
 
         if rank:
-            rank_text = f"{rank.tier.value.title()} {rank.rank.value}"
-            print(f"Solo Queue rank: {rank_text}\n")
+            print(f"Solo Queue rank: {rank.tier} {rank.division}\n")
 
         # Get and display recent matches
         recent_matches = await player.get_matches(count=5)

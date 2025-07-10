@@ -47,7 +47,7 @@ async def main() -> None:
             # Get rank info
             rank = await player.get_solo_rank()
             if rank:
-                print(f"Solo Queue: {rank.tier.value} {rank.rank.value} ({rank.league_points} LP)")
+                print(f"Solo Queue: {rank.tier.value} {rank.division.value} ({rank.league_points} LP)")
                 win_rate = (rank.wins / (rank.wins + rank.losses)) * 100 if (rank.wins + rank.losses) > 0 else 0
                 print(f"Win Rate: {win_rate:.1f}% ({rank.wins}W/{rank.losses}L)")
             else:

@@ -24,7 +24,7 @@ async def compare_players(players: list[Player], analysis_games: int = 20):
             rank_info = "Unranked"
             player_rank = await player.get_solo_rank()
             if player_rank:
-                rank_info = f"{player_rank.tier.value} {player_rank.rank.value} ({player_rank.league_points} LP)"
+                rank_info = f"{player_rank.tier.value} {player_rank.division.value} ({player_rank.league_points} LP)"
 
             # Get performance summary
             performance = await player.get_performance_summary(

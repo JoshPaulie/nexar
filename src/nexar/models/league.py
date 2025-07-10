@@ -52,7 +52,7 @@ class LeagueEntry:
     tier: RankTier
     """Current tier (IRON, BRONZE, ..., CHALLENGER)."""
 
-    rank: RankDivision
+    division: RankDivision
     """Current rank (IV, III, etc) within the tier (not applicable for Master+)."""
 
     league_points: int
@@ -102,7 +102,7 @@ class LeagueEntry:
             rank_index = 0
         else:
             # Reverse the division index: I=0, II=1, III=2, IV=3 (I is highest)
-            rank_index = len(rank_order) - 1 - rank_order.index(self.rank)
+            rank_index = len(rank_order) - 1 - rank_order.index(self.division)
         return tier_index * len(rank_order) + rank_index
 
     def __lt__(self, other: object) -> bool:
@@ -154,7 +154,7 @@ class LeagueEntry:
             puuid=data["puuid"],
             queue_type=queue_type_mapping[queue_type_str],
             tier=RankTier(data["tier"]),
-            rank=RankDivision(data["rank"]),
+            division=RankDivision(data["rank"]),
             league_points=data["leaguePoints"],
             wins=data["wins"],
             losses=data["losses"],

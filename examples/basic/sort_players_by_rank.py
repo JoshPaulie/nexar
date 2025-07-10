@@ -42,7 +42,7 @@ async def main() -> None:
         for player in sorted_players:
             rank = await player.get_solo_rank()
             if rank:
-                print(f"{player.game_name}: {rank.tier.value.title()} {rank.rank.value}")
+                print(f"{player.game_name}: {rank.tier.value.title()} {rank.division.value}")
             else:
                 print(f"{player.game_name}: Unranked")
 
