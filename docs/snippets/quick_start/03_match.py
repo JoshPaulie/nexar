@@ -6,7 +6,7 @@ from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import RegionV4, RegionV5
 
-from datetime import datetime
+from datetime import datetime, UTC
 
 riot_api = os.getenv("RIOT_API_KEY")
 if riot_api is None:
@@ -32,7 +32,7 @@ async def main() -> None:
         last_match = await player.get_last_match()
 
         start_time = last_match.info.game_start_timestamp
-        days_ago = (datetime.now() - start_time).days
+        days_ago = (datetime.now(tz=UTC) - start_time).days
         print(f"{player.game_name}'s last game was {days_ago} day(s) ago")
         # --8<-- [end:get-match]
 

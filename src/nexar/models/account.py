@@ -1,7 +1,7 @@
 """Account-related models."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -92,6 +92,6 @@ class Summoner:
             id=data["id"],
             puuid=data["puuid"],
             profile_icon_id=data["profileIconId"],
-            revision_date=datetime.fromtimestamp(data["revisionDate"] / 1000),
+            revision_date=datetime.fromtimestamp(data["revisionDate"] / 1000, tz=UTC),
             summoner_level=data["summonerLevel"],
         )

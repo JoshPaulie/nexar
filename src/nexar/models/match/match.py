@@ -2,7 +2,7 @@
 
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -46,7 +46,7 @@ class MatchInfo:
 
     # Core match data
     game_creation: datetime
-    """When the game was created on the game server."""
+    """Timestamp for when the game is created on the game server (i.e., the loading screen)."""
 
     game_duration: int
     """Game length in milliseconds (pre-11.20) or seconds (post-11.20)."""
@@ -106,12 +106,13 @@ class MatchInfo:
         from .team import Team
 
         return cls(
-            game_creation=datetime.fromtimestamp(data["gameCreation"] / 1000),
+            game_creation=datetime.fromtimestamp(data["gameCreation"] / 1000, tz=UTC),
             game_duration=data["gameDuration"],
             game_id=data["gameId"],
             game_mode=data["gameMode"],
             game_start_timestamp=datetime.fromtimestamp(
                 data["gameStartTimestamp"] / 1000,
+                tz=UTC,
             ),
             game_type=data["gameType"],
             game_version=data["gameVersion"],
@@ -122,7 +123,7 @@ class MatchInfo:
                 Participant.from_api_response(participant) for participant in data["participants"]
             ),
             teams=[Team.from_api_response(team) for team in data["teams"]],
-            game_end_timestamp=datetime.fromtimestamp(data["gameEndTimestamp"] / 1000)
+            game_end_timestamp=datetime.fromtimestamp(data["gameEndTimestamp"] / 1000, tz=UTC)
             if data.get("gameEndTimestamp")
             else None,
             game_name=data.get("gameName"),
