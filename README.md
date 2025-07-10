@@ -28,6 +28,7 @@ Packed with helpful doc strings and tips.
 
 Below is a real, working example from `examples/basic/README_example.py`:
 
+<!-- example-block-start -->
 ```python
 """Example from README showing async player information retrieval."""
 
@@ -70,13 +71,11 @@ async def main() -> None:
 
         if rank:
             rank_text = f"{rank.tier.value.title()} {rank.rank.value}"
-            print(f"Solo Queue rank: {rank_text}
-")
+            print(f"Solo Queue rank: {rank_text}\n")
 
         # Get and display recent matches
         recent_matches = await player.get_matches(count=5)
-        print(f"Recent Match History ({len(recent_matches)} matches):
-")
+        print(f"Recent Match History ({len(recent_matches)} matches):\n")
 
         for match in recent_matches:
             # Get participant stats of particular summoner
@@ -101,9 +100,11 @@ async def main() -> None:
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+<!-- example-block-end -->
 
-### Sample Output
+### Example Output
 
+<!-- example-output-block-start -->
 ```
 Summoner: bexli
 Level: 511
@@ -117,11 +118,7 @@ Recent Match History (5 matches):
 3 days ago Defeat.   Jinx     Bottom 4/5/4 (1.60)
 3 days ago Defeat.   Warwick  Jungle 11/7/5 (2.29)
 ```
-
-### Sample Output
-
-```
-```
+<!-- example-output-block-end -->
 
 ## Development and contributing
 
