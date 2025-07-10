@@ -63,7 +63,6 @@ class CacheConfig:
 # Predefined cache configurations for different use cases
 DEFAULT_CACHE_CONFIG = CacheConfig()
 
-# Cache static data longer, live data shorter
 SMART_CACHE_CONFIG = CacheConfig(
     expire_after=3600,  # 1 hour default
     endpoint_config={
@@ -78,16 +77,19 @@ SMART_CACHE_CONFIG = CacheConfig(
         "/lol/match/v5/matches/by-puuid": {"expire_after": 60},  # 1 minute
     },
 )
+"""
+Inteligently cache different endpoints for varying durations.
 
-# Cache everything for a long time (good for development/testing)
+Static data is cached longer, immutable data is cached forever, live data is cached shorter.
+"""
+
 LONG_CACHE_CONFIG = CacheConfig(
     expire_after=86400,  # 24 hours
 )
+"""Cache everything for 24 hours"""
 
-# Cache everything forever (use with caution)
-PERMANENT_CACHE_CONFIG = CacheConfig(
-    expire_after=None,  # Never expires
-)
+PERMANENT_CACHE_CONFIG = CacheConfig(expire_after=None)
+"""Cache everything forever (use with caution, almost certainly a bad idea)"""
 
-# Disable caching entirely
 NO_CACHE_CONFIG = CacheConfig(enabled=False)
+"""Disable caching entirely (good for troubleshooting)"""
