@@ -18,6 +18,8 @@ nav:
   - Reference:
       - Models:
           - Player: reference/models/player.md
+          - Match: reference/models/match.md
+          - ParticipantList: reference/models/participant-list.md
   - Why not Nexar?: why-not-nexar.md
 
 markdown_extensions:
