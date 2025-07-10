@@ -92,48 +92,50 @@ class LeagueEntry:
         return (self.wins / self.total_games) * 100.0
 
     @property
-    def rank_value(self) -> int:
-        """A unique integer representing the combined tier and rank for comparison purposes."""
+    def rank_tuple(self) -> tuple[int, int]:
+        """Returns (tier_index, league_points) for easy sorting by rank."""
         tier_order = list(RankTier)
         rank_order = list(RankDivision)
         tier_index = tier_order.index(self.tier)
+
         # For Master+ tiers, rank is always Division.I
         if self.tier in {RankTier.MASTER, RankTier.GRANDMASTER, RankTier.CHALLENGER}:
             rank_index = 0
         else:
             # Reverse the division index: I=0, II=1, III=2, IV=3 (I is highest)
             rank_index = len(rank_order) - 1 - rank_order.index(self.division)
-        return tier_index * len(rank_order) + rank_index
+
+        # Combine tier and division into a single rank value, then add LP
+        rank_value = tier_index * len(rank_order) + rank_index
+        return (rank_value, self.league_points)
+
+    def is_higher_rank_than(self, other: "LeagueEntry") -> bool:
+        """Compare if this entry has a higher rank than another."""
+        return self.rank_tuple > other.rank_tuple
 
     def __lt__(self, other: object) -> bool:
+        """Compare rank for sorting purposes."""
         if not isinstance(other, LeagueEntry):
             return NotImplemented
-        return self.rank_value < other.rank_value
+        return self.rank_tuple < other.rank_tuple
 
     def __le__(self, other: object) -> bool:
+        """Compare rank for sorting purposes."""
         if not isinstance(other, LeagueEntry):
             return NotImplemented
-        return self.rank_value <= other.rank_value
+        return self.rank_tuple <= other.rank_tuple
 
     def __gt__(self, other: object) -> bool:
+        """Compare rank for sorting purposes."""
         if not isinstance(other, LeagueEntry):
             return NotImplemented
-        return self.rank_value > other.rank_value
+        return self.rank_tuple > other.rank_tuple
 
     def __ge__(self, other: object) -> bool:
+        """Compare rank for sorting purposes."""
         if not isinstance(other, LeagueEntry):
             return NotImplemented
-        return self.rank_value >= other.rank_value
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, LeagueEntry):
-            return NotImplemented
-        return self.rank_value == other.rank_value
-
-    def __ne__(self, other: object) -> bool:
-        if not isinstance(other, LeagueEntry):
-            return NotImplemented
-        return self.rank_value != other.rank_value
+        return self.rank_tuple >= other.rank_tuple
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "LeagueEntry":
