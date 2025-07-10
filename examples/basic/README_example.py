@@ -18,12 +18,14 @@ async def main() -> None:
         sys.exit("Please set RIOT_API_KEY environment variable")
 
     # Create async client
-    async with NexarClient(
+    client = NexarClient(
         riot_api_key=api_key,
         default_v4_region=RegionV4.NA1,
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
-    ) as client:
+    )
+
+    async with client:
         # Get player information
         player = await client.get_player("bexli", "bex")
 
@@ -44,24 +46,23 @@ async def main() -> None:
         print(f"Recent Match History ({len(recent_matches)} matches):\n")
 
         for match in recent_matches:
-            # Find player's performance in this match
-            for participant in match.info.participants:
-                if participant.puuid == riot_account.puuid:
-                    result = "Victory!" if participant.win else "Defeat."
-                    kda = participant.kda(as_str=True)
-                    kda_ratio = f"{participant.challenges.kda:.2f}"
+            # Get participant stats of particular summoner
+            participant = match.participants.by_puuid(player.puuid)
 
-                    days_ago = (datetime.now(tz=UTC) - match.info.game_start_timestamp.replace(tzinfo=UTC)).days
-                    days_ago_str = f"{days_ago} {'day' if days_ago == 1 else 'days'} ago"
+            result = "Victory!" if participant.win else "Defeat."
+            kda = participant.kda(as_str=True)
+            kda_ratio = f"{participant.challenges.kda:.2f}"
 
-                    print(
-                        f"{days_ago_str:<10} "
-                        f"{result:<9} "
-                        f"{participant.champion_name:<8} "
-                        f"{participant.team_position.value.title():<6} "
-                        f"{kda} ({kda_ratio})",
-                    )
-                    break
+            days_ago = (datetime.now(tz=UTC) - match.info.game_start_timestamp.replace(tzinfo=UTC)).days
+            days_ago_str = f"{days_ago} {'day' if days_ago == 1 else 'days'} ago"
+
+            print(
+                f"{days_ago_str:<10} "
+                f"{result:<9} "
+                f"{participant.champion_name:<8} "
+                f"{participant.team_position.value.title():<6} "
+                f"{kda} ({kda_ratio})",
+            )
 
 
 if __name__ == "__main__":

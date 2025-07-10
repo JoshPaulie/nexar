@@ -11,9 +11,12 @@ Trying to restore the glory days, pre Riot IDs.
 
 ## Why Nexar?
 
-Built for Python freaks. Dates are `datetime` objects, everything has type hints, and so many enums you'll hate them (but love the autocomplete).
-
-Clean high-level API wraps the messy Riot API underneath. Pull player ranks, match history, and champion stats with just a few lines of code.
+- Built for Python freaks.
+    - Timestamps are `datetime` objects
+    - Robust, pythonic models
+    - So many enums you'll hate them (but autocomplete makes it worth)
+- Clean high-level API wraps the messy Riot API underneath.
+- Pull player ranks, match history, and champion stats with just a few lines of code.
 
 Hate Riot IDs? Who doesn't. Just `NexarClient.get_player("username", "tag")` and explore with your IDE.
 
@@ -21,9 +24,13 @@ Packed with helpful doc strings and tips.
 
 > Check out [Why not Nexar?](docs/why-not-nexar.md) for more
 
-## Quick Start
+## Usage example
+
+Below is a real, working example from `examples/basic/README_example.py`:
 
 ```python
+"""Example from README showing async player information retrieval."""
+
 import asyncio
 import os
 import sys
@@ -42,12 +49,14 @@ async def main() -> None:
         sys.exit("Please set RIOT_API_KEY environment variable")
 
     # Create async client
-    async with NexarClient(
+    client = NexarClient(
         riot_api_key=api_key,
         default_v4_region=RegionV4.NA1,
         default_v5_region=RegionV5.AMERICAS,
         cache_config=SMART_CACHE_CONFIG,
-    ) as client:
+    )
+
+    async with client:
         # Get player information
         player = await client.get_player("bexli", "bex")
 
@@ -61,60 +70,58 @@ async def main() -> None:
 
         if rank:
             rank_text = f"{rank.tier.value.title()} {rank.rank.value}"
-            print(f"Solo Queue rank: {rank_text}\n")
+            print(f"Solo Queue rank: {rank_text}
+")
 
         # Get and display recent matches
         recent_matches = await player.get_matches(count=5)
-        print(f"Recent Match History ({len(recent_matches)} matches):\n")
+        print(f"Recent Match History ({len(recent_matches)} matches):
+")
 
         for match in recent_matches:
-            # Find player's performance in this match
-            for participant in match.info.participants:
-                if participant.puuid == riot_account.puuid:
-                    result = "Victory!" if participant.win else "Defeat."
-                    kda = participant.kda(as_str=True)
-                    kda_ratio = f"{participant.challenges.kda:.2f}"
+            # Get participant stats of particular summoner
+            participant = match.participants.by_puuid(player.puuid)
 
-                    days_ago = (datetime.now(tz=UTC) - match.info.game_start_timestamp.replace(tzinfo=UTC)).days
-                    days_ago_str = f"{days_ago} {'day' if days_ago == 1 else 'days'} ago"
+            result = "Victory!" if participant.win else "Defeat."
+            kda = participant.kda(as_str=True)
+            kda_ratio = f"{participant.challenges.kda:.2f}"
 
-                    print(
-                        f"{days_ago_str:<10} "
-                        f"{result:<9} "
-                        f"{participant.champion_name:<8} "
-                        f"{participant.team_position.value.title():<6} "
-                        f"{kda} ({kda_ratio})",
-                    )
-                    break
+            days_ago = (datetime.now(tz=UTC) - match.info.game_start_timestamp.replace(tzinfo=UTC)).days
+            days_ago_str = f"{days_ago} {'day' if days_ago == 1 else 'days'} ago"
+
+            print(
+                f"{days_ago_str:<10} "
+                f"{result:<9} "
+                f"{participant.champion_name:<8} "
+                f"{participant.team_position.value.title():<6} "
+                f"{kda} ({kda_ratio})",
+            )
 
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-### Output:
+### Sample Output
 
 ```
-
 Summoner: bexli
 Level: 511
+Solo Queue rank: Silver IV
+
 Recent Match History (5 matches):
 
-1 day ago  Victory!  Jinx     Bottom 11/7/13 (3.43)
-1 day ago  Victory!  Jhin     Bottom 2/0/0 (2.00)
-1 day ago  Victory!  Jinx     Bottom 7/4/9 (4.00)
-1 day ago  Defeat.   Jinx     Bottom 4/5/4 (1.60)
-1 day ago  Defeat.   Warwick  Jungle 11/7/5 (2.29)
-
+3 days ago Victory!  Jinx     Bottom 11/7/13 (3.43)
+3 days ago Victory!  Jhin     Bottom 2/0/0 (2.00)
+3 days ago Victory!  Jinx     Bottom 7/4/9 (4.00)
+3 days ago Defeat.   Jinx     Bottom 4/5/4 (1.60)
+3 days ago Defeat.   Warwick  Jungle 11/7/5 (2.29)
 ```
 
-## Documentation
+### Sample Output
 
-For detailed information, see the documentation:
-
-- [Player API Guide](docs/player-api.md) - Comprehensive Player class documentation
-- [Caching Guide](docs/caching.md) - Advanced caching configuration and performance
-- [Examples](examples/) - Code examples for common use cases
+```
+```
 
 ## Development and contributing
 
