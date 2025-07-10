@@ -5,6 +5,7 @@ Nexar includes built-in rate limiting to ensure your application complies with R
 ## Default Rate Limits
 
 By default, Nexar enforces the following rate limits:
+
 - **20 requests per 1 second**
 - **100 requests per 2 minutes**
 

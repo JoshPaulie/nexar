@@ -55,7 +55,7 @@ class RegionV5(Enum):
     SEA = "sea"
 
 
-class Tier(Enum):
+class RankTier(Enum):
     """Ranked tiers (Iron, Bronze, etc.)."""
 
     IRON = "IRON"
@@ -70,7 +70,7 @@ class Tier(Enum):
     CHALLENGER = "CHALLENGER"
 
 
-class Division(Enum):
+class RankDivision(Enum):
     """Ranked divisions. (I, II, etc.)."""
 
     ONE = "I"

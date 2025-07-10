@@ -251,16 +251,15 @@ By default, caches are stored as SQLite files in the current working directory:
 
 ## Best Practices
 
-1. **Use SMART_CACHE_CONFIG** for production applications - it provides sensible defaults
+1. **Use SMART_CACHE_CONFIG** for almost all usecases
 2. **Use longer TTLs for static data** like account information and match details
 3. **Use shorter TTLs for dynamic data** like league rankings and recent matches
 4. **Disable caching for real-time data** if you need the absolute latest information
-5. **Clear cache periodically** if you're running long-lived applications
-6. **Monitor cache size** in production to avoid disk space issues
 
 ## Performance Impact
 
 Caching can significantly reduce API calls:
+
 - First call: ~200-500ms (network request)
 - Cached call: ~1-5ms (local database lookup)
 - Typical cache hit rate: 70-90% in most applications

@@ -12,7 +12,9 @@ dependencies = ["aiohttp>=3.12.13", "aiohttp-client-cache[all,sqlite]>=0.13.0"]
 [dependency-groups]
 dev = [
     "mkdocs-material>=9.6.15",
+    "mkdocstrings[python]>=0.29.1",
     "mypy>=1.16.1",
+    "pymdown-extensions>=10.16",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.0.0",
 ]
@@ -57,6 +59,16 @@ ignore = [
     "W293",    # Blank line contains whitespace
     "SLF001",  # Allow private member access
     "PLR2004", # Allow magic numbers in tests
+]
+"docs/snippets/*/*.py" = [
+    "S101",    # Allow assert statements in snippets
+    "INP001",  # Disable implicit namespace package error in snippets
+    "SLF001",  # Allow private member access
+    "PLR2004", # Allow magic numbers in snippets
+    "D1",      # Allow missing docstring in snippets
+    "I001",    # Allow unorganized import order in snippets
+    "E402",    # Allow module level import not at top of file in snippets
+    "F841",    # Allow unused variable in snippets
 ]
 "playground*.py" = ["D1"]
 

@@ -10,15 +10,15 @@ from .cache import (
 )
 from .client import NexarClient
 from .enums import (
-    Division,
     MapId,
     MatchParticipantPosition,
     MatchType,
     PlatformId,
     QueueId,
+    RankDivision,
+    RankTier,
     RegionV4,
     RegionV5,
-    Tier,
 )
 from .exceptions import (
     ForbiddenError,
@@ -53,7 +53,7 @@ __all__ = [
     "SMART_CACHE_CONFIG",
     "CacheConfig",
     "ChampionStats",
-    "Division",
+    "RankDivision",
     "ForbiddenError",
     "LeagueEntry",
     "MapId",
@@ -78,7 +78,7 @@ __all__ = [
     "Summoner",
     "TeamInfo",
     "TeamsInfo",
-    "Tier",
+    "RankTier",
     "UnauthorizedError",
     "configure_logging",
 ]

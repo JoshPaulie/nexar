@@ -1,0 +1,49 @@
+site_name: Nexar
+site_url: https://bexli.dev/nexar
+theme:
+  name: material
+  palette:
+    # Palette toggle for dark mode
+    - scheme: slate
+  features:
+    - content.code.annotate
+
+nav:
+  - Home: index.md
+  - Quick start: quick_start.md
+  - Features:
+      - Caching: client-features/caching.md
+      - Rate limiting: client-features/rate-limiting.md
+      - Debugging API Responses: client-features/debug-responses.md
+  - Reference:
+      - Models:
+          - Player: reference/models/player.md
+  - Why not Nexar?: why-not-nexar.md
+
+markdown_extensions:
+  # "Callouts"
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
+  # "PymdownX extensions"
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: docs/snippets
+      dedent_subsections: true
+
+  # Tooltips
+  - abbr
+  - attr_list
+
+  # Annotations
+  - attr_list
+  - md_in_html
+
+plugins:
+  - search
+  - mkdocstrings

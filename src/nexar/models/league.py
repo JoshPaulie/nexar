@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from nexar.enums import Division, QueueId, Tier
+from nexar.enums import QueueId, RankDivision, RankTier
 
 
 @dataclass(frozen=True)
@@ -49,10 +49,10 @@ class LeagueEntry:
     queue_type: QueueId
     """Type of ranked queue."""
 
-    tier: Tier
+    tier: RankTier
     """Current tier (IRON, BRONZE, ..., CHALLENGER)."""
 
-    rank: Division
+    rank: RankDivision
     """Current rank (IV, III, etc) within the tier (not applicable for Master+)."""
 
     league_points: int
@@ -94,11 +94,11 @@ class LeagueEntry:
     @property
     def rank_value(self) -> int:
         """A unique integer representing the combined tier and rank for comparison purposes."""
-        tier_order = list(Tier)
-        rank_order = list(Division)
+        tier_order = list(RankTier)
+        rank_order = list(RankDivision)
         tier_index = tier_order.index(self.tier)
         # For Master+ tiers, rank is always Division.I
-        if self.tier in {Tier.MASTER, Tier.GRANDMASTER, Tier.CHALLENGER}:
+        if self.tier in {RankTier.MASTER, RankTier.GRANDMASTER, RankTier.CHALLENGER}:
             rank_index = 0
         else:
             # Reverse the division index: I=0, II=1, III=2, IV=3 (I is highest)
@@ -153,8 +153,8 @@ class LeagueEntry:
             league_id=data["leagueId"],
             puuid=data["puuid"],
             queue_type=queue_type_mapping[queue_type_str],
-            tier=Tier(data["tier"]),
-            rank=Division(data["rank"]),
+            tier=RankTier(data["tier"]),
+            rank=RankDivision(data["rank"]),
             league_points=data["leaguePoints"],
             wins=data["wins"],
             losses=data["losses"],

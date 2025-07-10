@@ -4,7 +4,7 @@
 
 Project is very new and functionality is well suited for _my_ usecases.
 
-> Issues are encouraged for features I haven't thought of.
+Issues are encouraged for features I haven't thought of.
 
 ## Simplicity
 
@@ -12,7 +12,10 @@ There's really nothing magic going on.
 
 We're just using aiohttp to make async API calls, then using the related aiohttp caching library to save responses.
 
-Need the cache in a different format? Need some sort of middleware? Nexar is not for you.
+- Need the cache in a different format?
+- Need some sort of middleware?
+
+Nexar is not for you.
 
 ## It's only League of Legends
 
