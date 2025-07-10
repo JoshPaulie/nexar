@@ -4,8 +4,10 @@ A simple League of Legends SDK with built-in rate limiting & disk caching.
 
 Trying to restore the glory days, pre Riot IDs.
 
-> [!Important]
-> Unreleased, unversioned, subject to breaking changes
+> [!Warning]
+> This is an active hacking zone. Breaking changes, unversioned, pushing to main.
+>
+> The goal is create a solid MVP, then squash git history. Do not clone at this point. :smile:
 
 ## Why Nexar?
 
@@ -115,6 +117,11 @@ For detailed information, see the documentation:
 - [Examples](examples/) - Code examples for common use cases
 
 ## Development and contributing
+
+> [!Warning]
+> Git history is subject to be broken at any point while project is unversioned.
+>
+> This is disclaimer will be removed once ready for contributions.
 
 ### Contributing
 
