@@ -11,30 +11,16 @@
 
     This keeps a local, persistent storage of data to reduce API calls.
 
-Nexar includes built-in caching functionality to reduce API calls and improve performance. Cached responses are stored locally and reused until they expire.
+Nexar includes built-in caching functionality to reduce API calls and improve performance. Cached responses are either stored locally (sqlite file) or in memory, and reused until they expire.
+
+Via `CacheConfig`, one can specify a default cache time, pick your storage backend, and configure endpoint TTLs (time-to-live's).
 
 ## Quick Start
 
 By default, Nexar uses "dumb" caching, which caches all responses for an hour, regardless of the endpoint:
 
 ```python
-import asyncio
-from nexar import NexarClient, RegionV4, RegionV5
-
-async def main() -> None:
-    async with NexarClient(
-        riot_api_key="your_api_key",
-        default_v4_region=RegionV4.NA1,
-        default_v5_region=RegionV5.AMERICAS,
-    ) as client:
-        # First call hits the API
-        player = await client.get_player("bexli", "bex")
-        
-        # Second call uses cached data
-        player = await client.get_player("bexli", "bex")
-
-if __name__ == "__main__":
-    asyncio.run(main())
+-8<-- "caching/default.py"
 ```
 
 ## Cache Backends
@@ -42,18 +28,33 @@ if __name__ == "__main__":
 Nexar supports two cache backends:
 
 - **SQLite** (default): Persistent cache stored in a file
+
+```python
+-8<-- "caching/demo.py:smart-sqlite"
+```
+
 - **Memory**: Fast in-memory cache (cleared when application exits)
 
 ```python
-from nexar import CacheConfig, MEMORY_CACHE_CONFIG
+-8<-- "caching/demo.py:smart-memory"
+```
 
-# Memory cache example
-async with NexarClient(
-    riot_api_key="your_api_key",
-    cache_config=MEMORY_CACHE_CONFIG,
-) as client:
-    # Use client here
-    pass
+## Custom Cache Configuration
+
+!!! note
+
+    For creating your own endpoint config, consult [the Riot API docs](https://developer.riotgames.com/apis)
+
+You can create your own cache configuration, and set things like the path to your database file or a custom endpoint durations, etc.
+
+```python
+-8<-- "caching/demo.py:cache-config"
+```
+
+On, even easier, use the same endpoint config as the "smart" presets 
+
+```python
+-8<-- "caching/demo.py:smart-custom"
 ```
 
 ## Predefined Configurations
@@ -74,50 +75,6 @@ Uses in-memory caching with 30-minute expiration.
 
 ### NO_CACHE_CONFIG
 Disables caching entirely - every request hits the API.
-
-## Custom Cache Configuration
-
-You can create your own cache configuration:
-
-```python
-from nexar import CacheConfig
-
-# SQLite cache with custom settings
-custom_config = CacheConfig(
-    backend="sqlite",
-    cache_dir="./my_cache",
-    cache_name="riot_data",
-    expire_after=7200,  # 2 hours
-)
-
-# Memory cache with custom expiration
-memory_config = CacheConfig(
-    backend="memory",
-    expire_after=900,  # 15 minutes
-)
-
-# Per-endpoint configuration
-advanced_config = CacheConfig(
-    expire_after=3600,  # Default 1 hour
-    endpoint_config={
-        # Cache account lookups for 24 hours
-        "/riot/account/v1/accounts/by-riot-id": {"expire_after": 86400},
-        
-        # Cache matches forever
-        "/lol/match/v5/matches": {"expire_after": None},
-        
-        # Don't cache league entries
-        "/lol/league/v4/entries/by-puuid": {"enabled": False},
-    }
-)
-
-async with NexarClient(
-    riot_api_key="your_api_key",
-    cache_config=custom_config,
-) as client:
-    # Use client here
-    pass
-```
 
 ## Cache Management
 

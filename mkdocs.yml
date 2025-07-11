@@ -15,7 +15,9 @@ nav:
       - Caching: client-features/caching.md
       - Rate limiting: client-features/rate-limiting.md
       - Debugging API Responses: client-features/debug-responses.md
+  - FAQ: FAQ.md
   - Reference:
+      - Client: reference/client.md
       - Models:
           - Player: reference/models/player.md
           - Match: reference/models/match.md

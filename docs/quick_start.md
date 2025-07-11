@@ -66,11 +66,14 @@ You can even get multiple Players at a time(1):
         # Output: (1)
 ```
 
-1.  - Average KDA with Jinx: 2.91
-    - Average KDA with Jhin: 3.25
-    - Average KDA with Lillia: 2.09
-    - Average KDA with Warwick: 2.09
-    - Average KDA with Ashe: 2.50
+1.  
+    ```
+    Average KDA with Jinx: 2.91
+    Average KDA with Jhin: 3.25
+    Average KDA with Lillia: 2.09
+    Average KDA with Warwick: 2.09
+    Average KDA with Ashe: 2.50
+    ```
 
 ## `Match`
 
