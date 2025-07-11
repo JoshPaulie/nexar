@@ -114,6 +114,8 @@ A "participant" is 1 of 10 players (in a Summoner's Rift game, more or less for 
 
 The easiest way to get a particular participant from a `Match` is using the very helpful `ParticipantList`, which is what is returned by `Match.participants`.
 
+#### Get participant(s)
+
 ```py
 -8<-- "quick_start/03_match.py:get-participant"
 ```
@@ -123,6 +125,8 @@ Afterwhich we can dig into the stats
 ```py
 -8<-- "quick_start/03_match.py:participant"
 ```
+
+#### Get team
 
 You can also easily get a particular team from a Match.
 

@@ -2,7 +2,7 @@
 
 ## Infancy
 
-Project is very new and functionality is well suited for _my_ usecases.
+Project is very new and functionality is well suited for my usecases.
 
 Issues are encouraged for features I haven't thought of.
 
@@ -10,7 +10,7 @@ Issues are encouraged for features I haven't thought of.
 
 There's really nothing magic going on.
 
-We're just using aiohttp to make async API calls, then using the related aiohttp caching library to save responses.
+We're just using `aiohttp` to make async API calls, then using the related `aiohttp` caching library to save responses.
 
 - Need the cache in a different format?
 - Need some sort of middleware?
