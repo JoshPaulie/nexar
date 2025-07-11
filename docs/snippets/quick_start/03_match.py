@@ -40,11 +40,11 @@ async def main() -> None:
         participants = last_match.participants
         winning_team = participants.winners()
 
-        winner_names = ", ".join([p.riot_id_game_name or "Unknown" for p in winning_team])
+        winner_names = ", ".join([p.game_name or "Unknown" for p in winning_team])
         print(f"Winners! {winner_names}\n")
 
         for p in participants:
-            name = p.riot_id_game_name
+            name = p.game_name
             champ_name = p.champion_name
             kda = p.kda(as_str=True)
             print(f"{name} ({champ_name}) went {kda}")

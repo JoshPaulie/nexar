@@ -515,10 +515,10 @@ class Participant:
     """Whether the participant's team early surrendered."""
 
     # Riot ID
-    riot_id_game_name: str | None = None
+    game_name: str | None = None
     """Riot ID game name, if available."""
 
-    riot_id_tagline: str | None = None
+    tagline: str | None = None
     """Riot ID tagline, if available."""
 
     # Game state (optional)
@@ -731,8 +731,8 @@ class Participant:
             summoner_level=data["summonerLevel"],
             team_early_surrendered=data["teamEarlySurrendered"],
             # Riot ID (optional fields)
-            riot_id_game_name=data.get("riotIdGameName"),
-            riot_id_tagline=data.get("riotIdTagline"),
+            game_name=data.get("riotIdGameName"),
+            tagline=data.get("riotIdTagline"),
             # Player scores (optional fields from missions)
             player_score_0=data.get("playerScore0"),
             player_score_1=data.get("playerScore1"),

@@ -50,11 +50,11 @@ async def main() -> None:
 
         print(f"Blue team ({len(blue_team)} players):")
         for p in blue_team:
-            print(f"  {p.riot_id_game_name} - {p.champion_name} ({p.kda(as_str=True)})")
+            print(f"  {p.game_name} - {p.champion_name} ({p.kda(as_str=True)})")
 
         print(f"\nRed team ({len(red_team)} players):")
         for p in red_team:
-            print(f"  {p.riot_id_game_name} - {p.champion_name} ({p.kda(as_str=True)})")
+            print(f"  {p.game_name} - {p.champion_name} ({p.kda(as_str=True)})")
 
         # Compare team performance
         blue_total_kills = sum(p.kills for p in blue_team)
@@ -69,21 +69,21 @@ async def main() -> None:
         junglers = participants.by_position(MatchParticipantPosition.JUNGLE)
         print(f"Junglers ({len(junglers)}):")
         for p in junglers:
-            print(f"  {p.riot_id_game_name} - {p.champion_name}")
+            print(f"  {p.game_name} - {p.champion_name}")
         print()
 
         # Get top performers
         top_killers = participants.most_kills(count=3)
         print("Top 3 killers:")
         for i, p in enumerate(top_killers, 1):
-            print(f"  {i}. {p.riot_id_game_name} - {p.kills} kills ({p.champion_name})")
+            print(f"  {i}. {p.game_name} - {p.kills} kills ({p.champion_name})")
         print()
 
         highest_kda = participants.highest_kda(count=3)
         print("Top 3 KDA:")
         for i, p in enumerate(highest_kda, 1):
             kda_ratio = (p.kills + p.assists) / max(p.deaths, 1)
-            print(f"  {i}. {p.riot_id_game_name} - {kda_ratio:.2f} KDA ({p.champion_name})")
+            print(f"  {i}. {p.game_name} - {kda_ratio:.2f} KDA ({p.champion_name})")
         print()
 
         # Filter with custom predicate
@@ -92,7 +92,7 @@ async def main() -> None:
         )
         print(f"High damage dealers (>20k damage): {len(high_damage_dealers)}")
         for p in high_damage_dealers:
-            print(f"  {p.riot_id_game_name} - {p.total_damage_dealt_to_champions:,} damage")
+            print(f"  {p.game_name} - {p.total_damage_dealt_to_champions:,} damage")
         print()
 
         # Chain operations
@@ -100,7 +100,7 @@ async def main() -> None:
         if winning_supports:
             print("Winning support players:")
             for p in winning_supports:
-                print(f"  {p.riot_id_game_name} - {p.champion_name}")
+                print(f"  {p.game_name} - {p.champion_name}")
         else:
             print("No winning support players found")
 

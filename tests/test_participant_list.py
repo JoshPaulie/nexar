@@ -132,8 +132,8 @@ class TestParticipantList:
                 summoner_id="summoner1",
                 summoner_level=150,
                 team_early_surrendered=False,
-                riot_id_game_name="Player1",
-                riot_id_tagline="NA1",
+                game_name="Player1",
+                tagline="NA1",
             ),
             Participant(
                 puuid="player2",
@@ -252,8 +252,8 @@ class TestParticipantList:
                 summoner_id="summoner2",
                 summoner_level=145,
                 team_early_surrendered=False,
-                riot_id_game_name="Player2",
-                riot_id_tagline="NA1",
+                game_name="Player2",
+                tagline="NA1",
             ),
             Participant(
                 puuid="player3",
@@ -372,8 +372,8 @@ class TestParticipantList:
                 summoner_id="summoner3",
                 summoner_level=140,
                 team_early_surrendered=False,
-                riot_id_game_name="Player3",
-                riot_id_tagline="NA1",
+                game_name="Player3",
+                tagline="NA1",
             ),
         ]
 

@@ -23,8 +23,8 @@ def create_test_participant(**overrides) -> Participant:
         # Core participant data
         "puuid": "test_player",
         "_summoner_name": "TestPlayer",
-        "riot_id_game_name": "TestPlayer",
-        "riot_id_tagline": "TST",
+        "game_name": "TestPlayer",
+        "tagline": "TST",
         "champion_id": 1,
         "champion_name": "Annie",
         "team_id": 100,
@@ -236,8 +236,8 @@ class TestMatchModels:
         """Test that Match is iterable over participants."""
         blue_participant = create_test_participant(
             puuid="blue_player",
-            riot_id_game_name="BluePlayer",
-            riot_id_tagline="BLU",
+            game_name="BluePlayer",
+            tagline="BLU",
             champion_id=1,
             champion_name="Annie",
             team_id=100,
@@ -249,8 +249,8 @@ class TestMatchModels:
 
         red_participant = create_test_participant(
             puuid="red_player",
-            riot_id_game_name="RedPlayer",
-            riot_id_tagline="RED",
+            game_name="RedPlayer",
+            tagline="RED",
             champion_id=2,
             champion_name="Olaf",
             team_id=200,
@@ -297,6 +297,6 @@ class TestMatchModels:
         # Test iteration
         participant_names = []
         for participant in match:
-            participant_names.append(participant.riot_id_game_name)
+            participant_names.append(participant.game_name)
 
         assert participant_names == ["BluePlayer", "RedPlayer"]
