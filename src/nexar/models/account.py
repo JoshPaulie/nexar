@@ -50,7 +50,7 @@ class RiotAccount:
 class Summoner:
     """Represents a League of Legends summoner."""
 
-    id: str
+    id: str | None
     """(Deprecated) Summoner ID."""
 
     puuid: str
@@ -89,7 +89,7 @@ class Summoner:
     def from_api_response(cls, data: dict[str, Any]) -> "Summoner":
         """Create Summoner from API response."""
         return cls(
-            id=data["id"],
+            id=data.get("id"),
             puuid=data["puuid"],
             profile_icon_id=data["profileIconId"],
             revision_date=datetime.fromtimestamp(data["revisionDate"] / 1000, tz=UTC),
