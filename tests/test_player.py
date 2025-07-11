@@ -1,14 +1,12 @@
 """Tests for high-level Player functionality."""
 
-import pytest
-
 from nexar import ChampionStats, PerformanceStats, Player, QueueId
 
 
 class TestPlayer:
     """Test the Player class."""
 
-    async def test_player_initialization(self, client):
+    async def test_player_initialization(self, client) -> None:
         """Test Player initializes correctly."""
         player = await Player.create(
             client=client,
@@ -20,7 +18,7 @@ class TestPlayer:
         assert player.tag_line == "bex"
         assert player.client is client
 
-    async def test_player_from_client_convenience_method(self, client):
+    async def test_player_from_client_convenience_method(self, client) -> None:
         """Test creating Player via client convenience method."""
         player = await client.get_player("bexli", "bex")
 
@@ -29,7 +27,7 @@ class TestPlayer:
         assert player.tag_line == "bex"
         assert player.client is client
 
-    async def test_player_riot_account_property(self, client):
+    async def test_player_riot_account_property(self, client) -> None:
         """Test accessing player's riot account."""
         player = await client.get_player("bexli", "bex")
 
@@ -37,7 +35,7 @@ class TestPlayer:
         assert player.riot_account.tag_line == "bex"
         assert player.riot_account.puuid is not None
 
-    async def test_player_summoner_property(self, client):
+    async def test_player_summoner_property(self, client) -> None:
         """Test accessing player's summoner information."""
         player = await client.get_player("bexli", "bex")
 
@@ -45,7 +43,7 @@ class TestPlayer:
         assert summoner.puuid == player.riot_account.puuid
         assert summoner.summoner_level > 0
 
-    async def test_player_puuid_property(self, client):
+    async def test_player_puuid_property(self, client) -> None:
         """Test accessing player's PUUID."""
         player = await client.get_player("bexli", "bex")
 
@@ -53,7 +51,7 @@ class TestPlayer:
         assert puuid is not None
         assert len(puuid) > 0
 
-    async def test_player_league_entries_property(self, client):
+    async def test_player_league_entries_property(self, client) -> None:
         """Test accessing player's league entries."""
         player = await client.get_player("bexli", "bex")
 
@@ -61,7 +59,7 @@ class TestPlayer:
         assert isinstance(league_entries, list)
         # Note: May be empty if player is unranked
 
-    async def test_player_rank_properties(self, client):
+    async def test_player_rank_properties(self, client) -> None:
         """Test accessing player's rank information."""
         player = await client.get_player("bexli", "bex")
 
@@ -76,7 +74,7 @@ class TestPlayer:
             assert hasattr(entry, "tier")
             assert hasattr(entry, "rank")
 
-    async def test_player_get_recent_matches(self, real_client):
+    async def test_player_get_recent_matches(self, real_client) -> None:
         """Test getting recent matches."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -88,7 +86,7 @@ class TestPlayer:
             assert hasattr(match, "info")
             assert hasattr(match, "metadata")
 
-    async def test_player_get_recent_matches_with_filters(self, real_client):
+    async def test_player_get_recent_matches_with_filters(self, real_client) -> None:
         """Test getting recent matches with various filters."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -104,7 +102,7 @@ class TestPlayer:
         assert isinstance(matches, list)
         assert len(matches) <= 5
 
-    async def test_player_get_champion_stats(self, real_client):
+    async def test_player_get_champion_stats(self, real_client) -> None:
         """Test getting champion statistics."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -118,7 +116,7 @@ class TestPlayer:
             assert stat.wins + stat.losses == stat.games_played
             assert 0 <= stat.win_rate <= 100
 
-    async def test_player_get_top_champions(self, real_client):
+    async def test_player_get_top_champions(self, real_client) -> None:
         """Test getting top played champions."""
         player = await real_client.get_player("bexli", "bex")
         top_champions = await player.get_top_champions(top_n=3, count=10)
@@ -128,7 +126,7 @@ class TestPlayer:
         # Should have at most 3 champions (or fewer if player hasn't played many)
         assert len(top_champions) <= 3
 
-    async def test_player_refresh_cache(self, client):
+    async def test_player_refresh_cache(self, client) -> None:
         """Test cache refresh functionality."""
         player = await client.get_player("bexli", "bex")
 
@@ -146,7 +144,7 @@ class TestPlayer:
         assert player._summoner is None
         assert player._league_entries is None
 
-    async def test_player_string_representations(self, client):
+    async def test_player_string_representations(self, client) -> None:
         """Test string representations of Player."""
         player = await client.get_player("bexli", "bex")
 
@@ -158,7 +156,7 @@ class TestPlayer:
         assert "bexli" in repr_repr
         assert "bex" in repr_repr
 
-    async def test_player_get_performance_summary(self, real_client):
+    async def test_player_get_performance_summary(self, real_client) -> None:
         """Test getting performance summary."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -179,7 +177,7 @@ class TestPlayer:
         assert 0 <= summary.win_rate <= 100
         assert summary.wins + summary.losses == summary.total_games
 
-    async def test_player_get_performance_summary_with_filters(self, real_client):
+    async def test_player_get_performance_summary_with_filters(self, real_client) -> None:
         """Test getting performance summary with queue and match type filters."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -193,7 +191,7 @@ class TestPlayer:
         assert isinstance(summary_large, PerformanceStats)
         assert summary_large.total_games >= 0
 
-    async def test_player_is_on_win_streak(self, real_client):
+    async def test_player_is_on_win_streak(self, real_client) -> None:
         """Test win streak detection."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -201,7 +199,7 @@ class TestPlayer:
         win_streak = await player.is_on_win_streak(min_games=2)
         assert isinstance(win_streak, bool)
 
-    async def test_player_get_recent_performance_by_role(self, real_client):
+    async def test_player_get_recent_performance_by_role(self, real_client) -> None:
         """Test getting performance statistics by role."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -209,12 +207,12 @@ class TestPlayer:
         assert isinstance(role_performance, dict)
 
         # Each role should have performance stats
-        for role, stats in role_performance.items():
+        for stats in role_performance.values():
             assert "games" in stats
             assert "wins" in stats
             assert "win_rate" in stats
 
-    async def test_player_get_recent_performance_by_role_with_queue(self, real_client):
+    async def test_player_get_recent_performance_by_role_with_queue(self, real_client) -> None:
         """Test getting role performance with queue filter."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -223,7 +221,7 @@ class TestPlayer:
         role_performance = await player.get_recent_performance_by_role(count=5, queue=QueueId.RANKED_SOLO_5x5)
         assert isinstance(role_performance, dict)
 
-    async def test_player_cache_behavior(self, client):
+    async def test_player_cache_behavior(self, client) -> None:
         """Test that Player properties are properly cached."""
         player = await client.get_player("bexli", "bex")
 
@@ -240,7 +238,7 @@ class TestPlayer:
         # Should be the same object (cached)
         assert summoner1 is summoner2
 
-    async def test_player_regions_customization(self, client):
+    async def test_player_regions_customization(self, client) -> None:
         """Test Player with custom regions."""
         from nexar.enums import RegionV4, RegionV5
 
@@ -255,7 +253,7 @@ class TestPlayer:
         assert player.v4_region == RegionV4.EUW1
         assert player.v5_region == RegionV5.EUROPE
 
-    async def test_player_with_regions_fallback_to_defaults(self, client):
+    async def test_player_with_regions_fallback_to_defaults(self, client) -> None:
         """Test Player falls back to client defaults when no regions specified."""
         player = await Player.create(
             client=client,
@@ -267,7 +265,7 @@ class TestPlayer:
         assert player.v4_region is None
         assert player.v5_region is None
 
-    async def test_player_performance_summary_minimal_count(self, real_client):
+    async def test_player_performance_summary_minimal_count(self, real_client) -> None:
         """Test performance summary with minimal match count."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -276,7 +274,7 @@ class TestPlayer:
         assert isinstance(summary, PerformanceStats)
         assert summary.total_games >= 0
 
-    async def test_champion_stats_with_queue_filter(self, real_client):
+    async def test_champion_stats_with_queue_filter(self, real_client) -> None:
         """Test champion stats with queue filter."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -286,7 +284,7 @@ class TestPlayer:
         for stat in stats:
             assert isinstance(stat, ChampionStats)
 
-    async def test_champion_stats_with_match_type_filter(self, real_client):
+    async def test_champion_stats_with_match_type_filter(self, real_client) -> None:
         """Test champion stats with match type filter."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -295,7 +293,7 @@ class TestPlayer:
         stats = await player.get_champion_stats(count=10, match_type=MatchType.RANKED)
         assert isinstance(stats, list)
 
-    async def test_top_champions_edge_cases(self, real_client):
+    async def test_top_champions_edge_cases(self, real_client) -> None:
         """Test top champions with edge cases."""
         player = await real_client.get_player("bexli", "bex")
 
@@ -304,7 +302,7 @@ class TestPlayer:
         assert isinstance(top_champions, list)
         assert len(top_champions) <= 1
 
-    async def test_player_methods_with_datetime_filters(self, real_client):
+    async def test_player_methods_with_datetime_filters(self, real_client) -> None:
         """Test Player methods that accept datetime filters."""
         from datetime import datetime, timedelta
 
@@ -329,7 +327,7 @@ class TestPlayer:
         )
         assert isinstance(stats, list)
 
-    async def test_player_puuid_consistency(self, client):
+    async def test_player_puuid_consistency(self, client) -> None:
         """Test that PUUID is consistent across different access methods."""
         player = await client.get_player("bexli", "bex")
 
@@ -342,7 +340,7 @@ class TestPlayer:
 
         assert puuid_via_riot_account == puuid_via_summoner
 
-    async def test_player_rank_properties_edge_cases(self, client):
+    async def test_player_rank_properties_edge_cases(self, client) -> None:
         """Test rank properties when player has no ranked entries."""
         player = await client.get_player("bexli", "bex")
 
@@ -351,7 +349,7 @@ class TestPlayer:
         assert isinstance(league_entries, list)
         # List may be empty for unranked players
 
-    def test_champion_stats_perfect_record(self):
+    def test_champion_stats_perfect_record(self) -> None:
         """Test ChampionStats with perfect win record."""
         stats = ChampionStats(
             champion_id=1,
@@ -369,7 +367,7 @@ class TestPlayer:
         assert stats.avg_deaths == 1.0
         assert stats.avg_assists == 5.0
 
-    def test_champion_stats_realistic_values(self):
+    def test_champion_stats_realistic_values(self) -> None:
         """Test ChampionStats with realistic game values."""
         stats = ChampionStats(
             champion_id=42,
@@ -388,7 +386,7 @@ class TestPlayer:
         assert stats.avg_assists == 15.0
         assert stats.avg_kda == 3.375  # (240 + 300) / 160
 
-    def test_champion_stats_data_integrity(self):
+    def test_champion_stats_data_integrity(self) -> None:
         """Test ChampionStats data consistency."""
         stats = ChampionStats(
             champion_id=89,

@@ -9,7 +9,7 @@ from nexar import RateLimit, RateLimiter
 class TestRateLimit:
     """Test RateLimit dataclass."""
 
-    def test_rate_limit_creation(self):
+    def test_rate_limit_creation(self) -> None:
         """Test RateLimit can be created with correct attributes."""
         rate_limit = RateLimit(requests=10, window_seconds=60)
         assert rate_limit.requests == 10
@@ -19,7 +19,7 @@ class TestRateLimit:
 class TestRateLimiter:
     """Test RateLimiter functionality."""
 
-    def test_single_rate_limit(self):
+    def test_single_rate_limit(self) -> None:
         """Test rate limiter with a single rate limit."""
         rate_limiter = RateLimiter([RateLimit(requests=2, window_seconds=1)])
 
@@ -38,7 +38,7 @@ class TestRateLimiter:
         # Should have waited approximately 1 second
         assert end_time - start_time >= 0.9  # Allow some tolerance
 
-    def test_multiple_rate_limits(self):
+    def test_multiple_rate_limits(self) -> None:
         """Test rate limiter with multiple rate limits."""
         rate_limiter = RateLimiter(
             [
@@ -59,7 +59,7 @@ class TestRateLimiter:
 
         assert end_time - start_time >= 0.9
 
-    def test_default_rate_limiter(self):
+    def test_default_rate_limiter(self) -> None:
         """Test default rate limiter configuration."""
         rate_limiter = RateLimiter.create_default()
 
@@ -69,7 +69,7 @@ class TestRateLimiter:
         assert rate_limiter.rate_limits[1].requests == 100
         assert rate_limiter.rate_limits[1].window_seconds == 120
 
-    def test_get_status(self):
+    def test_get_status(self) -> None:
         """Test rate limiter status reporting."""
         rate_limiter = RateLimiter([RateLimit(requests=5, window_seconds=10)])
 
@@ -85,7 +85,7 @@ class TestRateLimiter:
         assert status["limit_1"]["current_usage"] == 3
         assert status["limit_1"]["remaining"] == 2
 
-    def test_status_with_expired_requests(self):
+    def test_status_with_expired_requests(self) -> None:
         """Test that expired requests are properly cleaned up in status."""
         rate_limiter = RateLimiter([RateLimit(requests=5, window_seconds=1)])
 
@@ -101,7 +101,7 @@ class TestRateLimiter:
         assert status["limit_1"]["current_usage"] == 0
         assert status["limit_1"]["remaining"] == 5
 
-    def test_no_wait_when_under_limit(self):
+    def test_no_wait_when_under_limit(self) -> None:
         """Test that no waiting occurs when under rate limits."""
         rate_limiter = RateLimiter([RateLimit(requests=10, window_seconds=1)])
 
@@ -114,7 +114,7 @@ class TestRateLimiter:
         assert end_time - start_time < 0.1
 
     @patch("time.sleep")
-    def test_wait_calculation(self, mock_sleep):
+    def test_wait_calculation(self, mock_sleep) -> None:
         """Test that wait time is calculated correctly."""
         rate_limiter = RateLimiter([RateLimit(requests=1, window_seconds=2)])
 
@@ -129,7 +129,7 @@ class TestRateLimiter:
         call_args = mock_sleep.call_args[0]
         assert 1.9 <= call_args[0] <= 2.1  # Allow some tolerance
 
-    def test_logging_output(self, caplog):
+    def test_logging_output(self, caplog) -> None:
         """Test that rate limiter produces appropriate log messages."""
         import logging
 

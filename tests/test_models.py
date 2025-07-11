@@ -11,7 +11,7 @@ from nexar.models import RiotAccount, Summoner
 class TestRiotAccount:
     """Test the RiotAccount model."""
 
-    def test_riot_account_creation(self):
+    def test_riot_account_creation(self) -> None:
         """Test RiotAccount can be created directly."""
         account = RiotAccount(
             puuid="test-puuid",
@@ -23,7 +23,7 @@ class TestRiotAccount:
         assert account.game_name == "TestPlayer"
         assert account.tag_line == "TEST"
 
-    async def test_riot_account_from_api_response(self, client):
+    async def test_riot_account_from_api_response(self, client) -> None:
         """Test RiotAccount creation from real API response."""
         # Get real API data and test the model parsing
         account = await client.get_riot_account("bexli", "bex")
@@ -32,7 +32,7 @@ class TestRiotAccount:
         assert account.game_name == "bexli"
         assert account.tag_line == "bex"
 
-    def test_riot_account_immutable(self):
+    def test_riot_account_immutable(self) -> None:
         """Test that RiotAccount is immutable."""
         account = RiotAccount(
             puuid="test-puuid",
@@ -47,7 +47,7 @@ class TestRiotAccount:
 class TestSummoner:
     """Test the Summoner model."""
 
-    def test_summoner_creation(self):
+    def test_summoner_creation(self) -> None:
         """Test Summoner can be created directly."""
         summoner = Summoner(
             id="test-summoner-id",
@@ -61,7 +61,7 @@ class TestSummoner:
         assert summoner.puuid == "test-puuid"
         assert summoner.summoner_level == 150
 
-    async def test_summoner_from_api_response(self, client):
+    async def test_summoner_from_api_response(self, client) -> None:
         """Test Summoner creation from real API response."""
         # Use hardcoded PUUID to reduce API calls during testing
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
@@ -72,7 +72,7 @@ class TestSummoner:
         assert summoner.puuid == test_puuid
         assert summoner.summoner_level > 0
 
-    def test_summoner_immutable(self):
+    def test_summoner_immutable(self) -> None:
         """Test that Summoner is immutable."""
         summoner = Summoner(
             id="test-summoner-id",

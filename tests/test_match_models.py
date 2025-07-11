@@ -2,8 +2,6 @@
 
 from datetime import datetime
 
-import pytest
-
 from nexar.enums import MapId, MatchParticipantPosition, PlatformId, QueueId
 from nexar.models import (
     Ban,
@@ -164,7 +162,7 @@ def create_test_participant(**overrides) -> Participant:
 class TestMatchModels:
     """Test match-related models."""
 
-    async def test_match_from_api_response(self, real_client):
+    async def test_match_from_api_response(self, real_client) -> None:
         """Test Match creation from real API response."""
         player = await real_client.get_player("bexli", "bex")
         matches = await player.get_matches(count=1)
@@ -177,21 +175,21 @@ class TestMatchModels:
             assert len(match.info.participants) == 10  # Standard 5v5 match
             assert match.metadata.match_id is not None
 
-    def test_ban_creation(self):
+    def test_ban_creation(self) -> None:
         """Test Ban model can be created directly."""
         ban = Ban(champion_id=238, pick_turn=1)
 
         assert ban.champion_id == 238
         assert ban.pick_turn == 1
 
-    def test_objective_creation(self):
+    def test_objective_creation(self) -> None:
         """Test Objective model can be created directly."""
         objective = Objective(first=True, kills=1)
 
         assert objective.first is True
         assert objective.kills == 1
 
-    def test_challenges_creation(self):
+    def test_challenges_creation(self) -> None:
         """Test Challenges creation from API response."""
         challenges_data = {
             "kda": 6.5,
@@ -209,7 +207,7 @@ class TestMatchModels:
         assert challenges.gold_per_minute == 500.0
         assert challenges.vision_score_per_minute == 1.5
 
-    def test_objectives_creation(self):
+    def test_objectives_creation(self) -> None:
         """Test Objectives creation from API response."""
         objectives_data = {
             "baron": {"first": True, "kills": 1},
@@ -232,7 +230,7 @@ class TestMatchModels:
         assert objectives.baron.first is True
         assert objectives.baron.kills == 1
 
-    def test_match_iteration(self):
+    def test_match_iteration(self) -> None:
         """Test that Match is iterable over participants."""
         blue_participant = create_test_participant(
             puuid="blue_player",
