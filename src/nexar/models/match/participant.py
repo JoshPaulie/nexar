@@ -33,15 +33,11 @@ class Participant:
     > Prior to patch 11.4, on Feb 18th, 2021, this field returned invalid championIds.
     We recommend determining the champion based on the championName field for matches played prior
     to patch 11.4.
-
-    **Use champion_name instead of deriving champion name from ID**
     """
 
     champion_name: str
     """
     Name of the champion played.
-
-    **Use this over champion_id**
     """
 
     @property
