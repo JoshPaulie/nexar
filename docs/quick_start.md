@@ -91,7 +91,24 @@ A "participant" is 1 of 10 players (in a Summoner's Rift game, more or less for 
 
 ```py
 -8<-- "quick_start/03_match.py:participants"
+# Output: (1)
 ```
+
+1.  
+    ```
+    Winners! Mojo Jo 77, Bravo, GAMr Guy, bexli, MltSimpleton
+
+    FugginSuggin (Darius) went 2/9/1
+    HeckenGena (Belveth) went 3/7/4
+    Cauris (Annie) went 2/12/8
+    SupremeKing (Jinx) went 14/7/4
+    Villain King (Karma) went 2/6/10
+    Mojo Jo 77 (Mordekaiser) went 12/4/3
+    Bravo (Amumu) went 9/3/6
+    GAMr Guy (Xerath) went 5/6/11
+    bexli (Jhin) went 11/6/8
+    MltSimpleton (Senna) went 4/4/19
+    ```
 
 ### `ParticipantList`
 
@@ -105,4 +122,10 @@ Afterwhich we can dig into the stats
 
 ```py
 -8<-- "quick_start/03_match.py:participant"
+```
+
+You can also easily get a particular team from a Match.
+
+```py
+-8<-- "quick_start/03_match.py:get-team"
 ```

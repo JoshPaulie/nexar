@@ -57,9 +57,10 @@ async def main() -> None:
         # Solo queue
         solo_rank = await player.get_solo_rank()
 
-        solo_tier = solo_rank.tier  # RankTier.Bronze, RankTier.Iron, ...
-        solo_division = solo_rank.tier  # RankDivision.IV, RankDivision.III, ...
-        solo_league_points = solo_rank.league_points
+        if solo_rank:
+            solo_tier = solo_rank.tier  # RankTier.Bronze, RankTier.Iron, ...
+            solo_division = solo_rank.tier  # RankDivision.IV, RankDivision.III, ...
+            solo_league_points = solo_rank.league_points
 
         # Flex queue
         solo_rank = await player.get_flex_rank()

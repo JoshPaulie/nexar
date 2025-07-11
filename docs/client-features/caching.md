@@ -1,8 +1,8 @@
 # Caching in Nexar
 
-!!! note
+!!! Tip
 
-    This is a bit of a more advanced topic, involving the actual under-the-hood API calls to Riot, which Nexar tries to hide from the user.
+    This is a bit of a more advanced topic, involving the actual under the hood API calls to Riot, which Nexar tries to hide from the user.
 
     By and large, simply use the SMART_CACHE_CONFIG:
     ```python
@@ -17,7 +17,7 @@ Via `CacheConfig`, one can specify a default cache time, pick your storage backe
 
 ## Quick Start
 
-By default, Nexar uses "dumb" caching, which caches all responses for an hour, regardless of the endpoint:
+By default, Nexar uses "dumb" caching, which caches all responses for an hour to an SQLite file in your CWD, regardless of the endpoint:
 
 ```python
 -8<-- "caching/default.py"
@@ -62,7 +62,7 @@ On, even easier, use the same endpoint config as the "smart" presets
 ### DEFAULT_CACHE_CONFIG
 Uses SQLite backend with 1-hour expiration for all endpoints.
 
-### SMART_CACHE_CONFIG
+### SMART_CACHE_CONFIG/SMART_CACHE_CONFIG_MEMORY
 Intelligently caches different endpoint types for optimal durations:
 
 - Account/Summoner data: 24 hours (rarely changes)

@@ -23,7 +23,10 @@ class EndpointCacheConfig(TypedDict, total=False):
     """
 
     expire_after: int | None
+    """Expiration time in seconds (None for no expiration)"""
+
     enabled: bool
+    """Whether caching is enabled for this endpoint"""
 
 
 def create_cache_backend(config: "CacheConfig") -> SQLiteBackend | DictCache:
@@ -140,6 +143,7 @@ DEFAULT_CACHE_CONFIG = CacheConfig()
 
 # Shared endpoint config for smart cache
 SMART_CACHE_ENDPOINTS: dict[str, EndpointCacheConfig] = {
+    # --- Riot API ---
     # Account and summoner data changes rarely
     "/riot/account/v1/accounts/by-riot-id": {"expire_after": 86400},  # 24 hours
     "/lol/summoner/v4/summoners/by-puuid": {"expire_after": 86400},  # 24 hours
@@ -147,7 +151,7 @@ SMART_CACHE_ENDPOINTS: dict[str, EndpointCacheConfig] = {
     "/lol/match/v5/matches": {"expire_after": None},  # Cache forever
     # League entries change frequently
     "/lol/league/v4/entries/by-puuid": {"expire_after": 300},  # 5 minutes
-    # New Match IDs are c as new matches are played
+    # New Match IDs are created as new matches are played
     "/lol/match/v5/matches/by-puuid": {"expire_after": 60},  # 1 minute
 }
 

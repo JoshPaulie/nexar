@@ -31,6 +31,9 @@ custom_config = CacheConfig(
     backend="sqlite",
     cache_dir="/var/cache/nexar/",
     expire_after=7200,  # Default 2 hours
+    endpoint_config={
+        "/riot/account/v1/accounts/by-riot-id": {"expire_after": None},  # Never cache Riot ID
+    },
 )
 
 # Memory cache with custom expiration

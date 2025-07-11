@@ -1,27 +1,42 @@
 site_name: Nexar
 site_url: https://bexli.dev/nexar
+repo_url: https://github.com/joshpaulie/nexar
+repo_name: joshpaulie/nexar
+edit_uri: edit/main/docs/
+
 theme:
   name: material
   palette:
     # Palette toggle for dark mode
     - scheme: slate
+  icon:
+    repo: fontawesome/brands/github
   features:
-    - content.code.annotate
+    - content.code.annotate # Allow code annotations
+    - content.action.view
+    - navigation.instant # Make mkdocs act as a single-page app
+    - navigation.instant.prefetch # Load hovered pages in the background
+    - navigation.instant.progress # Loading bar for instant navigation
+    - navigation.instant.preview # Show a preview of the page when hovering links
+    - navigation.tracking # Add anchor to url when clicking a section
+    - navigation.sections # Expand all selections in side navbar
+    - navigation.path # Breadcrumbs along top
+    - navigation.top # Back to top button
 
 nav:
   - Home: index.md
-  - Quick start: quick_start.md
+  - Quick Start: quick_start.md
   - Features:
       - Caching: client-features/caching.md
       - Rate limiting: client-features/rate-limiting.md
       - Debugging API Responses: client-features/debug-responses.md
-  - FAQ: FAQ.md
   - Reference:
       - Client: reference/client.md
       - Models:
           - Player: reference/models/player.md
           - Match: reference/models/match.md
           - ParticipantList: reference/models/participant-list.md
+  - FAQ: FAQ.md
   - Why not Nexar?: why-not-nexar.md
 
 markdown_extensions:

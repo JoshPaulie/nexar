@@ -24,12 +24,10 @@ async def main() -> None:
     async with client:
         player = await client.get_player("bexli", "bex")
         last_match = await player.get_last_match()
-        if not last_match:
-            print("This player doesn't have a recent match.")
-            sys.exit()
 
         # --8<-- [start:get-match]
         last_match = await player.get_last_match()
+        assert last_match
 
         start_time = last_match.info.game_start_timestamp
         days_ago = (datetime.now(tz=UTC) - start_time).days
@@ -42,32 +40,44 @@ async def main() -> None:
         participants = last_match.participants
         winning_team = participants.winners()
 
-        winner_names = ", ".join([p.riot_id_game_name for p in winning_team])
+        winner_names = ", ".join([p.riot_id_game_name or "Unknown" for p in winning_team])
         print(f"Winners! {winner_names}\n")
 
-        for participant in participants:
-            name = participant.riot_id_game_name
-            champ_name = participant.champion_name
-            kda = participant.kda(as_str=True)
+        for p in participants:
+            name = p.riot_id_game_name
+            champ_name = p.champion_name
+            kda = p.kda(as_str=True)
             print(f"{name} ({champ_name}) went {kda}")
 
         # --8<-- [end:participants]
 
         # --8<-- [start:get-participant]
-        # By PUUID (easiest is from Player.puuid)
+        # Get participant by PUUID (easiest is from Player.puuid)
         participant = participants.by_puuid(player.puuid)
 
-        # By position
+        # Get participants by position
         from nexar.enums import MatchParticipantPosition as Position
 
-        participant = participants.by_position(Position.BOTTOM)
+        bot_participants = participants.by_position(Position.BOTTOM)
 
-        # By champion (Not recommended, prone to typos)
-        participant = participants.by_champion("Jinx")
+        # Get participants by champion (Not recommended, prone to typos)
+        jinx_players = participants.by_champion("Jinx")
         # --8<-- [end:get-participant]
+
+        # --8<-- [start:get-team]
+        # Get blue team
+        blue_team = participants.blue_team()
+
+        # Get red team
+        red_team = participants.red_team()
+
+        # Get team of particular player
+        team_of_player = participants.team_of(player.puuid)
+        # --8<-- [end:get-team]
 
         # Reset participant
         participant = participants.by_puuid(player.puuid)
+        assert participant is not None
 
         # --8<-- [start:participant]
         # Typical stats
@@ -76,6 +86,7 @@ async def main() -> None:
         drags = participant.dragon_kills
 
         # The really fun stuff
+        assert participant.challenges
         buffs_stolen = participant.challenges.buffs_stolen
         gold_per_min = participant.challenges.gold_per_minute
         # --8<-- [end:participant]
