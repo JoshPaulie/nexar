@@ -13,7 +13,9 @@ theme:
     repo: fontawesome/brands/github
   features:
     - content.code.annotate # Allow code annotations
-    - content.action.view
+    - content.code.copy # Copy code blocks to clipboard
+    - content.action.edit # Edit button for pages
+    - content.action.view # View button for pages
     - navigation.instant # Make mkdocs act as a single-page app
     - navigation.instant.prefetch # Load hovered pages in the background
     - navigation.instant.progress # Loading bar for instant navigation
