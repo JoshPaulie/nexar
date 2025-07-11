@@ -491,3 +491,19 @@ class TestParticipantList:
         result = participant_list.winners().filter(lambda p: p.kills > 6)
         assert len(result) == 1
         assert result[0].champion_name == "Olaf"
+
+    def test_team_of(self, participant_list: ParticipantList) -> None:
+        """Test getting all team members for a given participant PUUID."""
+        # Player1 and Player2 are both on team 100
+        team = participant_list.team_of("player1")
+        assert len(team) == 2
+        assert all(p.team_id == 100 for p in team)
+        # Player3 is on team 200
+        team = participant_list.team_of("player3")
+        assert len(team) == 1
+        assert team[0].team_id == 200
+        # Non-existent PUUID should raise ValueError
+        import pytest
+
+        with pytest.raises(ValueError, match="No participant found with PUUID: not_a_real_puuid"):
+            participant_list.team_of("not_a_real_puuid")
