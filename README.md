@@ -12,8 +12,8 @@ Trying to restore the glory days, pre Riot IDs.
 ## Why Nexar?
 
 - Built for Python freaks.
+    - Robust, Pythonic models
     - Timestamps are `datetime` objects
-    - Robust, pythonic models
     - So many enums you'll hate them (but autocomplete makes it worth)
 - Clean high-level API wraps the messy Riot API underneath.
 - Pull player ranks, match history, and champion stats with just a few lines of code.
@@ -167,7 +167,7 @@ The script automatically sources your API key and runs the test suite.
 
 ## LLMs and the project
 
-Tests, examples, transforming the API response schemas to models, and other large scale chores were contributed by [Github Copilot](https://docs.github.com/en/copilot/how-tos/completions/getting-code-suggestions-in-your-ide-with-github-copilot) with [Anthropic's Claude Sonnet 4]([https://](https://www.anthropic.com/claude/sonnet)) model.
+Tests, transforming the API response schemas to models, and other large scale chores were contributed by [Github Copilot](https://docs.github.com/en/copilot/how-tos/completions/getting-code-suggestions-in-your-ide-with-github-copilot) with [Anthropic's Claude Sonnet 4](https://www.anthropic.com/claude/sonnet) model.
 
 Cheers to the Anthropic team. This was the only model that didn't make me want to tear my hair out. Easily saved me hours of boring contributions.
 
