@@ -2,14 +2,28 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal, TypedDict
 
 try:
-    from aiohttp_client_cache.backends import DictCache
+    from aiohttp_client_cache.backends import DictCache  # type: ignore[attr-defined]
     from aiohttp_client_cache.backends.sqlite import SQLiteBackend
 except ImportError as e:
     msg = "aiohttp-client-cache is required for caching functionality. Install it with: uv add aiohttp-client-cache"
     raise ImportError(msg) from e
+
+
+class EndpointCacheConfig(TypedDict, total=False):
+    """
+    Configuration for individual endpoint caching.
+
+    Attributes:
+        expire_after: Expiration time in seconds (None for no expiration)
+        enabled: Whether caching is enabled for this endpoint
+
+    """
+
+    expire_after: int | None
+    enabled: bool
 
 
 def create_cache_backend(config: "CacheConfig") -> SQLiteBackend | DictCache:
@@ -59,7 +73,7 @@ class CacheConfig:
     backend: Literal["sqlite", "memory"] = "sqlite"
     cache_dir: str | Path | None = None
     expire_after: int | None = 3600  # 1 hour default
-    endpoint_config: dict[str, dict[str, Any]] = field(default_factory=dict)
+    endpoint_config: dict[str, EndpointCacheConfig] = field(default_factory=dict)
 
     def get_cache_path(self) -> Path:
         """
@@ -122,22 +136,39 @@ class CacheConfig:
 
 # Predefined cache configurations for different use cases
 DEFAULT_CACHE_CONFIG = CacheConfig()
+"""CacheConfig with defaults"""
+
+# Shared endpoint config for smart cache
+SMART_CACHE_ENDPOINTS: dict[str, EndpointCacheConfig] = {
+    # Account and summoner data changes rarely
+    "/riot/account/v1/accounts/by-riot-id": {"expire_after": 86400},  # 24 hours
+    "/lol/summoner/v4/summoners/by-puuid": {"expire_after": 86400},  # 24 hours
+    # Match data is immutable once finished
+    "/lol/match/v5/matches": {"expire_after": None},  # Cache forever
+    # League entries change frequently
+    "/lol/league/v4/entries/by-puuid": {"expire_after": 300},  # 5 minutes
+    # New Match IDs are c as new matches are played
+    "/lol/match/v5/matches/by-puuid": {"expire_after": 60},  # 1 minute
+}
 
 SMART_CACHE_CONFIG = CacheConfig(
     expire_after=3600,  # 1 hour default
-    endpoint_config={
-        # Account and summoner data changes rarely
-        "/riot/account/v1/accounts/by-riot-id": {"expire_after": 86400},  # 24 hours
-        "/lol/summoner/v4/summoners/by-puuid": {"expire_after": 86400},  # 24 hours
-        # Match data is immutable once finished
-        "/lol/match/v5/matches": {"expire_after": None},  # Cache forever
-        # League entries change frequently
-        "/lol/league/v4/entries/by-puuid": {"expire_after": 300},  # 5 minutes
-        # Match IDs change as new matches are played
-        "/lol/match/v5/matches/by-puuid": {"expire_after": 60},  # 1 minute
-    },
+    endpoint_config=SMART_CACHE_ENDPOINTS,
 )
 """
+Inteligently cache different endpoints for varying durations.
+
+Static data is cached longer, immutable data is cached forever, live data is cached shorter.
+"""
+
+SMART_CACHE_CONFIG_MEMORY = CacheConfig(
+    backend="memory",
+    expire_after=3600,  # 1 hour default
+    endpoint_config=SMART_CACHE_ENDPOINTS,
+)
+"""
+Identical to SMART_CACHE_CONFIG but uses in-memory storage, meaning cache is lost upon application exit.
+
 Inteligently cache different endpoints for varying durations.
 
 Static data is cached longer, immutable data is cached forever, live data is cached shorter.
