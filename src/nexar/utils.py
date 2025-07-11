@@ -31,31 +31,30 @@ async def sort_players_by_rank(
         sorted_players = await sort_players_by_rank(players, descending=False, queue_type=QueueId.RANKED_FLEX_SR)
 
     """
-    # Ensure all players have league entries loaded
-    for player in players:
-        await player.get_league_entries()
+    from nexar.models.league import LeagueEntry
 
-    async def get_rank_value(player: Player) -> int:
-        """Get rank value for sorting, with unranked players getting -1."""
+    async def get_league_entry(player: Player) -> LeagueEntry | None:
+        """Get the league entry for the specified queue type."""
         if ranked_queue_type == QueueId.RANKED_SOLO_5x5:
-            rank_value = await player.get_solo_rank_value()
-        elif ranked_queue_type == QueueId.RANKED_FLEX_SR:
-            flex_rank = await player.get_flex_rank()
-            rank_value = flex_rank.rank_value if flex_rank else None
-        else:
-            msg = f"Invalid queue_type: {ranked_queue_type}. Must be QueueId.RANKED_SOLO_5x5 or QueueId.RANKED_FLEX_SR."
-            raise ValueError(msg)
+            return await player.get_solo_rank()
+        if ranked_queue_type == QueueId.RANKED_FLEX_SR:
+            return await player.get_flex_rank()
 
-        return rank_value if rank_value is not None else -1
+        msg = f"Invalid queue_type: {ranked_queue_type}. Must be QueueId.RANKED_SOLO_5x5 or QueueId.RANKED_FLEX_SR."
+        raise ValueError(msg)
 
-    # Create list of (player, rank_value) tuples for sorting
+    # Create list of (player, league_entry) tuples for sorting
     players_with_ranks = []
     for player in players:
-        rank_value = await get_rank_value(player)
-        players_with_ranks.append((player, rank_value))
+        league_entry = await get_league_entry(player)
+        players_with_ranks.append((player, league_entry))
 
-    # Sort by rank value
-    players_with_ranks.sort(key=lambda x: x[1], reverse=descending)
+    # Separate ranked and unranked players
+    ranked_players = [(player, league_entry) for player, league_entry in players_with_ranks if league_entry is not None]
+    unranked_players = [player for player, league_entry in players_with_ranks if league_entry is None]
 
-    # Return just the players
-    return [player for player, _ in players_with_ranks]
+    # Sort ranked players by their league entry (LeagueEntry objects are directly comparable)
+    ranked_players.sort(key=lambda x: x[1], reverse=descending)
+
+    # Combine: ranked players first, then unranked players
+    return [player for player, _ in ranked_players] + unranked_players
