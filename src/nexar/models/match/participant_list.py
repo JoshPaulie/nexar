@@ -109,6 +109,26 @@ class ParticipantList(list["Participant"]):
         """
         return ParticipantList(p for p in self if not p.win)
 
+    def team_of(self, puuid: str) -> "ParticipantList":
+        """
+        Get the team of the participant with the given PUUID.
+
+        Args:
+            puuid: The player's universally unique identifier
+
+        Returns:
+            A ParticipantList containing all participants on the same team as the specified PUUID.
+
+        Raises:
+            ValueError: If no participant with the given PUUID is found.
+
+        """
+        participant = self.by_puuid(puuid)
+        if participant is None:
+            msg = f"No participant found with PUUID: {puuid}"
+            raise ValueError(msg)
+        return self.by_team(participant.team_id)
+
     def filter(self, predicate: Callable[["Participant"], bool]) -> "ParticipantList":
         """
         Filter participants using a custom predicate function.
