@@ -4,12 +4,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, TypedDict
 
-try:
-    from aiohttp_client_cache.backends import DictCache  # type: ignore[attr-defined]
-    from aiohttp_client_cache.backends.sqlite import SQLiteBackend
-except ImportError as e:
-    msg = "aiohttp-client-cache is required for caching functionality. Install it with: uv add aiohttp-client-cache"
-    raise ImportError(msg) from e
+from aiohttp_client_cache.backends import DictCache  # type: ignore[attr-defined]
+from aiohttp_client_cache.backends.sqlite import SQLiteBackend
 
 
 class EndpointCacheConfig(TypedDict, total=False):
