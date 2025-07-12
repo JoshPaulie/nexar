@@ -22,7 +22,7 @@ class Participant:
     """
     Player's summoner name at the time of the match.
 
-    **Deprecated by Riot.** Use `Participant.riot_id_game_name` instead.
+    **Deprecated by Riot.** Use `Participant.game_name` instead.
     """
 
     champion_id: int
@@ -66,7 +66,7 @@ class Participant:
         """
         Player's summoner name at the time of the match.
 
-        **Deprecated by Riot.** Use `Participant.riot_id_game_name` instead.
+        **Deprecated by Riot.** Use `Participant.game_name` instead.
         """
         return self._summoner_name
 
