@@ -32,6 +32,10 @@ nav:
       - Caching: client-features/caching.md
       - Rate limiting: client-features/rate-limiting.md
       - Debugging API Responses: client-features/debug-responses.md
+  - Examples:
+      - Batch Players: examples/batch_players.md
+      - Player Performance: examples/player_performance.md
+      - Champion Performance: examples/champ_performance.md
   - Reference:
       - Client: reference/client.md
       - Models:

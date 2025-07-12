@@ -10,7 +10,7 @@ from nexar.enums import MatchParticipantPosition, RegionV4, RegionV5
 
 # Get API key from environment
 api_key = os.getenv("RIOT_API_KEY")
-if not api_key:
+if api_key is not None:
     sys.exit("Please set RIOT_API_KEY environment variable")
 
 

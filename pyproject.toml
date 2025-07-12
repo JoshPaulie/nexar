@@ -75,6 +75,7 @@ ignore = [
     "I001",    # Allow unorganized import order in snippets
     "E402",    # Allow module level import not at top of file in snippets
     "F841",    # Allow unused variable in snippets
+    "ERA001",  # Allow commented out code in snippets
 ]
 "playground*.py" = ["D1"]
 
