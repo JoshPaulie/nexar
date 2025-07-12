@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 README = ROOT / "README.md"
-EXAMPLE = ROOT / "examples/basic/README_example.py"
+EXAMPLE = ROOT / "README_example.py"
 
 
 def get_example_code() -> str:
