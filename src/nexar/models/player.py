@@ -377,11 +377,7 @@ class Player:
 
         for match in matches:
             # Find the participant for this player
-            participant = None
-            for p in match.info.participants:
-                if p.puuid == puuid:
-                    participant = p
-                    break
+            participant = match.participants.by_puuid(puuid)
 
             if not participant:
                 continue
@@ -473,11 +469,7 @@ class Player:
 
         for match in matches:
             # Find the participant for this player
-            participant = None
-            for p in match.info.participants:
-                if p.puuid == puuid:
-                    participant = p
-                    break
+            participant = match.participants.by_puuid(puuid)
 
             if not participant:
                 continue
@@ -623,11 +615,7 @@ class Player:
 
         for match in matches:
             # Find the participant for this player
-            participant = None
-            for p in match.info.participants:
-                if p.puuid == puuid:
-                    participant = p
-                    break
+            participant = match.participants.by_puuid(puuid)
 
             if not participant:
                 continue
@@ -679,11 +667,7 @@ class Player:
         wins_in_a_row = 0
         for match in matches:
             # Find the participant for this player
-            participant = None
-            for p in match.info.participants:
-                if p.puuid == puuid:
-                    participant = p
-                    break
+            participant = match.participants.by_puuid(puuid)
 
             if not participant:
                 continue
