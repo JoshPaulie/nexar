@@ -20,6 +20,7 @@ riot-key.sh
 
 # Copilot instructions for writing tests
 .github/copilot-instructions.md
+GEMINI.md
 
 # Cache files
 *.sqlite
