@@ -21,7 +21,8 @@ from .match import (
     TeamInfo,
     TeamsInfo,
 )
-from .player import ChampionStats, PerformanceStats, Player
+from .player import Player
+from .stats import ChampionStats, PerformanceStats
 
 __all__ = [
     "Ban",

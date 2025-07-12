@@ -28,12 +28,16 @@ async def main() -> None:
         # Get player
         player = await client.get_player("bexli", "bex")
 
-        champ_performance = await player.get_champion_stats()
+        # Get recent matches
+        matches = await player.get_matches()
+
+        champ_performance = matches.get_champion_stats()
         for champ in champ_performance:
             print(champ.champion_name)
             print(f"{champ.wins} wins / {champ.losses} losses ({champ.win_rate:.2g}%)")
             kda = f"{champ.avg_kills:.2g}/{champ.avg_deaths:.2g}/{champ.avg_assists:.2g}"
             print(f"Average KDA: {kda} ({champ.avg_kda:.2g})\n")
+
 
 
 # --8<-- [end:demo]

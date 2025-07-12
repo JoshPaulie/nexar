@@ -28,8 +28,11 @@ async def main() -> None:
         # Get player
         player = await client.get_player("bexli", "bex")
 
+        # Get recent matches
+        matches = await player.get_matches(count=20)
+
         # Get recent performance stats
-        performance = await player.get_recent_performance(count=20)
+        performance = matches.get_performance_stats()
 
         print(f"Performance over {performance.total_games} recent games:")
         print(f"Win Rate: {performance.win_rate:.1f}% ({performance.wins}W/{performance.losses}L)")
