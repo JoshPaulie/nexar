@@ -84,7 +84,7 @@ async def main() -> None:
             kda = participant.kda(as_str=True)
             kda_ratio = f"{participant.challenges.kda:.2f}"
 
-            days_ago = (datetime.now(tz=UTC) - match.info.game_start_timestamp.replace(tzinfo=UTC)).days
+            days_ago = (datetime.now(tz=UTC) - match.info.game_start_timestamp).days
             days_ago_str = f"{days_ago} {'day' if days_ago == 1 else 'days'} ago"
 
             print(
@@ -106,16 +106,16 @@ if __name__ == "__main__":
 <!-- example-output-block-start -->
 ```
 Summoner: bexli
-Level: 511
-Solo Queue rank: Silver IV
+Level: 512
+Solo Queue rank: Silver III
 
 Recent Match History (5 matches):
 
-3 days ago Victory!  Jinx     Bottom 11/7/13 (3.43)
-3 days ago Victory!  Jhin     Bottom 2/0/0 (2.00)
-3 days ago Victory!  Jinx     Bottom 7/4/9 (4.00)
-3 days ago Defeat.   Jinx     Bottom 4/5/4 (1.60)
-3 days ago Defeat.   Warwick  Jungle 11/7/5 (2.29)
+1 day ago  Victory!  Jhin     Bottom 11/6/8 (3.17)
+1 day ago  Victory!  Jhin     Bottom 10/6/10 (3.33)
+1 day ago  Victory!  Jinx     Bottom 11/6/7 (3.00)
+2 days ago Defeat.   Jinx     Bottom 11/16/13 (1.50)
+2 days ago Victory!  Jinx     Bottom 9/1/12 (21.00)
 ```
 <!-- example-output-block-end -->
 

@@ -52,7 +52,7 @@ async def main() -> None:
             kda = participant.kda(as_str=True)
             kda_ratio = f"{participant.challenges.kda:.2f}"
 
-            days_ago = (datetime.now(tz=UTC) - match.info.game_start_timestamp.replace(tzinfo=UTC)).days
+            days_ago = (datetime.now(tz=UTC) - match.info.game_start_timestamp).days
             days_ago_str = f"{days_ago} {'day' if days_ago == 1 else 'days'} ago"
 
             print(
