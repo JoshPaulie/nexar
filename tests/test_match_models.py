@@ -1,6 +1,7 @@
 """Tests for match models."""
 
 from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 from nexar.enums import MapId, MatchParticipantPosition, PlatformId, QueueId
 from nexar.models import (
@@ -12,12 +13,16 @@ from nexar.models import (
     Objective,
     Objectives,
     Participant,
+    ParticipantList,
 )
 
+if TYPE_CHECKING:
+    from nexar.client import NexarClient
 
-def create_test_participant(**overrides) -> Participant:
+
+def create_test_participant(**overrides: Any) -> Participant:
     """Create a participant with all required fields for testing."""
-    defaults = {
+    defaults: dict[str, Any] = {
         # Core participant data
         "puuid": "test_player",
         "_summoner_name": "TestPlayer",
@@ -162,7 +167,7 @@ def create_test_participant(**overrides) -> Participant:
 class TestMatchModels:
     """Test match-related models."""
 
-    async def test_match_from_api_response(self, real_client) -> None:
+    async def test_match_from_api_response(self, real_client: "NexarClient") -> None:
         """Test Match creation from real API response."""
         player = await real_client.get_player("bexli", "bex")
         matches = await player.get_matches(count=1)
@@ -280,7 +285,7 @@ class TestMatchModels:
             map_id=MapId.SUMMONERS_RIFT,
             platform_id=PlatformId.NA1,
             queue_id=QueueId.RANKED_SOLO_5x5,
-            participants=[blue_participant, red_participant],
+            participants=ParticipantList([blue_participant, red_participant]),
             teams=[],
         )
 

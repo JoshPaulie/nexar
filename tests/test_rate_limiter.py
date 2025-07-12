@@ -1,7 +1,9 @@
 """Tests for rate limiting functionality."""
 
 import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from nexar import RateLimit, RateLimiter
 
@@ -114,7 +116,7 @@ class TestRateLimiter:
         assert end_time - start_time < 0.1
 
     @patch("time.sleep")
-    def test_wait_calculation(self, mock_sleep) -> None:
+    def test_wait_calculation(self, mock_sleep: MagicMock) -> None:
         """Test that wait time is calculated correctly."""
         rate_limiter = RateLimiter([RateLimit(requests=1, window_seconds=2)])
 
@@ -129,7 +131,7 @@ class TestRateLimiter:
         call_args = mock_sleep.call_args[0]
         assert 1.9 <= call_args[0] <= 2.1  # Allow some tolerance
 
-    def test_logging_output(self, caplog) -> None:
+    def test_logging_output(self, caplog: pytest.LogCaptureFixture) -> None:
         """Test that rate limiter produces appropriate log messages."""
         import logging
 

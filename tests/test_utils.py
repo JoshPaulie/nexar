@@ -1,6 +1,9 @@
 """Tests for utility functions."""
 
+from typing import Any
+
 import pytest
+from pytest_mock import MockerFixture
 
 from nexar.enums import QueueId, RankDivision, RankTier
 from nexar.models.league import LeagueEntry
@@ -12,7 +15,7 @@ class TestSortPlayersByRank:
     """Test the sort_players_by_rank utility function."""
 
     @pytest.fixture
-    def mock_players(self, mocker):
+    def mock_players(self, mocker: MockerFixture) -> list[Player]:
         """Create mock players with different ranks."""
         # Mock the client
         mock_client = mocker.Mock()
@@ -108,7 +111,7 @@ class TestSortPlayersByRank:
 
         return players
 
-    async def test_sort_players_by_rank_descending(self, mock_players):
+    async def test_sort_players_by_rank_descending(self, mock_players: list[Player]) -> None:
         """Test sorting players by rank in descending order (highest first)."""
         sorted_players = await sort_players_by_rank(mock_players, descending=True)
 
@@ -118,7 +121,7 @@ class TestSortPlayersByRank:
         assert sorted_players[2].game_name == "player4"  # Silver III
         assert sorted_players[3].game_name == "player3"  # Unranked
 
-    async def test_sort_players_by_rank_ascending(self, mock_players):
+    async def test_sort_players_by_rank_ascending(self, mock_players: list[Player]) -> None:
         """Test sorting players by rank in ascending order (lowest first)."""
         sorted_players = await sort_players_by_rank(mock_players, descending=False)
 
@@ -128,7 +131,7 @@ class TestSortPlayersByRank:
         assert sorted_players[2].game_name == "player2"  # Diamond I
         assert sorted_players[3].game_name == "player3"  # Unranked
 
-    async def test_sort_players_by_flex_rank(self, mock_players, mocker):
+    async def test_sort_players_by_flex_rank(self, mock_players: list[Player], mocker: MockerFixture) -> None:
         """Test sorting players by flex queue rank."""
         # Give one player a flex rank
         flex_rank = LeagueEntry(
@@ -156,19 +159,19 @@ class TestSortPlayersByRank:
         assert sorted_players[0].game_name == "player1"  # Has flex rank
         # Other players should follow (order doesn't matter much since they're all unranked in flex)
 
-    async def test_sort_players_invalid_queue_type(self, mock_players):
+    async def test_sort_players_invalid_queue_type(self, mock_players: list[Player]) -> None:
         """Test that invalid queue type raises ValueError."""
         with pytest.raises(ValueError, match="Invalid queue_type"):
             await sort_players_by_rank(mock_players, ranked_queue_type=QueueId.QUICKPLAY)
 
-    async def test_sort_players_empty_list(self):
+    async def test_sort_players_empty_list(self) -> None:
         """Test sorting an empty list of players."""
         sorted_players = await sort_players_by_rank([])
         assert sorted_players == []
 
-    async def test_sort_players_all_unranked(self, mocker):
+    async def test_sort_players_all_unranked(self, mocker: MockerFixture) -> None:
         """Test sorting players who are all unranked."""
-        mock_client = mocker.Mock()
+        mock_client: Any = mocker.Mock()
 
         players = []
         for i in range(3):

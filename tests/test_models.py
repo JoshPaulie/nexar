@@ -1,11 +1,15 @@
 """Tests for domain models."""
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import pytest
 
 from nexar.enums import RegionV4
 from nexar.models import RiotAccount, Summoner
+
+if TYPE_CHECKING:
+    from nexar.client import NexarClient
 
 
 class TestRiotAccount:
@@ -23,7 +27,7 @@ class TestRiotAccount:
         assert account.game_name == "TestPlayer"
         assert account.tag_line == "TEST"
 
-    async def test_riot_account_from_api_response(self, client) -> None:
+    async def test_riot_account_from_api_response(self, client: "NexarClient") -> None:
         """Test RiotAccount creation from real API response."""
         # Get real API data and test the model parsing
         account = await client.get_riot_account("bexli", "bex")
@@ -41,7 +45,7 @@ class TestRiotAccount:
         )
 
         with pytest.raises(AttributeError):
-            account.puuid = "new-puuid"
+            account.puuid = "new-puuid"  # type: ignore[misc]
 
 
 class TestSummoner:
@@ -61,7 +65,7 @@ class TestSummoner:
         assert summoner.puuid == "test-puuid"
         assert summoner.summoner_level == 150
 
-    async def test_summoner_from_api_response(self, client) -> None:
+    async def test_summoner_from_api_response(self, client: "NexarClient") -> None:
         """Test Summoner creation from real API response."""
         # Use hardcoded PUUID to reduce API calls during testing
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
@@ -83,4 +87,4 @@ class TestSummoner:
         )
 
         with pytest.raises(AttributeError):
-            summoner.puuid = "new-puuid"
+            summoner.puuid = "new-puuid"  # type: ignore[misc]

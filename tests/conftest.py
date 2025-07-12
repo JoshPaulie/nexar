@@ -5,7 +5,7 @@ import os
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from types import TracebackType
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import pytest_asyncio
@@ -23,7 +23,7 @@ def pytest_configure(config: pytest.Config) -> None:
 def mock_responses() -> dict[str, Any]:
     """Load mock responses from JSON file."""
     mock_file = Path("tests/mock_responses.json")
-    return json.loads(mock_file.read_text())
+    return cast("dict[str, Any]", json.loads(mock_file.read_text()))
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ class MockResponse:
 
     def __init__(
         self,
-        json_data: dict[str, Any],
+        json_data: dict[str, Any] | list[dict[str, Any]] | list[str],
         *,
         status: int = 200,
         from_cache: bool = False,
@@ -51,7 +51,7 @@ class MockResponse:
         self.status = status
         self.from_cache = from_cache
 
-    async def json(self) -> dict[str, Any]:
+    async def json(self) -> dict[str, Any] | list[dict[str, Any]] | list[str]:
         """Return JSON data."""
         return self.json_data
 
@@ -103,7 +103,7 @@ async def client(
         endpoint: str,
         region: RegionV4 | RegionV5,
         params: dict[str, Any] | None = None,  # noqa: ARG001
-    ) -> dict[str, Any]:
+    ) -> Any:  # noqa: ANN401
         """Mock API call that returns predefined responses."""
         url = f"https://{region.value}.api.riotgames.com{endpoint}"
         mock_response = get_mock_response(url)
