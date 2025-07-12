@@ -41,8 +41,8 @@ class NexarClient:
     def __init__(
         self,
         riot_api_key: str,
-        default_v4_region: RegionV4,
-        default_v5_region: RegionV5,
+        default_v4_region: RegionV4 | None = None,
+        default_v5_region: RegionV5 | None = None,
         cache_config: CacheConfig | None = None,
         rate_limiter: RateLimiter | None = None,
     ) -> None:
@@ -371,6 +371,9 @@ class NexarClient:
 
         """
         region = region or self.default_v5_region
+        if region is None:
+            msg = "A v5 region must be provided either as a default in the client or as an argument to this method."
+            raise ValueError(msg)
         data = await self._make_api_call(
             f"/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}",
             region=region,
@@ -395,6 +398,9 @@ class NexarClient:
 
         """
         region = region or self.default_v4_region
+        if region is None:
+            msg = "A v4 region must be provided either as a default in the client or as an argument to this method."
+            raise ValueError(msg)
         data = await self._make_api_call(
             f"/lol/summoner/v4/summoners/by-puuid/{puuid}",
             region=region,
@@ -419,6 +425,9 @@ class NexarClient:
 
         """
         region = region or self.default_v4_region
+        if region is None:
+            msg = "A v4 region must be provided either as a default in the client or as an argument to this method."
+            raise ValueError(msg)
         data = await self._make_api_call(
             f"/lol/league/v4/entries/by-puuid/{puuid}",
             region=region,
@@ -441,13 +450,16 @@ class NexarClient:
 
         """
         region = region or self.default_v5_region
+        if region is None:
+            msg = "A v5 region must be provided either as a default in the client or as an argument to this method."
+            raise ValueError(msg)
         data = await self._make_api_call(
             f"/lol/match/v5/matches/{match_id}",
             region=region,
         )
         return Match.from_api_response(data)
 
-    async def get_match_ids_by_puuid(
+    async def get_match_ids_by_puuid(  # noqa: C901
         self,
         puuid: str,
         *,
@@ -481,6 +493,9 @@ class NexarClient:
             raise ValueError(msg)
 
         region = region or self.default_v5_region
+        if region is None:
+            msg = "A v5 region must be provided either as a default in the client or as an argument to this method."
+            raise ValueError(msg)
 
         # Convert datetime objects to epoch timestamps
         start_timestamp = None
