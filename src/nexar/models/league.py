@@ -94,20 +94,21 @@ class LeagueEntry:
     @property
     def rank_tuple(self) -> tuple[int, int]:
         """Returns (tier_index, league_points) for easy sorting by rank."""
-        tier_order = list(RankTier)
-        rank_order = list(RankDivision)
-        tier_index = tier_order.index(self.tier)
+        all_tiers = list(RankTier)
+        all_divisions = list(RankDivision)
+        tier_index = all_tiers.index(self.tier)
 
         # For Master+ tiers, rank is always Division.I
         if self.tier in {RankTier.MASTER, RankTier.GRANDMASTER, RankTier.CHALLENGER}:
-            rank_index = 0
+            # Master+ tiers do not have divisions, so assign a division_score higher than any division
+            division_score = len(all_divisions)  # This will be 4, higher than 0-3 for divisions
         else:
             # Reverse the division index: I=0, II=1, III=2, IV=3 (I is highest)
-            rank_index = len(rank_order) - 1 - rank_order.index(self.division)
+            division_score = len(all_divisions) - 1 - all_divisions.index(self.division)
 
         # Combine tier and division into a single rank value, then add LP
-        rank_value = tier_index * len(rank_order) + rank_index
-        return (rank_value, self.league_points)
+        tier_division_score = tier_index * (len(all_divisions) + 1) + division_score
+        return (tier_division_score, self.league_points)
 
     def is_higher_rank_than(self, other: "LeagueEntry") -> bool:
         """Compare if this entry has a higher rank than another."""
