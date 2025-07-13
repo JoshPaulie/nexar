@@ -7,7 +7,6 @@ import pytest
 from nexar import (
     NexarClient,
     NotFoundError,
-    RateLimit,
     RateLimiter,
     RegionV4,
     RegionV5,
@@ -36,7 +35,7 @@ class TestNexarClient:
 
     def test_client_initialization_with_rate_limiter(self, riot_api_key: str) -> None:
         """Test client initializes with custom rate limiter."""
-        custom_rate_limiter = RateLimiter([RateLimit(requests=5, window_seconds=10)])
+        custom_rate_limiter = RateLimiter()
 
         client = NexarClient(
             riot_api_key=riot_api_key,
@@ -56,22 +55,20 @@ class TestNexarClient:
         )
 
         assert client.rate_limiter is not None
-        assert len(client.rate_limiter.rate_limits) == 2
-        assert client.rate_limiter.rate_limits[0].requests == 20
-        assert client.rate_limiter.rate_limits[0].window_seconds == 1
-        assert client.rate_limiter.rate_limits[1].requests == 100
-        assert client.rate_limiter.rate_limits[1].window_seconds == 120
+        status = client.rate_limiter.get_status()
+        assert "limit_20_1s" in status
+        assert "limit_100_120s" in status
 
     def test_get_rate_limit_status(self, client: "NexarClient") -> None:
         """Test rate limit status retrieval."""
         status = client.get_rate_limit_status()
 
-        assert "limit_1" in status
-        assert "limit_2" in status
-        assert status["limit_1"]["requests"] == 20
-        assert status["limit_1"]["window_seconds"] == 1
-        assert status["limit_2"]["requests"] == 100
-        assert status["limit_2"]["window_seconds"] == 120
+        assert "limit_20_1s" in status
+        assert "limit_100_120s" in status
+        assert status["limit_20_1s"]["requests"] == 20
+        assert status["limit_20_1s"]["window_seconds"] == 1
+        assert status["limit_100_120s"]["requests"] == 100
+        assert status["limit_100_120s"]["window_seconds"] == 120
 
     def test_reset_rate_limiter(self, client: "NexarClient") -> None:
         """Test rate limiter reset functionality."""
@@ -82,8 +79,8 @@ class TestNexarClient:
         status_after = client.get_rate_limit_status()
 
         # Should have fresh state
-        assert status_after["limit_1"]["current_usage"] == 0
-        assert status_after["limit_2"]["current_usage"] == 0
+        assert "limit_20_1s" in status_after
+        assert "limit_100_120s" in status_after
 
     async def test_get_riot_account_success(self, client: "NexarClient") -> None:
         """Test successful riot account retrieval."""
