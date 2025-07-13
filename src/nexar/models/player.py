@@ -6,7 +6,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from nexar.enums import QueueId
+from nexar.enums import Queue
 
 from .match_list import MatchList
 
@@ -172,7 +172,7 @@ class Player:
         *,
         start_time: int | datetime | None = None,
         end_time: int | datetime | None = None,
-        queue: QueueId | int | None = None,
+        queue: Queue | int | None = None,
         match_type: MatchType | str | None = None,
         start: int = 0,
         count: int = 20,
@@ -208,7 +208,7 @@ class Player:
         *,
         start_time: int | datetime | None = None,
         end_time: int | datetime | None = None,
-        queue: QueueId | int | None = None,
+        queue: Queue | int | None = None,
         match_type: MatchType | str | None = None,
         start: int = 0,
         count: int = 20,
@@ -278,7 +278,7 @@ class Player:
         """
         league_entries = await self.get_league_entries()
         for entry in league_entries:
-            if entry.queue_type == QueueId.RANKED_SOLO_5x5:
+            if entry.queue_type == Queue.RANKED_SOLO_5x5:
                 return entry
         return None
 
@@ -296,7 +296,7 @@ class Player:
         """
         league_entries = await self.get_league_entries()
         for entry in league_entries:
-            if entry.queue_type == QueueId.RANKED_FLEX_SR:
+            if entry.queue_type == Queue.RANKED_FLEX_SR:
                 return entry
         return None
 
@@ -321,7 +321,7 @@ class Player:
         self,
         top_n: int = 5,
         count: int = 20,
-        queue: QueueId | int | None = None,
+        queue: Queue | int | None = None,
         match_type: MatchType | str | None = None,
     ) -> list[ChampionStats]:
         """
@@ -348,7 +348,7 @@ class Player:
     async def get_recent_performance_by_role(
         self,
         count: int = 50,
-        queue: QueueId | int | None = None,
+        queue: Queue | int | None = None,
     ) -> dict[str, dict[str, Any]]:
         """
         Get performance statistics grouped by role.

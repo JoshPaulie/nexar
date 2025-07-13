@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from .participant_list import ParticipantList
     from .team import Team
 
-from nexar.enums import MapId, PlatformId, QueueId
+from nexar.enums import MapId, PlatformId, Queue
 
 # Team ID constants
 BLUE_TEAM_ID: int = 100
@@ -72,7 +72,7 @@ class MatchInfo:
     platform_id: PlatformId
     """Platform where the match was played."""
 
-    queue_id: QueueId
+    queue_id: Queue
     """Queue identifier."""
 
     participants: "ParticipantList"
@@ -118,7 +118,7 @@ class MatchInfo:
             game_version=data["gameVersion"],
             map_id=MapId(data["mapId"]),
             platform_id=PlatformId(data["platformId"]),
-            queue_id=QueueId(data["queueId"]),
+            queue_id=Queue(data["queueId"]),
             participants=ParticipantList(
                 Participant.from_api_response(participant) for participant in data["participants"]
             ),

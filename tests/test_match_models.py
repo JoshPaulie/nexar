@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from nexar.enums import MapId, MatchParticipantPosition, PlatformId, QueueId
+from nexar.enums import MapId, MatchParticipantPosition, PlatformId, Queue
 from nexar.models import (
     Ban,
     Challenges,
@@ -284,7 +284,7 @@ class TestMatchModels:
             game_version="14.1.1",
             map_id=MapId.SUMMONERS_RIFT,
             platform_id=PlatformId.NA1,
-            queue_id=QueueId.RANKED_SOLO_5x5,
+            queue_id=Queue.RANKED_SOLO_5x5,
             participants=ParticipantList([blue_participant, red_participant]),
             teams=[],
         )

@@ -85,7 +85,7 @@ class RankDivision(Enum):
         return self.value
 
 
-class QueueId(Enum):
+class Queue(Enum):
     """
     Queue IDs for different game modes.
 
@@ -166,13 +166,27 @@ class QueueId(Enum):
     """5v5 Ranked Dynamic games (Game mode deprecated in patch 6.22)"""
 
     RANKED_SOLO_5x5 = 420
-    """5v5 Ranked Solo games"""
+    """
+    5v5 Ranked Solo games
+
+    Colloquially known as 'Solo Queue'
+    """
+
+    SOLO_QUEUE = RANKED_SOLO_5x5
+    """Alias for RANKED_SOLO_5x5"""
 
     BLIND_PICK = 430
     """5v5 Blind Pick games"""
 
     RANKED_FLEX_SR = 440
-    """5v5 Ranked Flex games"""
+    """
+    5v5 Ranked Flex games
+
+    Colloquially known as 'Flex Queue'
+    """
+
+    FLEX_QUEUE = RANKED_FLEX_SR
+    """Alias for RANKED_FLEX_SR"""
 
     ARAM = 450
     """5v5 ARAM games"""
@@ -294,7 +308,7 @@ class QueueId(Enum):
         return self.value in {420, 440}
 
     @classmethod
-    def get_ranked_queues(cls) -> tuple["QueueId", "QueueId"]:
+    def get_ranked_queues(cls) -> tuple["Queue", "Queue"]:
         """Get the ranked queue IDs."""
         return (cls.RANKED_SOLO_5x5, cls.RANKED_FLEX_SR)
 

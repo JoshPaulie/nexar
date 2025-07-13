@@ -3,7 +3,7 @@
 from datetime import UTC
 from typing import TYPE_CHECKING
 
-from nexar import ChampionStats, PerformanceStats, Player, QueueId
+from nexar import ChampionStats, PerformanceStats, Player, Queue
 
 if TYPE_CHECKING:
     from nexar.client import NexarClient
@@ -95,13 +95,14 @@ class TestPlayer:
             assert hasattr(match, "metadata")
 
     async def test_player_get_recent_matches_with_filters(
-        self, real_client: "NexarClient",
+        self,
+        real_client: "NexarClient",
     ) -> None:
         """Test getting recent matches with various filters."""
         player = await real_client.get_player("bexli", "bex")
 
         # Test with queue filter
-        matches = await player.get_matches(count=10, queue=QueueId.RANKED_SOLO_5x5)
+        matches = await player.get_matches(count=10, queue=Queue.RANKED_SOLO_5x5)
         assert isinstance(matches, list)
         assert len(matches) <= 10
 
@@ -168,7 +169,8 @@ class TestPlayer:
         assert "bex" in repr_repr
 
     async def test_player_get_performance_summary(
-        self, real_client: "NexarClient",
+        self,
+        real_client: "NexarClient",
     ) -> None:
         """Test getting performance summary."""
         player = await real_client.get_player("bexli", "bex")
@@ -192,7 +194,8 @@ class TestPlayer:
         assert summary.wins + summary.losses == summary.total_games
 
     async def test_player_get_performance_summary_with_filters(
-        self, real_client: "NexarClient",
+        self,
+        real_client: "NexarClient",
     ) -> None:
         """Test getting performance summary with queue and match type filters."""
         player = await real_client.get_player("bexli", "bex")
@@ -218,7 +221,8 @@ class TestPlayer:
         assert isinstance(win_streak, bool)
 
     async def test_player_get_recent_performance_by_role(
-        self, real_client: "NexarClient",
+        self,
+        real_client: "NexarClient",
     ) -> None:
         """Test getting performance statistics by role."""
         player = await real_client.get_player("bexli", "bex")
@@ -233,16 +237,17 @@ class TestPlayer:
             assert "win_rate" in stats
 
     async def test_player_get_recent_performance_by_role_with_queue(
-        self, real_client: "NexarClient",
+        self,
+        real_client: "NexarClient",
     ) -> None:
         """Test getting role performance with queue filter."""
         player = await real_client.get_player("bexli", "bex")
 
-        from nexar.enums import QueueId
+        from nexar.enums import Queue
 
         role_performance = await player.get_recent_performance_by_role(
             count=5,
-            queue=QueueId.RANKED_SOLO_5x5,
+            queue=Queue.RANKED_SOLO_5x5,
         )
         assert isinstance(role_performance, dict)
 
@@ -279,7 +284,8 @@ class TestPlayer:
         assert player.v5_region == RegionV5.EUROPE
 
     async def test_player_with_regions_fallback_to_defaults(
-        self, client: "NexarClient",
+        self,
+        client: "NexarClient",
     ) -> None:
         """Test Player falls back to client defaults when no regions specified."""
         player = await Player.create(
@@ -293,7 +299,8 @@ class TestPlayer:
         assert player.v5_region is None
 
     async def test_player_performance_summary_minimal_count(
-        self, real_client: "NexarClient",
+        self,
+        real_client: "NexarClient",
     ) -> None:
         """Test performance summary with minimal match count."""
         player = await real_client.get_player("bexli", "bex")
@@ -305,12 +312,13 @@ class TestPlayer:
         assert summary.total_games >= 0
 
     async def test_champion_stats_with_queue_filter(
-        self, real_client: "NexarClient",
+        self,
+        real_client: "NexarClient",
     ) -> None:
         """Test champion stats with queue filter."""
         player = await real_client.get_player("bexli", "bex")
 
-        matches = await player.get_matches(count=20, queue=QueueId.RANKED_SOLO_5x5)
+        matches = await player.get_matches(count=20, queue=Queue.RANKED_SOLO_5x5)
         stats = matches.get_champion_stats()
         assert isinstance(stats, list)
 
@@ -318,7 +326,8 @@ class TestPlayer:
             assert isinstance(stat, ChampionStats)
 
     async def test_champion_stats_with_match_type_filter(
-        self, real_client: "NexarClient",
+        self,
+        real_client: "NexarClient",
     ) -> None:
         """Test champion stats with match type filter."""
         player = await real_client.get_player("bexli", "bex")
@@ -340,7 +349,8 @@ class TestPlayer:
         assert len(top_champions) <= 1
 
     async def test_player_methods_with_datetime_filters(
-        self, real_client: "NexarClient",
+        self,
+        real_client: "NexarClient",
     ) -> None:
         """Test Player methods that accept datetime filters."""
         from datetime import datetime, timedelta

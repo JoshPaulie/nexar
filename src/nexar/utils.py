@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 
-from nexar.enums import QueueId
+from nexar.enums import Queue
 from nexar.models.player import Player
 
 
@@ -10,7 +10,7 @@ async def sort_players_by_rank(
     players: Sequence[Player],
     *,
     descending: bool = True,
-    ranked_queue_type: QueueId = QueueId.RANKED_SOLO_5x5,
+    ranked_queue_type: Queue = Queue.RANKED_SOLO_5x5,
 ) -> list[Player]:
     """
     Return a list of Player objects sorted by their ranked queue rank.
@@ -35,9 +35,9 @@ async def sort_players_by_rank(
 
     async def get_league_entry(player: Player) -> LeagueEntry | None:
         """Get the league entry for the specified queue type."""
-        if ranked_queue_type == QueueId.RANKED_SOLO_5x5:
+        if ranked_queue_type == Queue.RANKED_SOLO_5x5:
             return await player.get_solo_rank()
-        if ranked_queue_type == QueueId.RANKED_FLEX_SR:
+        if ranked_queue_type == Queue.RANKED_FLEX_SR:
             return await player.get_flex_rank()
 
         msg = f"Invalid queue_type: {ranked_queue_type}. Must be QueueId.RANKED_SOLO_5x5 or QueueId.RANKED_FLEX_SR."

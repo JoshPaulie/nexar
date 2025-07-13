@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from nexar.enums import QueueId, RankDivision, RankTier
+from nexar.enums import Queue, RankDivision, RankTier
 
 
 @dataclass(frozen=True)
@@ -46,7 +46,7 @@ class LeagueEntry:
     puuid: str
     """Player's universally unique identifier."""
 
-    queue_type: QueueId
+    queue_type: Queue
     """Type of ranked queue."""
 
     tier: RankTier
@@ -142,8 +142,8 @@ class LeagueEntry:
         """Create LeagueEntry from API response."""
         # Map string queue types from API to QueueId enums
         queue_type_mapping = {
-            "RANKED_SOLO_5x5": QueueId.RANKED_SOLO_5x5,
-            "RANKED_FLEX_SR": QueueId.RANKED_FLEX_SR,
+            "RANKED_SOLO_5x5": Queue.RANKED_SOLO_5x5,
+            "RANKED_FLEX_SR": Queue.RANKED_FLEX_SR,
         }
 
         queue_type_str = data["queueType"]

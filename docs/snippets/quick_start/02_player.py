@@ -70,7 +70,7 @@ async def main() -> None:
         # --8<-- [end:get-ranks]
 
         # --8<-- [start:get-matches]
-        from nexar.enums import QueueId
+        from nexar.enums import Queue
 
         # Get player's last match
         last_match = await player.get_last_match()
@@ -78,13 +78,13 @@ async def main() -> None:
         # Get player's recent draft pick matches
         last_10_draft_matches = await player.get_matches(
             count=10,
-            queue=QueueId.DRAFT_PICK,
+            queue=Queue.DRAFT_PICK,
         )
         # --8<-- [end:get-matches]
 
         # --8<-- [start:champ-metrics]
-        # Get recent champion performance
-        recent_champion = await player.get_champion_stats()  # By default, check the last 20 games
+        # Get recent champion performance from matches
+        recent_champion = last_10_draft_matches.get_champion_stats()
         if recent_champion:
             for stat in recent_champion:
                 print(f"Average KDA with {stat.champion_name}: {stat.avg_kda:.2f}")

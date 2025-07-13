@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from pytest_mock import MockerFixture
 
-from nexar.enums import QueueId, RankDivision, RankTier
+from nexar.enums import Queue, RankDivision, RankTier
 from nexar.models.league import LeagueEntry
 from nexar.models.player import Player
 from nexar.utils import sort_players_by_rank
@@ -33,7 +33,7 @@ class TestSortPlayersByRank:
         gold_rank = LeagueEntry(
             league_id="test-league-1",
             puuid="puuid1",
-            queue_type=QueueId.RANKED_SOLO_5x5,
+            queue_type=Queue.RANKED_SOLO_5x5,
             tier=RankTier.GOLD,
             division=RankDivision.TWO,
             league_points=50,
@@ -58,7 +58,7 @@ class TestSortPlayersByRank:
         diamond_rank = LeagueEntry(
             league_id="test-league-2",
             puuid="puuid2",
-            queue_type=QueueId.RANKED_SOLO_5x5,
+            queue_type=Queue.RANKED_SOLO_5x5,
             tier=RankTier.DIAMOND,
             division=RankDivision.ONE,
             league_points=75,
@@ -94,7 +94,7 @@ class TestSortPlayersByRank:
         silver_rank = LeagueEntry(
             league_id="test-league-4",
             puuid="puuid4",
-            queue_type=QueueId.RANKED_SOLO_5x5,
+            queue_type=Queue.RANKED_SOLO_5x5,
             tier=RankTier.SILVER,
             division=RankDivision.THREE,
             league_points=25,
@@ -137,7 +137,7 @@ class TestSortPlayersByRank:
         flex_rank = LeagueEntry(
             league_id="test-league-flex",
             puuid="puuid1",
-            queue_type=QueueId.RANKED_FLEX_SR,
+            queue_type=Queue.RANKED_FLEX_SR,
             tier=RankTier.PLATINUM,
             division=RankDivision.FOUR,
             league_points=88,
@@ -152,7 +152,7 @@ class TestSortPlayersByRank:
 
         sorted_players = await sort_players_by_rank(
             mock_players,
-            ranked_queue_type=QueueId.RANKED_FLEX_SR,
+            ranked_queue_type=Queue.RANKED_FLEX_SR,
         )
 
         # Only one player has flex rank, so they should be first
@@ -162,7 +162,7 @@ class TestSortPlayersByRank:
     async def test_sort_players_invalid_queue_type(self, mock_players: list[Player]) -> None:
         """Test that invalid queue type raises ValueError."""
         with pytest.raises(ValueError, match="Invalid queue_type"):
-            await sort_players_by_rank(mock_players, ranked_queue_type=QueueId.QUICKPLAY)
+            await sort_players_by_rank(mock_players, ranked_queue_type=Queue.QUICKPLAY)
 
     async def test_sort_players_empty_list(self) -> None:
         """Test sorting an empty list of players."""

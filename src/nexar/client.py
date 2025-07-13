@@ -11,7 +11,7 @@ import aiohttp
 from aiohttp_client_cache.session import CachedSession
 
 from .cache import DEFAULT_CACHE_CONFIG, CacheConfig, create_cache_backend
-from .enums import MatchType, QueueId, RegionV4, RegionV5
+from .enums import MatchType, Queue, RegionV4, RegionV5
 from .exceptions import (
     ForbiddenError,
     NotFoundError,
@@ -465,7 +465,7 @@ class NexarClient:
         *,
         start_time: int | datetime | None = None,
         end_time: int | datetime | None = None,
-        queue: QueueId | int | None = None,
+        queue: Queue | int | None = None,
         match_type: MatchType | str | None = None,
         start: int = 0,
         count: int = 20,
@@ -513,7 +513,7 @@ class NexarClient:
         if end_timestamp is not None:
             params["endTime"] = end_timestamp
         if queue is not None:
-            params["queue"] = queue.value if isinstance(queue, QueueId) else queue
+            params["queue"] = queue.value if isinstance(queue, Queue) else queue
         if match_type is not None:
             params["type"] = match_type.value if isinstance(match_type, MatchType) else match_type
         if start != 0:
