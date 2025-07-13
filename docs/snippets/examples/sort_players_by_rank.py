@@ -43,11 +43,14 @@ async def main() -> None:
         sorted_players = await sort_players_by_rank(players)
 
         # Print them!
-        for player in players:
-            rank = await player.get_solo_rank()
-            rank_text = f"{rank.tier} {rank.division} ({rank.league_points} LP)" if rank else "Unranked!"
+        for player in sorted_players:
+            solo_rank = await player.get_solo_rank()
+            rank_text = (
+                f"{solo_rank.tier} {solo_rank.division:<3} ({solo_rank.league_points} LP)"
+                if solo_rank  # Handle unranked
+                else "Unranked!"
+            )
             print(f"{player.game_name:<12} :: {rank_text}")
-
         # --8<-- [end:demo]
 
 
