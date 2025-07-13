@@ -191,6 +191,15 @@ class Queue(Enum):
     ARAM = 450
     """5v5 ARAM games"""
 
+    NORMAL_3X3 = 460
+    """3v3 Blind Pick games"""
+
+    RANKED_3X3 = 470
+    """3v3 Ranked Flex games"""
+
+    SWIFTPLAY = 480
+    """Swiftplay games"""
+
     QUICKPLAY = 490
     """Normal (Quickplay)"""
 

@@ -237,12 +237,10 @@ class Player:
             count=count,
         )
 
-        # Fetch all matches concurrently
-
-        async def fetch_match(match_id: str) -> Match:
-            return await self.client.get_match(match_id, region=self.v5_region)
-
-        matches = await asyncio.gather(*[fetch_match(match_id) for match_id in match_ids])
+        matches: list[Match] = []
+        for match_id in match_ids:
+            match = await self.client.get_match(match_id, region=self.v5_region)
+            matches.append(match)
         return MatchList(matches, self.riot_account.puuid)
 
     async def get_last_match(self) -> Match | None:

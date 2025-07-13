@@ -40,7 +40,7 @@ from .models import (
     TeamInfo,
     TeamsInfo,
 )
-from .rate_limiter import RateLimit, RateLimiter
+from .rate_limiter import RateLimiter
 
 __version__ = "0.1.0"
 
@@ -68,7 +68,6 @@ __all__ = [
     "Queue",
     "RankDivision",
     "RankTier",
-    "RateLimit",
     "RateLimitError",
     "RateLimiter",
     "RegionV4",

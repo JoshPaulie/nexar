@@ -160,22 +160,8 @@ class NexarClient:
         }
 
         try:
-            # Check if this request would be served from cache
-            is_cached = False
-            if isinstance(self._session, CachedSession) and hasattr(self._session, "cache") and self._session.cache:
-                try:
-                    # For aiohttp-client-cache, we'll check if cache exists differently
-                    # This is a simplified approach - the actual implementation may vary
-                    # Most cache implementations have a contains check
-                    is_cached = False  # For now, always apply rate limiting
-                except (AttributeError, KeyError, TypeError) as exc:
-                    # If cache check fails, assume not cached and apply rate limiting
-                    self._logger.logger.debug("Cache check failed: %s", exc)
-                    is_cached = False
-
-            if not is_cached:
-                # Apply rate limiting for actual API calls
-                await self.rate_limiter.async_wait_if_needed()
+            # Apply rate limiting for actual API calls
+            await self.rate_limiter.async_wait_if_needed()
 
             # Make the request (cached or not)
             if self._session is None:
@@ -186,10 +172,8 @@ class NexarClient:
                 headers=headers,
                 params=params,
             ) as response:
-                # Record the request only if it wasn't served from cache
+                # Check if this request was served from cache
                 from_cache = getattr(response, "from_cache", False)
-                if not from_cache:
-                    self.rate_limiter.record_request()
 
                 await self._handle_response_errors(response)
 
@@ -214,14 +198,9 @@ class NexarClient:
                 return response_data  # type: ignore[no-any-return]
 
         except aiohttp.ClientError as e:
-            # Record failed actual requests (ClientError means network/HTTP error)
-            self.rate_limiter.record_request()
             self._logger.log_api_call_error(e)
             raise RiotAPIError(0, f"Request failed: {e}") from e
         except (RateLimitError, RiotAPIError) as e:
-            # These exceptions come after we have a response
-            # Record the request attempt
-            self.rate_limiter.record_request()
             self._logger.log_api_call_error(e)
             raise
 

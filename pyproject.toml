@@ -10,6 +10,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.13",
     "aiohttp-client-cache[all,sqlite]>=0.13.0",
+    "aiolimiter>=1.2.1",
     "pytest-mock>=3.14.1",
 ]
 
