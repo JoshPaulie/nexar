@@ -4,7 +4,7 @@ import sys
 
 from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
-from nexar.enums import RegionV4, RegionV5
+from nexar.enums import RegionV4, RegionV5, Queue
 
 # Get API key from environment
 api_key = os.getenv("RIOT_API_KEY")
@@ -19,25 +19,27 @@ client = NexarClient(
 )
 
 
-# --8<-- [start:demo]
 async def main() -> None:
-    """Example of champion performance method."""
     async with client:
+        # --8<-- [start:demo]
+        import datetime as dt
+
         # Get player
         player = await client.get_player("bexli", "bex")
 
-        # Get recent matches
+        # Get last 20 matches
         matches = await player.get_matches()
 
-        champ_performance = matches.get_champion_stats()
-        for champ in champ_performance:
-            print(champ.champion_name)
-            print(f"{champ.wins} wins / {champ.losses} losses ({champ.win_rate:.2g}%)")
-            kda = f"{champ.avg_kills:.2g}/{champ.avg_deaths:.2g}/{champ.avg_assists:.2g}"
-            print(f"Average KDA: {kda} ({champ.avg_kda:.2g})\n")
+        # Get last 5 solo queue matches
+        matches = await player.get_matches(count=5, queue=Queue.SOLO_QUEUE)
 
+        # Get last week's matches
+        past_week = dt.datetime.now(tz=dt.UTC) - dt.timedelta(days=7)
+        past_week_matches = await player.get_matches(start_time=past_week)
 
-# --8<-- [end:demo]
+        # Get last match
+        last_match = await player.get_last_match()
+        # --8<-- [end:demo]
 
 
 if __name__ == "__main__":

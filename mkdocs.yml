@@ -26,16 +26,20 @@ theme:
     - navigation.top # Back to top button
 
 nav:
-  - Home: index.md
-  - Quick Start: quick_start.md
+  - Home:
+      - Home: index.md
+      - Quick Start: quick_start.md
   - Features:
       - Caching: client-features/caching.md
       - Rate limiting: client-features/rate-limiting.md
       - Debugging API Responses: client-features/debug-responses.md
   - Examples:
       - Batch Players: examples/batch_players.md
-      - Player Performance: examples/player_performance.md
-      - Champion Performance: examples/champ_performance.md
+      - Sort Players by Rank: examples/soft_players_by_rank.md
+      - Match history:
+          - Match History: examples/match_history.md
+          - Player Performance: examples/player_performance.md
+          - Champion Performance: examples/champ_performance.md
   - Reference:
       - Client: reference/client.md
       - Models:

@@ -19,38 +19,36 @@ client = NexarClient(
 )
 
 
-# --8<-- [start:demo]
 async def main() -> None:
-    """Example of batch player retrieval using get_players method."""
     async with client:
-        # List of riot IDs to fetch
+        # --8<-- [start:demo]
+        from nexar.utils import sort_players_by_rank
+
+        # Get players
         riot_ids = [
             "bexli#bex",
             "mltsimpleton#na1",
+            "roninalex#na1",
+            "poydok#na1",
+            "boxrog#na1",
+            "vynle#na1",
         ]
 
-        print(f"Fetching {len(riot_ids)} players...")
+        print(f"Fetching {len(riot_ids)} players...\n")
 
         # Fetch all players in parallel
         players = await client.get_players(riot_ids)
 
-        print(f"Successfully retrieved {len(players)} players!\n")
+        # Players sorted by rank
+        sorted_players = await sort_players_by_rank(players)
 
+        # Print them!
+        for player in players:
+            rank = await player.get_solo_rank()
+            rank_text = f"{rank.tier} {rank.division} ({rank.league_points} LP)" if rank else "Unranked!"
+            print(f"{player.game_name:<12} :: {rank_text}")
 
-# --8<-- [end:demo]
-
-
-async def other_region_demo() -> None:
-    riot_ids: list[str] = []  # Imagine this is populated with Korean players
-
-    # --8<-- [start:regions]
-    async with client:
-        players = await client.get_players(
-            riot_ids,
-            v4_region=RegionV4.KR,
-            v5_region=RegionV5.ASIA,
-        )
-    # --8<-- [end:regions]
+        # --8<-- [end:demo]
 
 
 if __name__ == "__main__":

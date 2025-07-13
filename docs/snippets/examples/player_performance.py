@@ -1,5 +1,3 @@
-"""Demonstrate player performance statistics for a player's recent matches."""
-
 import asyncio
 import os
 import sys
