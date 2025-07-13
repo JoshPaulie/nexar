@@ -7,15 +7,14 @@ import pytest
 from nexar import (
     NexarClient,
     NotFoundError,
-    RateLimiter,
+    RateLimiterConfig,
     RegionV4,
     RegionV5,
     RiotAccount,
     Summoner,
 )
 
-if TYPE_CHECKING:
-    from nexar.client import NexarClient
+from nexar.client import NexarClient
 
 
 class TestNexarClient:
@@ -35,16 +34,19 @@ class TestNexarClient:
 
     def test_client_initialization_with_rate_limiter(self, riot_api_key: str) -> None:
         """Test client initializes with custom rate limiter."""
-        custom_rate_limiter = RateLimiter()
+        custom_config = RateLimiterConfig(per_second_limit=(5, 1), per_minute_limit=(25, 60))
 
         client = NexarClient(
             riot_api_key=riot_api_key,
             default_v4_region=RegionV4.NA1,
             default_v5_region=RegionV5.AMERICAS,
-            rate_limiter=custom_rate_limiter,
+            rate_limiter_config=custom_config,
         )
 
-        assert client.rate_limiter is custom_rate_limiter
+        assert client.rate_limiter.get_status()["per_second_limit"]["requests"] == 5
+        assert client.rate_limiter.get_status()["per_second_limit"]["window_seconds"] == 1
+        assert client.rate_limiter.get_status()["per_minute_limit"]["requests"] == 25
+        assert client.rate_limiter.get_status()["per_minute_limit"]["window_seconds"] == 60
 
     def test_client_default_rate_limiter(self, riot_api_key: str) -> None:
         """Test client uses default rate limiter when none provided."""
@@ -56,19 +58,18 @@ class TestNexarClient:
 
         assert client.rate_limiter is not None
         status = client.rate_limiter.get_status()
-        assert "limit_20_1s" in status
-        assert "limit_100_120s" in status
+        assert "per_second_limit" in status
+        assert "per_minute_limit" in status
 
     def test_get_rate_limit_status(self, client: "NexarClient") -> None:
         """Test rate limit status retrieval."""
         status = client.get_rate_limit_status()
 
-        assert "limit_20_1s" in status
-        assert "limit_100_120s" in status
-        assert status["limit_20_1s"]["requests"] == 20
-        assert status["limit_20_1s"]["window_seconds"] == 1
-        assert status["limit_100_120s"]["requests"] == 100
-        assert status["limit_100_120s"]["window_seconds"] == 120
+        assert "per_minute_limit" in status
+        assert status["per_second_limit"]["requests"] == 20
+        assert status["per_second_limit"]["window_seconds"] == 1
+        assert status["per_minute_limit"]["requests"] == 100
+        assert status["per_minute_limit"]["window_seconds"] == 60
 
     def test_reset_rate_limiter(self, client: "NexarClient") -> None:
         """Test rate limiter reset functionality."""
@@ -79,8 +80,8 @@ class TestNexarClient:
         status_after = client.get_rate_limit_status()
 
         # Should have fresh state
-        assert "limit_20_1s" in status_after
-        assert "limit_100_120s" in status_after
+        assert "per_second_limit" in status_after
+        assert "per_minute_limit" in status_after
 
     async def test_get_riot_account_success(self, client: "NexarClient") -> None:
         """Test successful riot account retrieval."""
@@ -93,9 +94,7 @@ class TestNexarClient:
 
     async def test_get_riot_account_with_custom_region(self, client: "NexarClient") -> None:
         """Test riot account retrieval with custom region."""
-        result = await client.get_riot_account(
-            "bexli", "bex", region=RegionV5.AMERICAS
-        )
+        result = await client.get_riot_account("bexli", "bex", region=RegionV5.AMERICAS)
 
         assert isinstance(result, RiotAccount)
         assert result.puuid is not None
@@ -148,7 +147,7 @@ class TestNexarClient:
         """Test get_players with invalid riot ID format."""
         invalid_riot_ids = ["bexli#bex", "invalid_format"]
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Invalid Riot ID format") as exc_info:
             await client.get_players(invalid_riot_ids)
 
         assert "Invalid Riot ID format" in str(exc_info.value)

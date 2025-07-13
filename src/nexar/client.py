@@ -21,7 +21,7 @@ from .exceptions import (
 )
 from .logging import get_logger
 from .models import LeagueEntry, Match, Player, RiotAccount, Summoner
-from .rate_limiter import RateLimiter
+from .rate_limiter import RateLimiter, RateLimiterConfig
 
 # HTTP status codes (module-level constants)
 HTTP_OK = 200
@@ -44,7 +44,7 @@ class NexarClient:
         default_v4_region: RegionV4 | None = None,
         default_v5_region: RegionV5 | None = None,
         cache_config: CacheConfig | None = None,
-        rate_limiter: RateLimiter | None = None,
+        rate_limiter_config: RateLimiterConfig | None = None,
     ) -> None:
         """
         Initialize the Nexar client.
@@ -54,14 +54,15 @@ class NexarClient:
             default_v4_region: Default region for platform-specific endpoints
             default_v5_region: Default region for regional endpoints
             cache_config: Cache configuration (uses default if None)
-            rate_limiter: Rate limiter configuration (uses default if None)
+            rate_limiter_config: Rate limiter configuration (uses default if None)
 
         """
         self.riot_api_key = riot_api_key
         self.default_v4_region = default_v4_region
         self.default_v5_region = default_v5_region
         self.cache_config = cache_config or DEFAULT_CACHE_CONFIG
-        self.rate_limiter = rate_limiter or RateLimiter.create_default()
+        self.rate_limiter_config = rate_limiter_config
+        self.rate_limiter = RateLimiter(config=self.rate_limiter_config)
         self._logger = get_logger()
 
         # API call tracking (always enabled, debug display is conditional)
@@ -230,8 +231,8 @@ class NexarClient:
         return self.rate_limiter.get_status()
 
     def reset_rate_limiter(self) -> None:
-        """Reset the rate limiter state."""
-        self.rate_limiter = RateLimiter.create_default()
+        """Reset the rate limiter state to the initial configuration."""
+        self.rate_limiter = RateLimiter(config=self.rate_limiter_config)
 
     def get_api_call_stats(self) -> dict[str, int]:
         """
