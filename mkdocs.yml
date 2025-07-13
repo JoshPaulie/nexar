@@ -51,7 +51,7 @@ nav:
   - Why not Nexar?: why-not-nexar.md
 
 markdown_extensions:
-  # "Callouts"
+  # "Admonitions" (Callouts)
   - admonition
   - pymdownx.details
   - pymdownx.superfences
@@ -65,6 +65,9 @@ markdown_extensions:
   - pymdownx.snippets:
       base_path: docs/snippets
       dedent_subsections: true
+  # Tabbed sections
+  - pymdownx.tabbed:
+      alternate_style: true
 
   # Tooltips
   - abbr

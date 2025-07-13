@@ -9,9 +9,23 @@ Here you set your Riot API key, pick a cache type (if any), and optionally set d
 
 1. Helpful for personal projects, where you're only pulling stats for yourself and friends.
 
-```py
--8<-- "quick_start/01_client_demo.py:declaration"
-```
+=== "Standard"
+
+    ```py
+    -8<-- "quick_start/01_client_demo.py:declaration"
+    ```
+
+=== "With default regions"
+
+    ```py
+    -8<-- "quick_start/01_client_demo.py:declaration-default-region"
+    ```
+
+=== "With smart cache"
+
+    ```py
+    -8<-- "quick_start/01_client_demo.py:declaration-smart-cache"
+    ```
 
 You can use the client in a couple of ways, but the most common will be:
 
