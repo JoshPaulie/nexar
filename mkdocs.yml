@@ -65,19 +65,18 @@ markdown_extensions:
   - pymdownx.snippets:
       base_path: docs/snippets
       dedent_subsections: true
-  - pymdownx.emoji:
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
-        # Tooltips
 
-        # Tooltips
-
+  # Tooltips
   - abbr
   - attr_list
 
   # Annotations
   - attr_list
   - md_in_html
+
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 plugins:
   - search
