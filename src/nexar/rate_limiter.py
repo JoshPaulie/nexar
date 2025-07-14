@@ -24,7 +24,9 @@ class RateLimiter:
         self._per_second_limit = per_second_limit
         self._per_minute_limit = per_minute_limit
         self._limiter_per_second = AsyncLimiter(*self._per_second_limit)
-        self._limiter_per_two_minutes = AsyncLimiter(*self._per_minute_limit)
+        self._limiter_per_two_minutes = AsyncLimiter(
+            self._per_minute_limit[0], self._per_minute_limit[1] * 60
+        )
         self._logger = get_logger()
 
         self._logger.logger.debug("Rate limiter initialized with aiolimiter.")
