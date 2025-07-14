@@ -19,8 +19,9 @@ class RateLimiter:
         Initialize rate limiter with Riot API limits.
 
         Args:
-            per_second_limit: (Requests, per second)
-            per_minute_limit: (Requests, per minute)
+            per_second_limit: Tuple of (max_requests, seconds). E.g., (20, 1) for max 20 requests per 1 second.
+            per_minute_limit: Tuple of (max_requests, minutes). E.g., (100, 2) for max 100 requests per 2 minutes.
+
         """
         self._per_second_limit = per_second_limit
         self._per_minute_limit = per_minute_limit

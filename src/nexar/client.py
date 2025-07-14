@@ -55,8 +55,8 @@ class NexarClient:
             default_v4_region: Default region for platform-specific endpoints
             default_v5_region: Default region for regional endpoints
             cache_config: Cache configuration (uses default if None)
-            per_second_limit: (Requests, per second) for rate limiting
-            per_minute_limit: (Requests, per minute) for rate limiting
+            per_second_limit: Tuple of (max_requests, seconds). E.g., (20, 1) for max 20 requests per 1 second.
+            per_minute_limit: Tuple of (max_requests, minutes). E.g., (100, 2) for max 100 requests per 2 minutes.
 
         """
         self.riot_api_key = riot_api_key
