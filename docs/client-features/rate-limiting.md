@@ -16,23 +16,7 @@ These are the standard Riot API limits for most applications.
 Rate limiting is enabled automatically when you create a `NexarClient`:
 
 ```python
-import asyncio
-from nexar.client import NexarClient
-from nexar.enums import RegionV4, RegionV5
-
-client = NexarClient(
-        riot_api_key="your_api_key",
-        default_v4_region=RegionV4.NA1,
-        default_v5_region=RegionV5.AMERICAS
-)
-
-async def main() -> None:
-    async with client:
-        # Rate limiting is automatically applied to all API calls
-        account = await client.get_riot_account("bexli", "bex")
-
-if __name__ == "__main__":
-    asyncio.run(main())
+-8<-- "client-features/rate_limiting.py:basic-usage"
 ```
 
 ## Custom Rate Limits
@@ -40,26 +24,7 @@ if __name__ == "__main__":
 You can configure custom rate limits if needed:
 
 ```python
-import asyncio
-from nexar.client import NexarClient
-from nexar.enums import RegionV4, RegionV5
-
-client = NexarClient(
-        riot_api_key="your_api_key",
-        default_v4_region=RegionV4.NA1,
-        default_v5_region=RegionV5.AMERICAS
-        per_second_limit=(1, 1), # Max of 1 request per second
-        per_minute_limit=(10, 5), # Max of 10 requests per 5 minutes
-)
-
-
-async def main() -> None:
-    async with client:
-        # Use client here
-        pass
-
-if __name__ == "__main__":
-    asyncio.run(main())
+-8<-- "client-features/rate_limiting.py:custom-rate-limits"
 ```
 
 ## How It Works
@@ -94,25 +59,5 @@ This means you can make the same API call repeatedly without worrying about rate
 
 ### Example
 ```python
-import asyncio
-from nexar import NexarClient, RegionV4, RegionV5
-
-async def main() -> None:
-    async with NexarClient(
-        riot_api_key="your_api_key",
-        default_v4_region=RegionV4.NA1,
-        default_v5_region=RegionV5.AMERICAS,
-    ) as client:
-        # First call - fresh request, counts against rate limits
-        account = await client.get_riot_account("bexli", "bex")  # Rate limited if needed
-
-        # Subsequent calls - cached, no rate limiting
-        account = await client.get_riot_account("bexli", "bex")  # Instant, no rate limit check
-        account = await client.get_riot_account("bexli", "bex")  # Instant, no rate limit check
-
-        # Different account - fresh request, rate limited
-        other = await client.get_riot_account("Doublelift", "NA1")  # Rate limited if needed
-
-if __name__ == "__main__":
-    asyncio.run(main())
+-8<-- "client-features/rate_limiting.py:rate-limiting-vs-caching"
 ```

@@ -1,7 +1,7 @@
 # Player performance
 
 ```py
--8<-- "examples/player_performance.py:demo"
+-8<-- "examples/all_examples.py:player-performance-demo"
 ```
 
 ## Available stats
