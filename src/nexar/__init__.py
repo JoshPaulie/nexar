@@ -70,7 +70,6 @@ __all__ = [
     "RankTier",
     "RateLimitError",
     "RateLimiter",
-    
     "RegionV4",
     "RegionV5",
     "RiotAPIError",
