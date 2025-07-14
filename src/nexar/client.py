@@ -170,20 +170,37 @@ class NexarClient:
             }
 
             try:
-                # Apply rate limiting for actual API calls
+                # Try cache lookup directly if using CachedSession
+                if isinstance(self._session, CachedSession) and hasattr(self._session, "cache"):
+                    cache = self._session.cache
+                    cache_key = cache.create_key("GET", url, params=params, headers=headers)
+                    cached_response = await cache.get_response(cache_key)
+                    if cached_response is not None:
+                        self._logger.log_api_call_success(cached_response.status, from_cache=True)
+                        response_data = await cached_response.json()
+                        # Debug: Print API response if environment variable is set
+                        if os.getenv("NEXAR_DEBUG_RESPONSES"):
+                            print(f"\n{'=' * 60}")
+                            print(f"DEBUG: API Response for {endpoint}")
+                            print(f"URL: {url}")
+                            print(f"Status: {cached_response.status}")
+                            print("From Cache: True")
+                            if params:
+                                print(f"Params: {params}")
+                            print("Response Data:")
+                            print(json.dumps(response_data, indent=2))
+                            print(f"{'=' * 60}\n")
+                        return response_data  # type: ignore[no-any-return]
+                # If not cached, do real request with rate limiting
+                if self._session is None:
+                    msg = "Session is not initialized."
+                    raise RuntimeError(msg)
                 async with self.rate_limiter.combined_limiters():
-                    # Make the request (cached or not)
-                    if self._session is None:
-                        msg = "Session is not initialized."
-                        raise RuntimeError(msg)
                     async with self._session.get(
                         url,
                         headers=headers,
                         params=params,
                     ) as response:
-                        # Check if this request was served from cache
-                        from_cache = getattr(response, "from_cache", False)
-
                         if response.status == HTTP_TOO_MANY_REQUESTS:
                             retry_after = response.headers.get("Retry-After")
                             wait_time = float(retry_after) if retry_after else 120.0
@@ -193,11 +210,11 @@ class NexarClient:
                             )
                             await asyncio.sleep(wait_time)
                             continue
-
                         await self._handle_response_errors(response)
-
                         # Log successful response
-                        self._logger.log_api_call_success(response.status, from_cache=from_cache)
+                        self._logger.log_api_call_success(
+                            response.status, from_cache=getattr(response, "from_cache", False)
+                        )
 
                         response_data = await response.json()
 
@@ -207,7 +224,7 @@ class NexarClient:
                             print(f"DEBUG: API Response for {endpoint}")
                             print(f"URL: {url}")
                             print(f"Status: {response.status}")
-                            print(f"From Cache: {from_cache}")
+                            print(f"From Cache: {getattr(response, 'from_cache', False)}")
                             if params:
                                 print(f"Params: {params}")
                             print("Response Data:")
@@ -542,6 +559,15 @@ class NexarClient:
         """
         # Import here to avoid circular imports
         from .models.player import Player
+
+        v4_region = v4_region or self.default_v4_region
+        v5_region = v5_region or self.default_v5_region
+        if v4_region is None or v5_region is None:
+            msg = (
+                "Both v4_region and v5_region must be provided either as defaults in the client "
+                "or as arguments to this method."
+            )
+            raise ValueError(msg)
 
         return await Player.create(
             client=self,
