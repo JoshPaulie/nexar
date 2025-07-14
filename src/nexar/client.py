@@ -21,7 +21,7 @@ from .exceptions import (
 )
 from .logging import get_logger
 from .models import LeagueEntry, Match, Player, RiotAccount, Summoner
-from .rate_limiter import RateLimiter, RateLimiterConfig
+from .rate_limiter import RateLimiter
 
 # HTTP status codes (module-level constants)
 HTTP_OK = 200
@@ -44,7 +44,8 @@ class NexarClient:
         default_v4_region: RegionV4 | None = None,
         default_v5_region: RegionV5 | None = None,
         cache_config: CacheConfig | None = None,
-        rate_limiter_config: RateLimiterConfig | None = None,
+        per_second_limit: tuple[int, int] = (20, 1),
+        per_minute_limit: tuple[int, int] = (100, 2),
     ) -> None:
         """
         Initialize the Nexar client.
@@ -54,15 +55,20 @@ class NexarClient:
             default_v4_region: Default region for platform-specific endpoints
             default_v5_region: Default region for regional endpoints
             cache_config: Cache configuration (uses default if None)
-            rate_limiter_config: Rate limiter configuration (uses default if None)
+            per_second_limit: (Requests, per second) for rate limiting
+            per_minute_limit: (Requests, per minute) for rate limiting
 
         """
         self.riot_api_key = riot_api_key
         self.default_v4_region = default_v4_region
         self.default_v5_region = default_v5_region
         self.cache_config = cache_config or DEFAULT_CACHE_CONFIG
-        self.rate_limiter_config = rate_limiter_config
-        self.rate_limiter = RateLimiter(config=self.rate_limiter_config)
+        self._per_second_limit = per_second_limit
+        self._per_minute_limit = per_minute_limit
+        self.rate_limiter = RateLimiter(
+            per_second_limit=self._per_second_limit,
+            per_minute_limit=self._per_minute_limit,
+        )
         self._logger = get_logger()
 
         # API call tracking (always enabled, debug display is conditional)
@@ -232,7 +238,10 @@ class NexarClient:
 
     def reset_rate_limiter(self) -> None:
         """Reset the rate limiter state to the initial configuration."""
-        self.rate_limiter = RateLimiter(config=self.rate_limiter_config)
+        self.rate_limiter = RateLimiter(
+            per_second_limit=self._per_second_limit,
+            per_minute_limit=self._per_minute_limit,
+        )
 
     def get_api_call_stats(self) -> dict[str, int]:
         """

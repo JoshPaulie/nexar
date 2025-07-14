@@ -7,7 +7,6 @@ import pytest
 from nexar import (
     NexarClient,
     NotFoundError,
-    RateLimiterConfig,
     RegionV4,
     RegionV5,
     RiotAccount,
@@ -34,19 +33,18 @@ class TestNexarClient:
 
     def test_client_initialization_with_rate_limiter(self, riot_api_key: str) -> None:
         """Test client initializes with custom rate limiter."""
-        custom_config = RateLimiterConfig(per_second_limit=(5, 1), per_minute_limit=(25, 60))
-
         client = NexarClient(
             riot_api_key=riot_api_key,
             default_v4_region=RegionV4.NA1,
             default_v5_region=RegionV5.AMERICAS,
-            rate_limiter_config=custom_config,
+            per_second_limit=(5, 1),
+            per_minute_limit=(25, 2),
         )
 
         assert client.rate_limiter.get_status()["per_second_limit"]["requests"] == 5
         assert client.rate_limiter.get_status()["per_second_limit"]["window_seconds"] == 1
         assert client.rate_limiter.get_status()["per_minute_limit"]["requests"] == 25
-        assert client.rate_limiter.get_status()["per_minute_limit"]["window_seconds"] == 60
+        assert client.rate_limiter.get_status()["per_minute_limit"]["window_seconds"] == 2
 
     def test_client_default_rate_limiter(self, riot_api_key: str) -> None:
         """Test client uses default rate limiter when none provided."""
@@ -69,7 +67,7 @@ class TestNexarClient:
         assert status["per_second_limit"]["requests"] == 20
         assert status["per_second_limit"]["window_seconds"] == 1
         assert status["per_minute_limit"]["requests"] == 100
-        assert status["per_minute_limit"]["window_seconds"] == 60
+        assert status["per_minute_limit"]["window_seconds"] == 2
 
     def test_reset_rate_limiter(self, client: "NexarClient") -> None:
         """Test rate limiter reset functionality."""
