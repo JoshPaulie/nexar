@@ -226,16 +226,6 @@ class NexarClient:
         self._api_call_count = 0
         self._logger.reset_stats()
 
-    def get_rate_limit_status(self) -> dict[str, Any]:
-        """
-        Get current rate limit status.
-
-        Returns:
-            Dictionary with current rate limit usage and remaining requests
-
-        """
-        return self.rate_limiter.get_status()
-
     def reset_rate_limiter(self) -> None:
         """Reset the rate limiter state to the initial configuration."""
         self.rate_limiter = RateLimiter(

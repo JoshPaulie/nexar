@@ -1,7 +1,5 @@
 """Rate limiting for Riot API requests."""
 
-from typing import Any
-
 from aiolimiter import AsyncLimiter
 
 from .logging import get_logger
@@ -35,25 +33,6 @@ class RateLimiter:
         """Wait if necessary to comply with rate limits."""
         async with self._limiter_per_second, self._limiter_per_two_minutes:
             self._logger.logger.debug("Rate limit check passed - proceeding with request.")
-
-    def get_status(self) -> dict[str, Any]:
-        """
-        Get current rate limiter status.
-
-        Note: aiolimiter does not expose current usage or remaining requests directly.
-        """
-        return {
-            "per_second_limit": {
-                "requests": self._per_second_limit[0],
-                "window_seconds": self._per_second_limit[1],
-                "note": "aiolimiter does not expose current usage directly.",
-            },
-            "per_minute_limit": {
-                "requests": self._per_minute_limit[0],
-                "window_seconds": self._per_minute_limit[1],
-                "note": "aiolimiter does not expose current usage directly.",
-            },
-        }
 
     @classmethod
     def create_default(cls) -> "RateLimiter":
