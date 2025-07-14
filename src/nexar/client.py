@@ -127,6 +127,7 @@ class NexarClient:
         endpoint: str,
         region: RegionV4 | RegionV5,
         params: dict[str, Any] | None = None,
+        max_retries: int = 5,
     ) -> dict[str, Any]:
         """
         Make an async API call to the Riot Games API.
@@ -135,6 +136,7 @@ class NexarClient:
             endpoint: The API endpoint path
             region: The region to use for the request
             params: Optional query parameters dict
+            max_retries: Number of times to retry on rate limit (429) errors
 
         Returns:
             JSON response from the API
@@ -143,73 +145,84 @@ class NexarClient:
             RiotAPIError: If the API returns an error status code
 
         """
-        await self._ensure_session()
+        for _ in range(max_retries):
+            await self._ensure_session()
 
-        # Always increment API call counter
-        self._api_call_count += 1
+            # Always increment API call counter
+            self._api_call_count += 1
 
-        # Log API call start
-        self._logger.log_api_call_start(
-            self._api_call_count,
-            endpoint,
-            region.value,
-            params,
-        )
+            # Log API call start
+            self._logger.log_api_call_start(
+                self._api_call_count,
+                endpoint,
+                region.value,
+                params,
+            )
 
-        # Construct the full URL with the region
-        url = f"https://{region.value}.api.riotgames.com{endpoint}"
+            # Construct the full URL with the region
+            url = f"https://{region.value}.api.riotgames.com{endpoint}"
 
-        # Set required headers for Riot API
-        headers = {
-            "X-Riot-Token": self.riot_api_key,
-            "User-Agent": "nexar-python-sdk/0.1.0",
-            "Accept": "application/json",
-        }
+            # Set required headers for Riot API
+            headers = {
+                "X-Riot-Token": self.riot_api_key,
+                "User-Agent": "nexar-python-sdk/0.1.0",
+                "Accept": "application/json",
+            }
 
-        try:
-            # Apply rate limiting for actual API calls
-            await self.rate_limiter.async_wait_if_needed()
+            try:
+                # Apply rate limiting for actual API calls
+                async with self.rate_limiter.combined_limiters():
+                    # Make the request (cached or not)
+                    if self._session is None:
+                        msg = "Session is not initialized."
+                        raise RuntimeError(msg)
+                    async with self._session.get(
+                        url,
+                        headers=headers,
+                        params=params,
+                    ) as response:
+                        # Check if this request was served from cache
+                        from_cache = getattr(response, "from_cache", False)
 
-            # Make the request (cached or not)
-            if self._session is None:
-                msg = "Session is not initialized."
-                raise RuntimeError(msg)
-            async with self._session.get(
-                url,
-                headers=headers,
-                params=params,
-            ) as response:
-                # Check if this request was served from cache
-                from_cache = getattr(response, "from_cache", False)
+                        if response.status == HTTP_TOO_MANY_REQUESTS:
+                            retry_after = response.headers.get("Retry-After")
+                            wait_time = float(retry_after) if retry_after else 120.0
+                            self._logger.logger.warning(
+                                "Rate limited (429). Sleeping for %s seconds before retrying...",
+                                wait_time,
+                            )
+                            await asyncio.sleep(wait_time)
+                            continue
 
-                await self._handle_response_errors(response)
+                        await self._handle_response_errors(response)
 
-                # Log successful response
-                self._logger.log_api_call_success(response.status, from_cache=from_cache)
+                        # Log successful response
+                        self._logger.log_api_call_success(response.status, from_cache=from_cache)
 
-                response_data = await response.json()
+                        response_data = await response.json()
 
-                # Debug: Print API response if environment variable is set
-                if os.getenv("NEXAR_DEBUG_RESPONSES"):
-                    print(f"\n{'=' * 60}")
-                    print(f"DEBUG: API Response for {endpoint}")
-                    print(f"URL: {url}")
-                    print(f"Status: {response.status}")
-                    print(f"From Cache: {from_cache}")
-                    if params:
-                        print(f"Params: {params}")
-                    print("Response Data:")
-                    print(json.dumps(response_data, indent=2))
-                    print(f"{'=' * 60}\n")
+                        # Debug: Print API response if environment variable is set
+                        if os.getenv("NEXAR_DEBUG_RESPONSES"):
+                            print(f"\n{'=' * 60}")
+                            print(f"DEBUG: API Response for {endpoint}")
+                            print(f"URL: {url}")
+                            print(f"Status: {response.status}")
+                            print(f"From Cache: {from_cache}")
+                            if params:
+                                print(f"Params: {params}")
+                            print("Response Data:")
+                            print(json.dumps(response_data, indent=2))
+                            print(f"{'=' * 60}\n")
 
-                return response_data  # type: ignore[no-any-return]
+                        return response_data  # type: ignore[no-any-return]
 
-        except aiohttp.ClientError as e:
-            self._logger.log_api_call_error(e)
-            raise RiotAPIError(0, f"Request failed: {e}") from e
-        except (RateLimitError, RiotAPIError) as e:
-            self._logger.log_api_call_error(e)
-            raise
+            except aiohttp.ClientError as e:
+                self._logger.log_api_call_error(e)
+                raise RiotAPIError(0, f"Request failed: {e}") from e
+            except (RateLimitError, RiotAPIError) as e:
+                self._logger.log_api_call_error(e)
+                raise
+        raise RiotAPIError(HTTP_TOO_MANY_REQUESTS, "Max retries exceeded due to repeated rate limiting.")
 
     def _get_api_call_count(self) -> int:
         """
