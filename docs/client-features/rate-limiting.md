@@ -110,70 +110,11 @@ if __name__ == "__main__":
 
 ## How It Works
 
-- **Automatic Enforcement**: Before each API call, Nexar checks if you're within rate limits
-- **Smart Waiting**: If you hit a rate limit, Nexar automatically waits the minimum required time
-- **Multiple Windows**: Supports multiple rate limit windows (e.g., per-second and per-minute limits)
-- **Sliding Windows**: Uses sliding time windows for accurate rate limiting
-- **No Manual Management**: You don't need to manage rate limiting manually - just make API calls normally
-- **Cache-Aware**: Only fresh API calls count against rate limits - cached responses are instant and don't consume rate limit quota
-- **Comprehensive Logging**: Detailed logging at DEBUG level, INFO level messages when rate limits are hit
+Nexar automatically enforces Riot's API rate limits using the `aiolimiter` library. It intelligently waits when limits are hit and supports multiple rate limit windows. You don't need to manage rate limiting manually. Cached responses do not count against rate limits.
 
 ## Logging
 
-The rate limiter provides detailed logging to help you understand what's happening:
-
-### DEBUG Level Logging
-```python
-import asyncio
-import logging
-from nexar import NexarClient, configure_logging, RegionV4, RegionV5
-
-async def main() -> None:
-    # Enable debug logging to see detailed rate limit information
-    configure_logging(logging.DEBUG)
-
-    async with NexarClient(
-        riot_api_key="your_api_key",
-        default_v4_region=RegionV4.NA1,
-        default_v5_region=RegionV5.AMERICAS,
-    ) as client:
-        # Make API calls here
-        pass
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-Debug logs include:
-- Rate limiter initialization with configured limits
-- Current usage for each rate limit before each request
-- Cleanup of expired requests
-- Request recording timestamps
-
-### INFO Level Logging
-```python
-import asyncio
-import logging
-from nexar import NexarClient, configure_logging, RegionV4, RegionV5
-
-async def main() -> None:
-    configure_logging(logging.INFO)  # Default level
-
-    async with NexarClient(
-        riot_api_key="your_api_key",
-        default_v4_region=RegionV4.NA1,
-        default_v5_region=RegionV5.AMERICAS,
-    ) as client:
-        # Make API calls here
-        pass
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-Info logs include:
-- When rate limits are hit and how long the wait will be
-- When rate limit waits complete and requests proceed
+The rate limiter provides detailed logging to help you understand its behavior. You can configure logging levels using `configure_logging`.
 
 ### Example Log Output
 ```
