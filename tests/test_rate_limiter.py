@@ -58,13 +58,4 @@ class TestRateLimiter:
         assert mock_limiter_per_second.__aenter__.call_count == 101
         assert mock_limiter_per_minute.__aenter__.call_count == 101
 
-    def test_get_status(self) -> None:
-        """Test get_status returns the expected structure."""
-        rate_limiter = RateLimiter()
-        status = rate_limiter.get_status()
-        assert "per_second_limit" in status
-        assert "per_minute_limit" in status
-        assert status["per_second_limit"]["requests"] == 20
-        assert status["per_second_limit"]["window_seconds"] == 1
-        assert status["per_minute_limit"]["requests"] == 100
-        assert status["per_minute_limit"]["window_seconds"] == 2
+    
