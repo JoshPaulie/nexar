@@ -1,5 +1,7 @@
 # Why not Nexar?
 
+At this time, Nexar is intended for personal projects, as the rate limiter is simple, and I'm unsure how it work at scale.
+
 ## Infancy
 
 Project is very new and functionality is well suited for my usecases.

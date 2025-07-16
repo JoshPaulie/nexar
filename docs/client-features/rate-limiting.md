@@ -2,6 +2,10 @@
 
 Nexar includes built-in rate limiting to ensure your application complies with Riot's API rate limits and avoids getting rate limited.
 
+!!! Note
+
+    If the rate limit is met, and a Retry-After is provided by Riot, Nexar will simply wait the small duration and continue.
+
 ## Default Rate Limits
 
 By default, Nexar enforces the following rate limits:
@@ -9,7 +13,7 @@ By default, Nexar enforces the following rate limits:
 - **20 requests per 1 second**
 - **100 requests per 2 minutes**
 
-These are the standard Riot API limits for most applications.
+These are the standard Riot API limits for most personal applications.
 
 ## Basic Usage
 
@@ -29,7 +33,12 @@ You can configure custom rate limits if needed:
 
 ## How It Works
 
-Nexar automatically enforces Riot's API rate limits using the `aiolimiter` library. It intelligently waits when limits are hit and supports multiple rate limit windows. You don't need to manage rate limiting manually. Cached responses do not count against rate limits.
+Nexar automatically enforces Riot's API rate limits by sleeping between calls, using the strictest of the two provided rate limits. Additionally, `aiolimiter` library to aid with `asyncio.gather` calls[^1].
+
+Cached responses do not count against rate limits.
+
+[^1]:
+    With limited success in testing
 
 ## Logging
 
