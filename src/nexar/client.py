@@ -38,6 +38,10 @@ DEFAULT_MATCH_ID_COUNT = 20
 class NexarClient:
     """Client for interacting with the Riot Games API."""
 
+    # --------------------------------------------------------------------------
+    # Initialization and Lifecycle
+    # --------------------------------------------------------------------------
+
     def __init__(
         self,
         riot_api_key: str,
@@ -70,11 +74,7 @@ class NexarClient:
             per_minute_limit=self._per_minute_limit,
         )
         self._logger = get_logger()
-
-        # API call tracking (always enabled, debug display is conditional)
         self._api_call_count = 0
-
-        # Session will be created when needed
         self._session: CachedSession | aiohttp.ClientSession | None = None
 
     async def __aenter__(self) -> "NexarClient":
@@ -89,283 +89,16 @@ class NexarClient:
         exc_tb: TracebackType | None,
     ) -> None:
         """Async context manager exit."""
-        if self._session:
+        await self.close()
+
+    async def close(self) -> None:
+        """Close the client session."""
+        if self._session and not self._session.closed:
             await self._session.close()
 
-    async def _ensure_session(self) -> None:
-        """Ensure the session is created and configured."""
-        if self._session:
-            return
-
-        # Initialize caching if enabled
-        if self.cache_config.enabled:
-            # Create per-URL expiration mapping
-            urls_expire_after = {}
-            for endpoint_pattern, config in self.cache_config.endpoint_config.items():
-                if isinstance(config, dict) and config.get("enabled", True):
-                    expire_time = config.get(
-                        "expire_after",
-                        self.cache_config.expire_after,
-                    )
-                    # Map pattern to actual URLs that might match
-                    urls_expire_after[f"*{endpoint_pattern}*"] = expire_time
-
-            # Create cached session
-            self._session = CachedSession(
-                cache=create_cache_backend(self.cache_config),
-                urls_expire_after=urls_expire_after if urls_expire_after else None,
-            )
-        else:
-            # Create regular session
-            timeout = aiohttp.ClientTimeout(total=30)
-            self._session = aiohttp.ClientSession(timeout=timeout)
-
-        self._setup_caching()
-
-    async def _make_api_call(
-        self,
-        endpoint: str,
-        region: RegionV4 | RegionV5,
-        params: dict[str, Any] | None = None,
-        max_retries: int = 5,
-    ) -> dict[str, Any]:
-        """
-        Make an async API call to the Riot Games API.
-
-        Args:
-            endpoint: The API endpoint path
-            region: The region to use for the request
-            params: Optional query parameters dict
-            max_retries: Number of times to retry on rate limit (429) errors
-
-        Returns:
-            JSON response from the API
-
-        Raises:
-            RiotAPIError: If the API returns an error status code
-
-        """
-        for _ in range(max_retries):
-            await self._ensure_session()
-
-            # Always increment API call counter
-            self._api_call_count += 1
-
-            # Log API call start
-            self._logger.log_api_call_start(
-                self._api_call_count,
-                endpoint,
-                region.value,
-                params,
-            )
-
-            # Construct the full URL with the region
-            url = f"https://{region.value}.api.riotgames.com{endpoint}"
-
-            # Set required headers for Riot API
-            headers = {
-                "X-Riot-Token": self.riot_api_key,
-                "User-Agent": "nexar-python-sdk/0.1.0",
-                "Accept": "application/json",
-            }
-
-            try:
-                # Try cache lookup directly if using CachedSession
-                if isinstance(self._session, CachedSession) and hasattr(self._session, "cache"):
-                    cache = self._session.cache
-                    cache_key = cache.create_key("GET", url, params=params, headers=headers)
-                    cached_response = await cache.get_response(cache_key)
-
-                    if cached_response is not None:
-                        self._logger.log_api_call_success(cached_response.status, from_cache=True)
-                        response_data = await cached_response.json()
-
-                        # Debug: Print API response if environment variable is set
-                        if os.getenv("NEXAR_DEBUG_RESPONSES"):
-                            print(f"\n{'=' * 60}")
-                            print(f"DEBUG: API Response for {endpoint}")
-                            print(f"URL: {url}")
-                            print(f"Status: {cached_response.status}")
-                            print("From Cache: True")
-                            if params:
-                                print(f"Params: {params}")
-                            print("Response Data:")
-                            print(json.dumps(response_data, indent=2))
-                            print(f"{'=' * 60}\n")
-                        return response_data  # type: ignore[no-any-return]
-
-                # If not cached, do real request with rate limiting
-                if self._session is None:
-                    msg = "Session is not initialized."
-                    raise RuntimeError(msg)
-
-                async with (
-                    self.rate_limiter.combined_limiters(),
-                    self._session.get(
-                        url,
-                        headers=headers,
-                        params=params,
-                    ) as response,
-                ):
-                    if response.status == HTTP_TOO_MANY_REQUESTS:
-                        retry_after = response.headers.get("Retry-After")
-                        wait_time = float(retry_after) if retry_after else 120.0
-                        self._logger.logger.warning(
-                            "Rate limited (429). Sleeping for %s seconds before retrying...",
-                            wait_time,
-                        )
-                        await asyncio.sleep(wait_time)
-                        continue
-                    await self._handle_response_errors(response)
-                    # Log successful response
-                    self._logger.log_api_call_success(
-                        response.status,
-                        from_cache=getattr(response, "from_cache", False),
-                    )
-
-                    response_data = await response.json()
-
-                    # Debug: Print API response if environment variable is set
-                    if os.getenv("NEXAR_DEBUG_RESPONSES"):
-                        print(f"\n{'=' * 60}")
-                        print(f"DEBUG: API Response for {endpoint}")
-                        print(f"URL: {url}")
-                        print(f"Status: {response.status}")
-                        print(f"From Cache: {getattr(response, 'from_cache', False)}")
-                        if params:
-                            print(f"Params: {params}")
-                        print("Response Data:")
-                        print(json.dumps(response_data, indent=2))
-                        print(f"{'=' * 60}\n")
-
-                    return response_data  # type: ignore[no-any-return]
-
-            except aiohttp.ClientError as e:
-                self._logger.log_api_call_error(e)
-                raise RiotAPIError(0, f"Request failed: {e}") from e
-            except (RateLimitError, RiotAPIError) as e:
-                self._logger.log_api_call_error(e)
-                raise
-        raise RiotAPIError(HTTP_TOO_MANY_REQUESTS, "Max retries exceeded due to repeated rate limiting.")
-
-    def _get_api_call_count(self) -> int:
-        """
-        Get the current number of API calls made by this client.
-
-        Returns:
-            Number of API calls made since client initialization
-
-        """
-        return self._api_call_count
-
-    def _reset_api_call_count(self) -> None:
-        """Reset the API call counter to zero."""
-        self._api_call_count = 0
-        self._logger.reset_stats()
-
-    def reset_rate_limiter(self) -> None:
-        """Reset the rate limiter state to the initial configuration."""
-        self.rate_limiter = RateLimiter(
-            per_second_limit=self._per_second_limit,
-            per_minute_limit=self._per_minute_limit,
-        )
-
-    def get_api_call_stats(self) -> dict[str, int]:
-        """
-        Get API call statistics.
-
-        Returns:
-            Dictionary with call statistics including total calls, cache hits, and fresh calls
-
-        """
-        return self._logger.get_stats()
-
-    def print_api_call_summary(self) -> None:
-        """Print a summary of API calls made so far."""
-        self._logger.log_stats_summary()
-
-    async def _handle_response_errors(self, response: aiohttp.ClientResponse) -> None:
-        """Handle HTTP errors from the API response."""
-        if response.status == HTTP_OK:
-            return
-
-        try:
-            error_data = await response.json()
-            message = error_data.get("status", {}).get("message", "Unknown error")
-        except (ValueError, aiohttp.ContentTypeError):
-            message = await response.text() or "Unknown error"
-
-        if response.status == HTTP_UNAUTHORIZED:
-            raise UnauthorizedError(response.status, message)
-        if response.status == HTTP_FORBIDDEN:
-            raise ForbiddenError(response.status, message)
-        if response.status == HTTP_NOT_FOUND:
-            raise NotFoundError(response.status, message)
-        if response.status == HTTP_TOO_MANY_REQUESTS:
-            raise RateLimitError(response.status, message)
-        raise RiotAPIError(response.status, message)
-
-    def _setup_caching(self) -> None:
-        """Set up caching for the HTTP session if enabled."""
-        if not self.cache_config.enabled:
-            return
-
-        # Log cache setup information
-        has_cache = isinstance(self._session, CachedSession) and hasattr(self._session, "cache")
-        cache_type = None
-        if has_cache and isinstance(self._session, CachedSession) and self._session.cache:
-            cache_type = type(self._session.cache)
-
-        self._logger.log_cache_setup(
-            cache_name=self.cache_config.cache_name,
-            backend=self.cache_config.backend,
-            has_cache=has_cache,
-            cache_type=cache_type,
-        )
-
-        if has_cache and isinstance(self._session, CachedSession):
-            # Log cache configuration details
-            expire_after = self.cache_config.expire_after
-            if expire_after is not None:
-                self._logger.log_cache_config(
-                    expire_after=expire_after,
-                    has_url_expiration=bool(getattr(self._session, "urls_expire_after", None)),
-                )
-
-    async def clear_cache(self) -> None:
-        """Clear all cached responses."""
-        if isinstance(self._session, CachedSession) and hasattr(self._session, "cache") and self._session.cache:
-            await self._session.cache.clear()
-            self._logger.log_cache_cleared()
-
-    async def get_cache_info(self) -> dict[str, Any]:
-        """
-        Get information about the current cache state.
-
-        Returns:
-            Dictionary with cache statistics and configuration
-
-        """
-        info = {
-            "enabled": self.cache_config.enabled,
-            "backend": self.cache_config.backend,
-            "cache_name": self.cache_config.cache_name,
-            "default_expire_after": self.cache_config.expire_after,
-        }
-
-        if isinstance(self._session, CachedSession) and hasattr(self._session, "cache") and self._session.cache:
-            try:
-                # Try to get cache size if the backend supports it
-                cache = self._session.cache
-                if hasattr(cache, "__len__"):
-                    info["cached_responses"] = len(cache)
-                if hasattr(cache, "size"):
-                    info["cache_size"] = cache.size
-            except (AttributeError, KeyError, TypeError) as exc:
-                # Some backends might not support these operations
-                self._logger.logger.debug("Cache info check failed: %s", exc)
-
-        return info
+    # --------------------------------------------------------------------------
+    # Public API Methods
+    # --------------------------------------------------------------------------
 
     # Account API
     async def get_riot_account(
@@ -386,22 +119,13 @@ class NexarClient:
             RiotAccount with account information
 
         """
-        region = region or self.default_v5_region
-        if region is None:
-            msg = "A v5 region must be provided either as a default in the client or as an argument to this method."
-            raise ValueError(msg)
-        data = await self._make_api_call(
-            f"/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}",
-            region=region,
-        )
+        resolved_region = self._resolve_v5_region(region)
+        endpoint = f"/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+        data = await self._make_api_call(endpoint, region=resolved_region)
         return RiotAccount.from_api_response(data)
 
     # Summoner API
-    async def get_summoner_by_puuid(
-        self,
-        puuid: str,
-        region: RegionV4 | None,
-    ) -> Summoner:
+    async def get_summoner_by_puuid(self, puuid: str, region: RegionV4 | None = None) -> Summoner:
         """
         Get a summoner by PUUID.
 
@@ -413,21 +137,16 @@ class NexarClient:
             Summoner with summoner information
 
         """
-        region = region or self.default_v4_region
-        if region is None:
-            msg = "A v4 region must be provided either as a default in the client or as an argument to this method."
-            raise ValueError(msg)
-        data = await self._make_api_call(
-            f"/lol/summoner/v4/summoners/by-puuid/{puuid}",
-            region=region,
-        )
+        resolved_region = self._resolve_v4_region(region)
+        endpoint = f"/lol/summoner/v4/summoners/by-puuid/{puuid}"
+        data = await self._make_api_call(endpoint, region=resolved_region)
         return Summoner.from_api_response(data)
 
     # League API
     async def get_league_entries_by_puuid(
         self,
         puuid: str,
-        region: RegionV4 | None,
+        region: RegionV4 | None = None,
     ) -> list[LeagueEntry]:
         """
         Get league entries by PUUID.
@@ -440,15 +159,9 @@ class NexarClient:
             List of league entries for the summoner
 
         """
-        region = region or self.default_v4_region
-        if region is None:
-            msg = "A v4 region must be provided either as a default in the client or as an argument to this method."
-            raise ValueError(msg)
-        data = await self._make_api_call(
-            f"/lol/league/v4/entries/by-puuid/{puuid}",
-            region=region,
-        )
-        # The league API returns a list, not the usual dict
+        resolved_region = self._resolve_v4_region(region)
+        endpoint = f"/lol/league/v4/entries/by-puuid/{puuid}"
+        data = await self._make_api_call(endpoint, region=resolved_region)
         entries_list: list[dict[str, Any]] = data  # type: ignore[assignment]
         return [LeagueEntry.from_api_response(entry) for entry in entries_list]
 
@@ -465,17 +178,12 @@ class NexarClient:
             Match with detailed match information
 
         """
-        region = region or self.default_v5_region
-        if region is None:
-            msg = "A v5 region must be provided either as a default in the client or as an argument to this method."
-            raise ValueError(msg)
-        data = await self._make_api_call(
-            f"/lol/match/v5/matches/{match_id}",
-            region=region,
-        )
+        resolved_region = self._resolve_v5_region(region)
+        endpoint = f"/lol/match/v5/matches/{match_id}"
+        data = await self._make_api_call(endpoint, region=resolved_region)
         return Match.from_api_response(data)
 
-    async def get_match_ids_by_puuid(  # noqa: C901
+    async def get_match_ids_by_puuid(
         self,
         puuid: str,
         *,
@@ -505,45 +213,20 @@ class NexarClient:
 
         """
         if not 0 <= count <= MAX_MATCH_ID_COUNT:
-            msg = "count must be between 0 and 100"
+            msg = f"count must be between 0 and {MAX_MATCH_ID_COUNT}"
             raise ValueError(msg)
 
-        region = region or self.default_v5_region
-        if region is None:
-            msg = "A v5 region must be provided either as a default in the client or as an argument to this method."
-            raise ValueError(msg)
-
-        # Convert datetime objects to epoch timestamps
-        start_timestamp = None
-        if start_time is not None:
-            start_timestamp = int(start_time.timestamp()) if isinstance(start_time, datetime) else start_time
-
-        end_timestamp = None
-        if end_time is not None:
-            end_timestamp = int(end_time.timestamp()) if isinstance(end_time, datetime) else end_time
-
-        # Build query parameters dict
-        params: dict[str, int | str] = {}
-        if start_timestamp is not None:
-            params["startTime"] = start_timestamp
-        if end_timestamp is not None:
-            params["endTime"] = end_timestamp
-        if queue is not None:
-            params["queue"] = queue.value if isinstance(queue, Queue) else queue
-        if match_type is not None:
-            params["type"] = match_type.value if isinstance(match_type, MatchType) else match_type
-        if start != 0:
-            params["start"] = start
-        if count != DEFAULT_MATCH_ID_COUNT:
-            params["count"] = count
-
+        resolved_region = self._resolve_v5_region(region)
+        params = self._build_match_ids_params(start_time, end_time, queue, match_type, start, count)
         endpoint = f"/lol/match/v5/matches/by-puuid/{puuid}/ids"
-        data = await self._make_api_call(endpoint, region=region, params=params)
-        # The match IDs API returns a list of strings, not the usual dict
+        data = await self._make_api_call(endpoint, region=resolved_region, params=params)
         match_ids: list[str] = data  # type: ignore[assignment]
         return match_ids
 
-    # High-level convenience methods
+    # --------------------------------------------------------------------------
+    # High-Level Convenience Methods
+    # --------------------------------------------------------------------------
+
     async def get_player(
         self,
         game_name: str,
@@ -564,24 +247,17 @@ class NexarClient:
             Player object providing high-level access to player data
 
         """
-        # Import here to avoid circular imports
         from .models.player import Player
 
-        v4_region = v4_region or self.default_v4_region
-        v5_region = v5_region or self.default_v5_region
-        if v4_region is None or v5_region is None:
-            msg = (
-                "Both v4_region and v5_region must be provided either as defaults in the client "
-                "or as arguments to this method."
-            )
-            raise ValueError(msg)
+        resolved_v4 = self._resolve_v4_region(v4_region)
+        resolved_v5 = self._resolve_v5_region(v5_region)
 
         return await Player.create(
             client=self,
             game_name=game_name,
             tag_line=tag_line,
-            v4_region=v4_region,
-            v5_region=v5_region,
+            v4_region=resolved_v4,
+            v5_region=resolved_v5,
         )
 
     async def get_players(
@@ -594,33 +270,302 @@ class NexarClient:
         Create multiple Player objects efficiently using parallel processing.
 
         Args:
-            riot_ids: List of Riot IDs in "username#tagline" format (e.g., ["bexli#bex", "player2#tag"])
+            riot_ids: List of Riot IDs in "username#tagline" format.
             v4_region: Platform region for v4 endpoints (defaults to client default)
             v5_region: Regional region for v5 endpoints (defaults to client default)
 
         Returns:
-            List of Player objects providing high-level access to player data
-
-        Raises:
-            ValueError: If any riot_id is not in the correct format
+            List of Player objects.
 
         """
-        # Import here to avoid circular imports
         from .models.player import Player
 
+        resolved_v4 = self._resolve_v4_region(v4_region)
+        resolved_v5 = self._resolve_v5_region(v5_region)
+
         async def create_player(riot_id: str) -> Player:
-            """Helper function to create a single player."""
             return await Player.by_riot_id(
                 client=self,
                 riot_id=riot_id,
-                v4_region=v4_region,
-                v5_region=v5_region,
+                v4_region=resolved_v4,
+                v5_region=resolved_v5,
             )
 
-        # Use asyncio.gather for efficient parallel processing
         return await asyncio.gather(*[create_player(riot_id) for riot_id in riot_ids])
 
-    async def close(self) -> None:
-        """Close the client session."""
-        if self._session:
-            await self._session.close()
+    # --------------------------------------------------------------------------
+    # Public Utility Methods
+    # --------------------------------------------------------------------------
+
+    # Caching
+    async def clear_cache(self) -> None:
+        """Clear all cached responses."""
+        if isinstance(self._session, CachedSession) and self._session.cache:
+            await self._session.cache.clear()
+            self._logger.log_cache_cleared()
+
+    async def get_cache_info(self) -> dict[str, Any]:
+        """
+        Get information about the current cache state.
+
+        Returns:
+            Dictionary with cache statistics and configuration.
+
+        """
+        info = {
+            "enabled": self.cache_config.enabled,
+            "backend": self.cache_config.backend,
+            "cache_name": self.cache_config.cache_name,
+            "default_expire_after": self.cache_config.expire_after,
+            "cached_responses": 0,
+        }
+
+        if isinstance(self._session, CachedSession) and self._session.cache:
+            try:
+                cache = self._session.cache
+                if hasattr(cache, "__len__"):
+                    info["cached_responses"] = len(cache)
+                if hasattr(cache, "size"):
+                    info["cache_size"] = cache.size
+            except (AttributeError, KeyError, TypeError) as exc:
+                self._logger.logger.debug("Cache info check failed: %s", exc)
+
+        return info
+
+    # Stats and Rate Limiting
+    def get_api_call_stats(self) -> dict[str, int]:
+        """Get API call statistics."""
+        return self._logger.get_stats()
+
+    def print_api_call_summary(self) -> None:
+        """Print a summary of API calls made so far."""
+        self._logger.log_stats_summary()
+
+    def reset_rate_limiter(self) -> None:
+        """Reset the rate limiter state to the initial configuration."""
+        self.rate_limiter = RateLimiter(
+            per_second_limit=self._per_second_limit,
+            per_minute_limit=self._per_minute_limit,
+        )
+
+    # --------------------------------------------------------------------------
+    # Internal Methods
+    # --------------------------------------------------------------------------
+
+    # Session Management
+    async def _ensure_session(self) -> None:
+        """Ensure the session is created and configured."""
+        if self._session and not self._session.closed:
+            return
+
+        if self.cache_config.enabled:
+            urls_expire_after = {
+                f"*{pattern}*": config.get("expire_after", self.cache_config.expire_after)
+                for pattern, config in self.cache_config.endpoint_config.items()
+                if isinstance(config, dict) and config.get("enabled", True)
+            }
+            self._session = CachedSession(
+                cache=create_cache_backend(self.cache_config),
+                urls_expire_after=urls_expire_after or None,
+            )
+        else:
+            self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
+
+        self._setup_caching()
+
+    def _setup_caching(self) -> None:
+        """Set up caching for the HTTP session if enabled."""
+        if not self.cache_config.enabled:
+            return
+
+        has_cache = isinstance(self._session, CachedSession) and self._session.cache is not None
+        cache_type = type(self._session.cache) if has_cache and isinstance(self._session, CachedSession) else None
+
+        self._logger.log_cache_setup(
+            cache_name=self.cache_config.cache_name,
+            backend=self.cache_config.backend,
+            has_cache=has_cache,
+            cache_type=cache_type,
+        )
+
+        if has_cache and isinstance(self._session, CachedSession) and self.cache_config.expire_after is not None:
+            self._logger.log_cache_config(
+                expire_after=self.cache_config.expire_after,
+                has_url_expiration=bool(getattr(self._session, "urls_expire_after", None)),
+            )
+
+    # Core API Call Logic
+    async def _make_api_call(
+        self,
+        endpoint: str,
+        region: RegionV4 | RegionV5,
+        params: dict[str, Any] | None = None,
+        max_retries: int = 5,
+    ) -> dict[str, Any]:
+        """Make an async API call, handling rate limits, retries, and caching."""
+        url = f"https://{region.value}.api.riotgames.com{endpoint}"
+        headers = {"X-Riot-Token": self.riot_api_key}
+
+        for _ in range(max_retries):
+            await self._ensure_session()
+            if not self._session:
+                msg = "Client session not initialized."
+                raise RuntimeError(msg)
+
+            self._api_call_count += 1
+            self._logger.log_api_call_start(self._api_call_count, endpoint, region.value, params)
+
+            try:
+                # Try cache lookup
+                if isinstance(self._session, CachedSession) and self._session.cache:
+                    cache_key = self._session.cache.create_key("GET", url, params=params, headers=headers)
+                    cached_response = await self._session.cache.get_response(cache_key)
+                    if cached_response:
+                        response_data: dict[str, Any] = await cached_response.json()
+                        self._logger.log_api_call_success(cached_response.status, from_cache=True)
+                        self._debug_print_response(
+                            endpoint=endpoint,
+                            url=url,
+                            status=cached_response.status,
+                            from_cache=True,
+                            response_data=response_data,
+                            params=params,
+                        )
+                        return response_data
+
+                # Perform HTTP request
+                async with (
+                    self.rate_limiter.combined_limiters(),
+                    self._session.get(
+                        url,
+                        headers=headers,
+                        params=params,
+                    ) as response,
+                ):
+                    if response.status == HTTP_TOO_MANY_REQUESTS:
+                        retry_after = response.headers.get("Retry-After")
+                        wait_time = float(retry_after) if retry_after else 120.0
+                        self._logger.logger.warning("Rate limited (429). Retrying in %s seconds...", wait_time)
+                        await asyncio.sleep(wait_time)
+                        continue  # Retry
+
+                    await self._handle_response_errors(response)
+                    response_data = await response.json()
+                    from_cache = getattr(response, "from_cache", False)
+                    self._logger.log_api_call_success(response.status, from_cache=from_cache)
+                    self._debug_print_response(
+                        endpoint=endpoint,
+                        url=url,
+                        status=response.status,
+                        from_cache=from_cache,
+                        response_data=response_data,
+                        params=params,
+                    )
+                    return response_data
+
+            except aiohttp.ClientError as e:
+                self._logger.log_api_call_error(e)
+                raise RiotAPIError(0, f"Request failed: {e}") from e
+            except RiotAPIError as e:
+                self._logger.log_api_call_error(e)
+                raise
+
+        msg = "Max retries exceeded for rate-limited request."
+        raise RiotAPIError(HTTP_TOO_MANY_REQUESTS, msg)
+
+    async def _handle_response_errors(self, response: aiohttp.ClientResponse) -> None:
+        """Raise appropriate exceptions for HTTP error status codes."""
+        if response.ok:
+            return
+
+        try:
+            error_data = await response.json()
+            message = error_data.get("status", {}).get("message", "Unknown error")
+        except (ValueError, aiohttp.ContentTypeError):
+            message = await response.text() or f"HTTP {response.status}"
+
+        error_map = {
+            HTTP_UNAUTHORIZED: UnauthorizedError,
+            HTTP_FORBIDDEN: ForbiddenError,
+            HTTP_NOT_FOUND: NotFoundError,
+            HTTP_TOO_MANY_REQUESTS: RateLimitError,
+        }
+        error_class = error_map.get(response.status, RiotAPIError)
+        raise error_class(response.status, message)
+
+    # Parameter Building and Resolution
+    def _build_match_ids_params(
+        self,
+        start_time: int | datetime | None,
+        end_time: int | datetime | None,
+        queue: Queue | int | None,
+        match_type: MatchType | str | None,
+        start: int,
+        count: int,
+    ) -> dict[str, int | str]:
+        """Build the query parameter dictionary for the get_match_ids_by_puuid endpoint."""
+        params: dict[str, int | str] = {}
+        if start_time is not None:
+            params["startTime"] = int(start_time.timestamp()) if isinstance(start_time, datetime) else start_time
+        if end_time is not None:
+            params["endTime"] = int(end_time.timestamp()) if isinstance(end_time, datetime) else end_time
+        if queue is not None:
+            params["queue"] = queue.value if isinstance(queue, Queue) else queue
+        if match_type is not None:
+            params["type"] = match_type.value if isinstance(match_type, MatchType) else match_type
+        if start != 0:
+            params["start"] = start
+        if count != DEFAULT_MATCH_ID_COUNT:
+            params["count"] = count
+        return params
+
+    def _resolve_v4_region(self, region: RegionV4 | None) -> RegionV4:
+        """Resolve the v4 region, using the client's default if None."""
+        resolved_region = region or self.default_v4_region
+        if resolved_region is None:
+            msg = "A v4 region must be provided either as a default or as an argument."
+            raise ValueError(msg)
+        return resolved_region
+
+    def _resolve_v5_region(self, region: RegionV5 | None) -> RegionV5:
+        """Resolve the v5 region, using the client's default if None."""
+        resolved_region = region or self.default_v5_region
+        if resolved_region is None:
+            msg = "A v5 region must be provided either as a default or as an argument."
+            raise ValueError(msg)
+        return resolved_region
+
+    # Debugging and Stats
+    def _debug_print_response(
+        self,
+        endpoint: str,
+        url: str,
+        status: int,
+        *,
+        from_cache: bool,
+        response_data: dict[str, Any],
+        params: dict[str, Any] | None = None,
+    ) -> None:
+        """Print API response for debugging if NEXAR_DEBUG_RESPONSES is set."""
+        if not os.getenv("NEXAR_DEBUG_RESPONSES"):
+            return
+
+        print(f"\n{'=' * 60}")
+        print(f"DEBUG: API Response for {endpoint}")
+        print(f"URL: {url}")
+        print(f"Status: {status}")
+        print(f"From Cache: {from_cache}")
+        if params:
+            print(f"Params: {params}")
+        print("Response Data:")
+        print(json.dumps(response_data, indent=2))
+        print(f"{'=' * 60}\n")
+
+    def _get_api_call_count(self) -> int:
+        """Get the current number of API calls made."""
+        return self._api_call_count
+
+    def _reset_api_call_count(self) -> None:
+        """Reset the API call counter to zero."""
+        self._api_call_count = 0
+        self._logger.reset_stats()
