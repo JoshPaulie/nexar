@@ -4,7 +4,7 @@ import sys
 
 from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
-from nexar.enums import RegionV4, RegionV5
+from nexar.enums import Region
 
 riot_api = os.getenv("RIOT_API_KEY")
 if riot_api is None:
@@ -12,8 +12,7 @@ if riot_api is None:
 
 client = NexarClient(
     riot_api_key=riot_api,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
+    default_region=Region.NA1,
     cache_config=SMART_CACHE_CONFIG,
 )
 
@@ -34,8 +33,7 @@ async def main() -> None:
         eu_player = await client.get_player(
             "Thebausffs",
             "COOL",
-            v4_region=RegionV4.EUW1,
-            v5_region=RegionV5.EUROPE,
+            region=Region.EUW1,
         )
         # --8<-- [end:get-player]
 

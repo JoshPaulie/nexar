@@ -3,7 +3,7 @@ import os
 import sys
 
 from nexar.client import NexarClient
-from nexar.enums import RegionV4, RegionV5
+from nexar.enums import Region
 
 # Get API key from environment
 api_key = os.getenv("RIOT_API_KEY")
@@ -12,8 +12,7 @@ if api_key is None:
 
 client = NexarClient(
     riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
+    default_region=Region.NA1,
 )
 
 
@@ -27,8 +26,7 @@ async def main() -> None:
         # --8<-- [start:custom-rate-limits]
         client_custom_limits = NexarClient(
             riot_api_key=api_key,
-            default_v4_region=RegionV4.NA1,
-            default_v5_region=RegionV5.AMERICAS,
+            default_region=Region.NA1,
             per_second_limit=(1, 1),  # Max of 1 request per second
             per_minute_limit=(10, 5),  # Max of 10 requests per 5 minutes
         )

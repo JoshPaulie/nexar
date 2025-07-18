@@ -1,5 +1,4 @@
 from nexar.client import NexarClient
-from nexar.enums import RegionV4, RegionV5
 
 # --8<-- [start:smart-memory]
 from nexar.cache import SMART_CACHE_CONFIG_MEMORY
@@ -7,8 +6,7 @@ from nexar.cache import SMART_CACHE_CONFIG_MEMORY
 client = NexarClient(
     riot_api_key="your_api_key",
     cache_config=SMART_CACHE_CONFIG_MEMORY,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
+    default_region=Region.NA1,
 )
 # --8<-- [end:smart-memory]
 
@@ -18,8 +16,7 @@ from nexar.cache import SMART_CACHE_CONFIG
 client = NexarClient(
     riot_api_key="your_api_key",
     cache_config=SMART_CACHE_CONFIG,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
+    default_region=Region.NA1,
 )
 # --8<-- [end:smart-sqlite]
 

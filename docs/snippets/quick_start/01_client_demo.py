@@ -8,12 +8,11 @@ client = NexarClient(
 
 # --8<-- [start:declaration-default-region]
 from nexar.client import NexarClient
-from nexar.enums import RegionV4, RegionV5
+from nexar.enums import Region
 
 client = NexarClient(
     riot_api_key="your_api_key",
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
+    default_region=Region.NA1,
 )
 # --8<-- [end:declaration-default-region]
 

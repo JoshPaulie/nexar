@@ -5,7 +5,7 @@ import datetime as dt
 
 from nexar.cache import SMART_CACHE_CONFIG
 from nexar.client import NexarClient
-from nexar.enums import RegionV4, RegionV5, Queue
+from nexar.enums import Region, Queue
 from nexar.models import Player
 from nexar.utils import sort_players_by_rank
 
@@ -16,8 +16,7 @@ if api_key is None:
 
 client = NexarClient(
     riot_api_key=api_key,
-    default_v4_region=RegionV4.NA1,
-    default_v5_region=RegionV5.AMERICAS,
+    default_region=Region.NA1,
     cache_config=SMART_CACHE_CONFIG,
 )
 
@@ -44,8 +43,7 @@ async def main() -> None:
 
         players_korean = await client.get_players(
             riot_ids_korean,
-            v4_region=RegionV4.KR,
-            v5_region=RegionV5.ASIA,
+            region=Region.KR,
         )
         # --8<-- [end:batch-players-regions]
 
