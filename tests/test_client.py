@@ -7,8 +7,7 @@ import pytest
 from nexar import (
     NexarClient,
     NotFoundError,
-    RegionV4,
-    RegionV5,
+    Region,
     RiotAccount,
     Summoner,
 )
@@ -23,13 +22,11 @@ class TestNexarClient:
         """Test client initializes correctly."""
         client = NexarClient(
             riot_api_key=riot_api_key,
-            default_v4_region=RegionV4.NA1,
-            default_v5_region=RegionV5.AMERICAS,
+            default_region=Region.NA1,
         )
 
         assert client.riot_api_key == riot_api_key
-        assert client.default_v4_region == RegionV4.NA1
-        assert client.default_v5_region == RegionV5.AMERICAS
+        assert client.default_region == Region.NA1
 
     
 
@@ -44,7 +41,7 @@ class TestNexarClient:
 
     async def test_get_riot_account_with_custom_region(self, client: "NexarClient") -> None:
         """Test riot account retrieval with custom region."""
-        result = await client.get_riot_account("bexli", "bex", region=RegionV5.AMERICAS)
+        result = await client.get_riot_account("bexli", "bex", region=Region.NA1)
 
         assert isinstance(result, RiotAccount)
         assert result.puuid is not None
@@ -57,7 +54,7 @@ class TestNexarClient:
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 
         # Use NA1 region for summoner lookup
-        result = await client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
+        result = await client.get_summoner_by_puuid(test_puuid, region=Region.NA1)
 
         assert isinstance(result, Summoner)
         assert result.puuid == test_puuid

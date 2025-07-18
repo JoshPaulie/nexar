@@ -3,10 +3,11 @@
 from datetime import UTC
 from typing import TYPE_CHECKING
 
-from nexar import ChampionStats, PerformanceStats, Player, Queue
+from nexar import ChampionStats, PerformanceStats, Player, Queue, Region
 
 if TYPE_CHECKING:
     from nexar.client import NexarClient
+    from nexar.enums import MatchType, Region
 
 
 class TestPlayer:
@@ -242,7 +243,7 @@ class TestPlayer:
         """Test getting role performance with queue filter."""
         player = await real_client.get_player("bexli", "bex")
 
-        from nexar.enums import Queue
+        from nexar.enums import Queue, Region
 
         role_performance = await player.get_recent_performance_by_role(
             count=5,
@@ -269,18 +270,14 @@ class TestPlayer:
 
     async def test_player_regions_customization(self, client: "NexarClient") -> None:
         """Test Player with custom regions."""
-        from nexar.enums import RegionV4, RegionV5
-
         player = await Player.create(
             client=client,
             game_name="bexli",
             tag_line="bex",
-            v4_region=RegionV4.EUW1,
-            v5_region=RegionV5.EUROPE,
+            region=Region.EUW1,
         )
 
-        assert player.v4_region == RegionV4.EUW1
-        assert player.v5_region == RegionV5.EUROPE
+        assert player.region == Region.EUW1
 
     async def test_player_with_regions_fallback_to_defaults(
         self,
@@ -294,8 +291,7 @@ class TestPlayer:
         )
 
         # Regions should be None (will use client defaults)
-        assert player.v4_region is None
-        assert player.v5_region is None
+        assert player.region is None
 
     async def test_player_performance_summary_minimal_count(
         self,

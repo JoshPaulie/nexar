@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from nexar.client import NexarClient
-    from nexar.enums import MatchType, RegionV4, RegionV5
+    from nexar.enums import MatchType, Region
 
     from .account import RiotAccount, Summoner
     from .league import LeagueEntry
@@ -44,11 +44,8 @@ class Player:
     riot_account: RiotAccount
     """The player's Riot account information."""
 
-    v4_region: RegionV4 | None = None
-    """Platform region for v4 endpoints (defaults to client default)."""
-
-    v5_region: RegionV5 | None = None
-    """Regional region for v5 endpoints (defaults to client default)."""
+    region: Region | None = None
+    """The player's region (defaults to client default)."""
 
     # Cached data (set after first fetch)
     _summoner: Summoner | None = None
@@ -61,8 +58,7 @@ class Player:
         game_name: str,
         tag_line: str,
         *,
-        v4_region: RegionV4 | None = None,
-        v5_region: RegionV5 | None = None,
+        region: Region | None = None,
     ) -> Player:
         """
         Create a Player instance and fetch the riot account data immediately.
@@ -71,8 +67,7 @@ class Player:
             client: The client instance to use for API calls
             game_name: Player's game name (without #)
             tag_line: Player's tag line (without #)
-            v4_region: Platform region for v4 endpoints (defaults to client default)
-            v5_region: Regional region for v5 endpoints (defaults to client default)
+            region: The player's region (defaults to client default)
 
         Returns:
             Player instance with riot account data pre-fetched
@@ -81,7 +76,7 @@ class Player:
         riot_account = await client.get_riot_account(
             game_name,
             tag_line,
-            region=v5_region,
+            region=region,
         )
 
         return cls(
@@ -89,8 +84,7 @@ class Player:
             game_name=game_name,
             tag_line=tag_line,
             riot_account=riot_account,
-            v4_region=v4_region,
-            v5_region=v5_region,
+            region=region,
         )
 
     @classmethod
@@ -99,8 +93,7 @@ class Player:
         client: NexarClient,
         riot_id: str,
         *,
-        v4_region: RegionV4 | None = None,
-        v5_region: RegionV5 | None = None,
+        region: Region | None = None,
     ) -> Player:
         """
         Create a Player instance from a Riot ID in "username#tagline" format.
@@ -108,8 +101,7 @@ class Player:
         Args:
             client: The client instance to use for API calls
             riot_id: Riot ID in "username#tagline" format (e.g., "bexli#bex")
-            v4_region: Platform region for v4 endpoints (defaults to client default)
-            v5_region: Regional region for v5 endpoints (defaults to client default)
+            region: The player's region (defaults to client default)
 
         Returns:
             Player instance with riot account data pre-fetched
@@ -132,8 +124,7 @@ class Player:
             client=client,
             game_name=game_name,
             tag_line=tag_line,
-            v4_region=v4_region,
-            v5_region=v5_region,
+            region=region,
         )
 
     async def get_summoner(self) -> Summoner:
@@ -147,7 +138,7 @@ class Player:
         if self._summoner is None:
             self._summoner = await self.client.get_summoner_by_puuid(
                 self.riot_account.puuid,
-                region=self.v4_region,
+                region=self.region,
             )
         return self._summoner
 
@@ -162,7 +153,7 @@ class Player:
         if self._league_entries is None:
             self._league_entries = await self.client.get_league_entries_by_puuid(
                 self.riot_account.puuid,
-                region=self.v4_region,
+                region=self.region,
             )
         return self._league_entries
 
@@ -199,7 +190,7 @@ class Player:
             match_type=match_type,
             start=start,
             count=count,
-            region=self.v5_region,
+            region=self.region,
         )
 
     async def get_matches(
@@ -238,7 +229,7 @@ class Player:
 
         matches: list[Match] = []
         for match_id in match_ids:
-            match = await self.client.get_match(match_id, region=self.v5_region)
+            match = await self.client.get_match(match_id, region=self.region)
             matches.append(match)
         return MatchList(matches, self.riot_account.puuid)
 
@@ -254,7 +245,7 @@ class Player:
         if not match_ids:
             return None
 
-        return await self.client.get_match(match_ids[0], region=self.v5_region)
+        return await self.client.get_match(match_ids[0], region=self.region)
 
     @property
     def puuid(self) -> str:

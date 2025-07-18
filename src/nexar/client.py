@@ -11,7 +11,7 @@ import aiohttp
 from aiohttp_client_cache.session import CachedSession
 
 from .cache import DEFAULT_CACHE_CONFIG, CacheConfig, create_cache_backend
-from .enums import MatchType, Queue, RegionV4, RegionV5
+from .enums import MatchType, Queue, Region
 from .exceptions import (
     ForbiddenError,
     NotFoundError,
@@ -45,8 +45,7 @@ class NexarClient:
     def __init__(
         self,
         riot_api_key: str,
-        default_v4_region: RegionV4 | None = None,
-        default_v5_region: RegionV5 | None = None,
+        default_region: Region | None = None,
         cache_config: CacheConfig | None = None,
         per_second_limit: tuple[int, int] = (20, 1),
         per_minute_limit: tuple[int, int] = (100, 2),
@@ -56,16 +55,14 @@ class NexarClient:
 
         Args:
             riot_api_key: Your Riot Games API key
-            default_v4_region: Default region for platform-specific endpoints
-            default_v5_region: Default region for regional endpoints
+            default_region: Default region for API calls
             cache_config: Cache configuration (uses default if None)
             per_second_limit: Tuple of (max_requests, seconds). E.g., (20, 1) for max 20 requests per 1 second.
             per_minute_limit: Tuple of (max_requests, minutes). E.g., (100, 2) for max 100 requests per 2 minutes.
 
         """
         self.riot_api_key = riot_api_key
-        self.default_v4_region = default_v4_region
-        self.default_v5_region = default_v5_region
+        self.default_region = default_region
         self.cache_config = cache_config or DEFAULT_CACHE_CONFIG
         self._per_second_limit = per_second_limit
         self._per_minute_limit = per_minute_limit
@@ -105,7 +102,7 @@ class NexarClient:
         self,
         game_name: str,
         tag_line: str,
-        region: RegionV5 | None = None,
+        region: Region | None = None,
     ) -> RiotAccount:
         """
         Get a Riot account by game name and tag line.
@@ -119,13 +116,13 @@ class NexarClient:
             RiotAccount with account information
 
         """
-        resolved_region = self._resolve_v5_region(region)
+        resolved_region = self._resolve_region(region)
         endpoint = f"/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-        data = await self._make_api_call(endpoint, region=resolved_region)
+        data = await self._make_api_call(endpoint, resolved_region.account_region)
         return RiotAccount.from_api_response(data)
 
     # Summoner API
-    async def get_summoner_by_puuid(self, puuid: str, region: RegionV4 | None = None) -> Summoner:
+    async def get_summoner_by_puuid(self, puuid: str, region: Region | None = None) -> Summoner:
         """
         Get a summoner by PUUID.
 
@@ -137,16 +134,16 @@ class NexarClient:
             Summoner with summoner information
 
         """
-        resolved_region = self._resolve_v4_region(region)
+        resolved_region = self._resolve_region(region)
         endpoint = f"/lol/summoner/v4/summoners/by-puuid/{puuid}"
-        data = await self._make_api_call(endpoint, region=resolved_region)
+        data = await self._make_api_call(endpoint, resolved_region.value)
         return Summoner.from_api_response(data)
 
     # League API
     async def get_league_entries_by_puuid(
         self,
         puuid: str,
-        region: RegionV4 | None = None,
+        region: Region | None = None,
     ) -> list[LeagueEntry]:
         """
         Get league entries by PUUID.
@@ -159,14 +156,14 @@ class NexarClient:
             List of league entries for the summoner
 
         """
-        resolved_region = self._resolve_v4_region(region)
+        resolved_region = self._resolve_region(region)
         endpoint = f"/lol/league/v4/entries/by-puuid/{puuid}"
-        data = await self._make_api_call(endpoint, region=resolved_region)
+        data = await self._make_api_call(endpoint, resolved_region.value)
         entries_list: list[dict[str, Any]] = data  # type: ignore[assignment]
         return [LeagueEntry.from_api_response(entry) for entry in entries_list]
 
     # Match API
-    async def get_match(self, match_id: str, region: RegionV5 | None = None) -> Match:
+    async def get_match(self, match_id: str, region: Region | None = None) -> Match:
         """
         Get match details by match ID.
 
@@ -178,9 +175,9 @@ class NexarClient:
             Match with detailed match information
 
         """
-        resolved_region = self._resolve_v5_region(region)
+        resolved_region = self._resolve_region(region)
         endpoint = f"/lol/match/v5/matches/{match_id}"
-        data = await self._make_api_call(endpoint, region=resolved_region)
+        data = await self._make_api_call(endpoint, resolved_region.v5_region)
         return Match.from_api_response(data)
 
     async def get_match_ids_by_puuid(
@@ -193,7 +190,7 @@ class NexarClient:
         match_type: MatchType | str | None = None,
         start: int = 0,
         count: int = 20,
-        region: RegionV5 | None = None,
+        region: Region | None = None,
     ) -> list[str]:
         """
         Get match IDs by PUUID with optional filters.
@@ -216,10 +213,10 @@ class NexarClient:
             msg = f"count must be between 0 and {MAX_MATCH_ID_COUNT}"
             raise ValueError(msg)
 
-        resolved_region = self._resolve_v5_region(region)
+        resolved_region = self._resolve_region(region)
         params = self._build_match_ids_params(start_time, end_time, queue, match_type, start, count)
         endpoint = f"/lol/match/v5/matches/by-puuid/{puuid}/ids"
-        data = await self._make_api_call(endpoint, region=resolved_region, params=params)
+        data = await self._make_api_call(endpoint, resolved_region.v5_region, params=params)
         match_ids: list[str] = data  # type: ignore[assignment]
         return match_ids
 
@@ -231,8 +228,7 @@ class NexarClient:
         self,
         game_name: str,
         tag_line: str,
-        v4_region: RegionV4 | None = None,
-        v5_region: RegionV5 | None = None,
+        region: Region | None = None,
     ) -> "Player":
         """
         Create a Player object for convenient high-level access.
@@ -240,8 +236,7 @@ class NexarClient:
         Args:
             game_name: Player's game name (without #)
             tag_line: Player's tag line (without #)
-            v4_region: Platform region for v4 endpoints (defaults to client default)
-            v5_region: Regional region for v5 endpoints (defaults to client default)
+            region: The player's region (defaults to client default)
 
         Returns:
             Player object providing high-level access to player data
@@ -249,30 +244,26 @@ class NexarClient:
         """
         from .models.player import Player
 
-        resolved_v4 = self._resolve_v4_region(v4_region)
-        resolved_v5 = self._resolve_v5_region(v5_region)
+        resolved_region = self._resolve_region(region)
 
         return await Player.create(
             client=self,
             game_name=game_name,
             tag_line=tag_line,
-            v4_region=resolved_v4,
-            v5_region=resolved_v5,
+            region=resolved_region,
         )
 
     async def get_players(
         self,
         riot_ids: list[str],
-        v4_region: RegionV4 | None = None,
-        v5_region: RegionV5 | None = None,
+        region: Region | None = None,
     ) -> list["Player"]:
         """
         Create multiple Player objects efficiently using parallel processing.
 
         Args:
             riot_ids: List of Riot IDs in "username#tagline" format.
-            v4_region: Platform region for v4 endpoints (defaults to client default)
-            v5_region: Regional region for v5 endpoints (defaults to client default)
+            region: The players' region (defaults to client default)
 
         Returns:
             List of Player objects.
@@ -280,15 +271,13 @@ class NexarClient:
         """
         from .models.player import Player
 
-        resolved_v4 = self._resolve_v4_region(v4_region)
-        resolved_v5 = self._resolve_v5_region(v5_region)
+        resolved_region = self._resolve_region(region)
 
         async def create_player(riot_id: str) -> Player:
             return await Player.by_riot_id(
                 client=self,
                 riot_id=riot_id,
-                v4_region=resolved_v4,
-                v5_region=resolved_v5,
+                region=resolved_region,
             )
 
         return await asyncio.gather(*[create_player(riot_id) for riot_id in riot_ids])
@@ -398,12 +387,12 @@ class NexarClient:
     async def _make_api_call(
         self,
         endpoint: str,
-        region: RegionV4 | RegionV5,
+        region_value: str,
         params: dict[str, Any] | None = None,
         max_retries: int = 5,
     ) -> dict[str, Any]:
         """Make an async API call, handling rate limits, retries, and caching."""
-        url = f"https://{region.value}.api.riotgames.com{endpoint}"
+        url = f"https://{region_value}.api.riotgames.com{endpoint}"
         headers = {"X-Riot-Token": self.riot_api_key}
 
         for _ in range(max_retries):
@@ -413,7 +402,7 @@ class NexarClient:
                 raise RuntimeError(msg)
 
             self._api_call_count += 1
-            self._logger.log_api_call_start(self._api_call_count, endpoint, region.value, params)
+            self._logger.log_api_call_start(self._api_call_count, endpoint, region_value, params)
 
             try:
                 # Try cache lookup
@@ -519,19 +508,11 @@ class NexarClient:
             params["count"] = count
         return params
 
-    def _resolve_v4_region(self, region: RegionV4 | None) -> RegionV4:
-        """Resolve the v4 region, using the client's default if None."""
-        resolved_region = region or self.default_v4_region
+    def _resolve_region(self, region: Region | None) -> Region:
+        """Resolve the region, using the client's default if None."""
+        resolved_region = region or self.default_region
         if resolved_region is None:
-            msg = "A v4 region must be provided either as a default or as an argument."
-            raise ValueError(msg)
-        return resolved_region
-
-    def _resolve_v5_region(self, region: RegionV5 | None) -> RegionV5:
-        """Resolve the v5 region, using the client's default if None."""
-        resolved_region = region or self.default_v5_region
-        if resolved_region is None:
-            msg = "A v5 region must be provided either as a default or as an argument."
+            msg = "A region must be provided either as a default or as an argument."
             raise ValueError(msg)
         return resolved_region
 

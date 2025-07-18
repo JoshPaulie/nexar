@@ -16,8 +16,7 @@ from .enums import (
     Queue,
     RankDivision,
     RankTier,
-    RegionV4,
-    RegionV5,
+    Region,
 )
 from .exceptions import (
     ForbiddenError,

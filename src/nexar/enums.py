@@ -3,8 +3,8 @@
 from enum import Enum
 
 
-class RegionV4(Enum):
-    """Regional routing values for platform-specific endpoints."""
+class Region(Enum):
+    """Represents a Riot Games API region."""
 
     BR1 = "br1"
     EUN1 = "eun1"
@@ -23,8 +23,58 @@ class RegionV4(Enum):
     TW2 = "tw2"
     VN2 = "vn2"
 
+    @property
+    def v5_region(self) -> str:
+        """Returns the V5 regional routing value for this region."""
+        return _V5_REGION_MAP[self]
 
-# Alias for platform identification - same as RegionV4 but uppercase
+    @property
+    def account_region(self) -> str:
+        """Returns the account routing value for this region."""
+        return _ACCOUNT_REGION_MAP[self]
+
+
+# --- Private Mapping Dictionaries ---
+
+_V5_REGION_MAP = {
+    Region.NA1: "americas",
+    Region.BR1: "americas",
+    Region.LA1: "americas",
+    Region.LA2: "americas",
+    Region.KR: "asia",
+    Region.JP1: "asia",
+    Region.EUN1: "europe",
+    Region.EUW1: "europe",
+    Region.TR1: "europe",
+    Region.RU: "europe",
+    Region.OC1: "sea",
+    Region.PH2: "sea",
+    Region.SG2: "sea",
+    Region.TW2: "sea",
+    Region.VN2: "sea",
+}
+
+_ACCOUNT_REGION_MAP = {
+    Region.NA1: "americas",
+    Region.BR1: "americas",
+    Region.LA1: "americas",
+    Region.LA2: "americas",
+    Region.KR: "asia",
+    Region.JP1: "asia",
+    Region.EUN1: "europe",
+    Region.EUW1: "europe",
+    Region.TR1: "europe",
+    Region.RU: "europe",
+    # SEA regions are not in the account-v1 documentation, so we map them to the nearest cluster.
+    Region.OC1: "americas",
+    Region.PH2: "asia",
+    Region.SG2: "asia",
+    Region.TW2: "asia",
+    Region.VN2: "asia",
+}
+
+
+# Alias for platform identification - same as Region but uppercase
 class PlatformId(Enum):
     """Platform identifiers for match data."""
 
@@ -44,15 +94,6 @@ class PlatformId(Enum):
     TR1 = "TR1"
     TW2 = "TW2"
     VN2 = "VN2"
-
-
-class RegionV5(Enum):
-    """Regional routing values for regional endpoints."""
-
-    AMERICAS = "americas"
-    ASIA = "asia"
-    EUROPE = "europe"
-    SEA = "sea"
 
 
 class RankTier(Enum):

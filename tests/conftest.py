@@ -10,7 +10,7 @@ from typing import Any, cast
 import pytest
 import pytest_asyncio
 
-from nexar import NexarClient, RegionV4, RegionV5
+from nexar import NexarClient, Region
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -92,8 +92,7 @@ async def client(
 
     nexar_client = NexarClient(
         riot_api_key=riot_api_key,
-        default_v4_region=RegionV4.NA1,
-        default_v5_region=RegionV5.AMERICAS,
+        default_region=Region.NA1,
     )
 
     # Mock the _make_api_call method directly
@@ -101,11 +100,11 @@ async def client(
 
     async def mock_make_api_call(
         endpoint: str,
-        region: RegionV4 | RegionV5,
+        region_value: str,
         params: dict[str, Any] | None = None,  # noqa: ARG001
     ) -> Any:  # noqa: ANN401
         """Mock API call that returns predefined responses."""
-        url = f"https://{region.value}.api.riotgames.com{endpoint}"
+        url = f"https://{region_value}.api.riotgames.com{endpoint}"
         mock_response = get_mock_response(url)
         return await mock_response.json()
 
@@ -123,8 +122,7 @@ async def real_client(riot_api_key: str) -> AsyncGenerator[NexarClient]:
     """Create a test client with real API key for integration tests."""
     client = NexarClient(
         riot_api_key=riot_api_key,
-        default_v4_region=RegionV4.NA1,
-        default_v5_region=RegionV5.AMERICAS,
+        default_region=Region.NA1,
     )
     yield client
     await client.close()

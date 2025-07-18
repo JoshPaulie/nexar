@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from nexar.enums import RegionV4
+from nexar.enums import Region
 from nexar.models import RiotAccount, Summoner
 
 if TYPE_CHECKING:
@@ -69,7 +69,7 @@ class TestSummoner:
         """Test Summoner creation from real API response."""
         # Use hardcoded PUUID to reduce API calls during testing
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
-        summoner = await client.get_summoner_by_puuid(test_puuid, region=RegionV4.NA1)
+        summoner = await client.get_summoner_by_puuid(test_puuid, region=Region.NA1)
 
         assert summoner.id is not None
         assert summoner.profile_icon_id is not None
