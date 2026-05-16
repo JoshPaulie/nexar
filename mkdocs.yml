@@ -35,6 +35,7 @@ nav:
   - Features:
       - Caching: client-features/caching.md
       - Rate limiting: client-features/rate-limiting.md
+      - Logging: client-features/logging.md
       - Debugging API Responses: client-features/debug-responses.md
   - Examples:
       - Boilerplate: examples/boilerplate.md

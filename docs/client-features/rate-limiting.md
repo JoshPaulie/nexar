@@ -58,18 +58,12 @@ Nexar uses an in-memory rate limiter that tracks counts per region and method. I
 
 Rate limits are not persisted across restarts. Cached responses do not count against rate limits.
 
-## Logging
+## Debugging Rate Limits
 
-The rate limiter provides logging to help understand its behavior. Enable the `nexar` logger:
+Rate limiter decisions are logged at DEBUG level. See the [Logging](./logging.md) page to enable and configure Nexar's logging.
 
-```python
-import logging
-logging.basicConfig(level=logging.WARNING)
-logger = logging.getLogger("nexar")
-logger.setLevel(logging.WARNING)
-```
+When rate limits are hit, you'll see messages like:
 
-### Example Log Output
 ```
 [nexar] Rate limit hit for na1/api_get_account. Sleeping 0.85s
 [nexar] Rate limit hit for na1/api_get_account. Sleeping 1.23s
