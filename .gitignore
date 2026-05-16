@@ -1,0 +1,37 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+playground*.py
+
+# Environment setter
+riot-key.sh
+
+# Copilot instructions for writing tests
+.github/copilot-instructions.md
+GEMINI.md
+
+# Cache files
+*.sqlite
+
+# Local dev
+TODO.md
+*.db
+
+# Opencode vector database
+.opencode/index
+AGENTS.md
+
+# Docs output
+site

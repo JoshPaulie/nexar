@@ -1,0 +1,123 @@
+[project]
+name = "nexar"
+dynamic = ["version"]
+description = "A simple, Pythonic SDK for Riot's League of Legends API"
+readme = "README.md"
+authors = [
+    { name = "bex", email = "30572280+JoshPaulie@users.noreply.github.com" },
+]
+requires-python = ">=3.13"
+dependencies = ["aiohttp>=3.12.13", "aiohttp-client-cache[all,sqlite]>=0.13.0"]
+
+[dependency-groups]
+dev = [
+    "aioresponses>=0.7.8",
+    "coverage>=7.13.3",
+    "hatch>=1.16.5",
+    "mkdocs-material>=9.6.15",
+    "mkdocstrings[python]>=0.29.1",
+    "mypy>=1.16.1",
+    "pymdown-extensions>=10.16",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.14.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/nexar/__init__.py"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "--cov=src/nexar --cov-report=term-missing --cov-report=html"
+markers = ["slow: tests that make real Riot API calls (excluded from quick test suite)"]
+log_cli = true
+log_cli_level = "WARNING"
+log_cli_format = "%(levelname)s [%(name)s] %(message)s"
+filterwarnings = [
+    "ignore:Cache access after closing the `Cachedsession` context manager:UserWarning",
+]
+
+[tool.coverage.run]
+omit = ["tests/*", "examples/*"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D101",    # Ignore missing docstring in public class
+    "D102",    # Ignore missing docstring in public method
+    "D103",    # Ignore missing docstring in public function
+    "D105",    # Ignore missing docstring in magic methods
+    "D107",    # Ignore missing docstring in __init__
+    "D212",    # Ignore dumb rule about docstrings and how they start
+    "D401",    # Allow declarative docstrings
+    "DTZ006",  # Ignore missing tz in datetime
+    "FIX002",  # Allow fixme comments
+    "PLC0415", # Allow imports to be imported anywhere avoid circular imports
+    "PLR0913", # Ignore too many return statements
+    "PLR2004", # Allow magic numbers
+    "T201",    # Allow print statements
+    "TD003",   # Allow issue-less todos
+]
+
+[tool.ruff.lint.per-file-ignores]
+"examples/*.py" = [
+    "ERA001",  # Allow commented out code in examples
+    "C901",    # Allow long main functions in examples
+    "PLR2004", # Allow magic numbers in examples
+    "INP001",  # Disable implicit namespace package error in examples
+]
+"tests/*.py" = [
+    "S101",    # Allow assert statements in tests
+    "W293",    # Blank line contains whitespace
+    "SLF001",  # Allow private member access
+    "PLR2004", # Allow magic numbers in tests
+]
+"tests/**/*.py" = [
+    "ANN001",  # Allow missing type annotations in tests
+    "ANN202",  # Allow missing return type annotations in tests
+    "D1",      # Allow missing docstrings in tests
+    "D200",    # Allow multi-line docstring format in tests
+    "E501",    # Allow long lines in tests
+    "F401",    # Allow unused imports in tests
+    "F811",    # Allow redefinition in tests
+    "PLR2004", # Allow magic numbers in tests
+    "S101",    # Allow assert statements in tests
+    "SLF001",  # Allow private member access
+    "W293",    # Blank line contains whitespace
+]
+"docs/snippets/*/*.py" = [
+    "S101",    # Allow assert statements in snippets
+    "INP001",  # Disable implicit namespace package error in snippets
+    "SLF001",  # Allow private member access
+    "PLR2004", # Allow magic numbers in snippets
+    "D1",      # Allow missing docstring in snippets
+    "I001",    # Allow unorganized import order in snippets
+    "E402",    # Allow module level import not at top of file in snippets
+    "F841",    # Allow unused variable in snippets
+    "ERA001",  # Allow commented out code in snippets
+    "E501",    # Allow long lines in snippets
+]
+"playground*.py" = ["D1"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.mypy]
+files = "src"
+strict = true
+python_version = "3.13"
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disable_error_code = ["method-assign"]

@@ -1,0 +1,116 @@
+site_name: Nexar
+site_url: https://bexli.dev/nexar
+repo_url: https://github.com/joshpaulie/nexar
+repo_name: joshpaulie/nexar
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for dark mode
+    - scheme: slate
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - content.code.annotate # Allow code annotations
+    - content.code.copy # Copy code blocks to clipboard
+    - content.tooltips # Advanced tooltips
+    - content.footnote.tooltips # Tooltips for footnotes
+    - content.action.edit # Edit button for pages
+    - content.action.view # View button for pages
+    - navigation.instant # Make mkdocs act as a single-page app
+    - navigation.instant.prefetch # Load hovered pages in the background
+    - navigation.instant.progress # Loading bar for instant navigation
+    - navigation.instant.preview # Show a preview of the page when hovering links
+    - navigation.tracking # Add anchor to url when clicking a section
+    - navigation.sections # Expand all selections in side navbar
+    - navigation.path # Breadcrumbs along top
+    - navigation.top # Back to top button
+    - navigation.indexes
+
+nav:
+  - Home:
+      - Home: index.md
+      - Quick Start: quick_start.md
+  - Features:
+      - Caching: client-features/caching.md
+      - Rate limiting: client-features/rate-limiting.md
+      - Debugging API Responses: client-features/debug-responses.md
+  - Examples:
+      - Boilerplate: examples/boilerplate.md
+      - Batch Players: examples/batch_players.md
+      - Batch With Errors: examples/batch_with_error_handling.md
+      - Sort Players by Rank: examples/sort_players_by_rank.md
+      - League Comparison: examples/league_comparison.md
+      - Win Streak: examples/win_streak.md
+      - Icon URLs: examples/icon_urls.md
+      - Match history:
+          - Last Match: examples/last_match.md
+          - Match History: examples/match_history.md
+          - Player Performance: examples/player_performance.md
+          - Champion Performance: examples/champ_performance.md
+          - Per-Role Performance: examples/per_role_performance.md
+          - MatchList Stats: examples/match_list_stats.md
+      - Match analysis:
+          - Team Analysis: examples/team_analysis.md
+          - Objectives Analysis: examples/objectives_analysis.md
+          - ParticipantList Methods: examples/participant_list_methods.md
+      - Deeper data:
+          - Challenge Stats: examples/challenge_stats.md
+          - Runes and Perks: examples/runes_and_perks.md
+      - Infrastructure:
+          - Custom Cache & Stats: examples/custom_cache_and_stats.md
+  - Reference:
+      - Client: reference/client.md
+      - Models:
+          - Account: reference/models/account.md
+          - League: reference/models/league.md
+          - Match: reference/models/match.md
+          - Participant: reference/models/participant.md
+          - ParticipantList: reference/models/participant-list.md
+          - Player: reference/models/player.md
+          - Stats: reference/models/stats.md
+          - Team: reference/models/team.md
+          - Challenges: reference/models/challenges.md
+          - Perks: reference/models/perks.md
+      - Utilities: reference/utilities.md
+  - FAQ: FAQ.md
+  - Why not Nexar?: why-not-nexar.md
+
+markdown_extensions:
+  # "Admonitions" (Callouts)
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
+  # "PymdownX extensions"
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: docs/snippets
+      dedent_subsections: true
+  # Tabbed sections
+  - pymdownx.tabbed:
+      alternate_style: true
+
+  # Tooltips
+  - abbr
+  - attr_list
+
+  # Annotations
+  - md_in_html
+
+  # Footnotes
+  - footnotes
+
+  # Emojis and icons
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+  - mkdocstrings

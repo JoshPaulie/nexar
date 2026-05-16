@@ -1,0 +1,92 @@
+# Rate Limiting
+
+Nexar includes built-in rate limiting to comply with Riot's API limits and avoid 429 errors.
+
+!!! Note
+
+    If you hit a rate limit and Riot provides a `Retry-After` header, Nexar will wait the required duration and continue.
+
+## Default Rate Limits
+
+By default, Nexar enforces:
+
+- 20 requests per 1 second
+- 100 requests per 2 minutes
+
+These are the default rates for Riot personal API keys.
+
+## Basic Usage
+
+Rate limiting is enabled automatically:
+
+```python
+-8<-- "client-features/rate_limiting.py:basic-usage"
+```
+
+## Custom Rate Limits
+
+Configure custom app rate limits when creating the client:
+
+```python
+-8<-- "client-features/rate_limiting.py:custom-rate-limits"
+```
+
+## Production API Keys
+
+If you have a Production API Key or can obtain higher limits, pass them directly:
+
+```python
+client = NexarClient(
+    riot_api_key="your-prod-key",
+    app_rate_limits=((500, 10), (30000, 600)), # 500/10s and 30,000/10m
+)
+```
+
+### Rate Limits per Region
+
+Rate limits are enforced per region. Each region can simultaneously use its full quota:
+
+```python
+# With production limits (500 req/10s per region)
+await client.get_riot_account("Doublelift", "NA1", region=Region.NA1)  # Uses NA1 budget
+await client.get_riot_account("G2 Wunder", "EUW", region=Region.EUW1)  # Uses EUW1 budget
+```
+
+## How It Works
+
+Nexar uses an in-memory rate limiter that tracks counts per region and method. It parses Riot response headers (`X-App-Rate-Limit`, `X-Method-Rate-Limit`, `X-Service-Rate-Limit`) to adjust limits and handles 429 responses.
+
+Rate limits are not persisted across restarts. Cached responses do not count against rate limits.
+
+## Logging
+
+The rate limiter provides logging to help understand its behavior. Enable the `nexar` logger:
+
+```python
+import logging
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger("nexar")
+logger.setLevel(logging.WARNING)
+```
+
+### Example Log Output
+```
+[nexar] Rate limit hit for na1/api_get_account. Sleeping 0.85s
+[nexar] Rate limit hit for na1/api_get_account. Sleeping 1.23s
+```
+
+## Rate Limiting vs Caching
+
+Rate limiting and caching work together:
+
+1. Cached responses don't count against rate limits.
+2. Fresh requests are subject to rate limiting.
+3. Cache hits are instant and don't consume quota.
+4. Cache misses trigger rate limiting before the API call.
+
+Repeat API calls won't hit rate limits if the response is cached.
+
+### Example
+```python
+-8<-- "client-features/rate_limiting.py:rate-limiting-vs-caching"
+```
