@@ -15,7 +15,7 @@ It's built for single-node, single-client projects and not intended for use at s
 - High-level API that abstracts the messy Riot API.
 - Accurate in-memory rate limiting and disk caching.
 
-Hate Riot IDs? Just `NexarClient.get_player("username", "tag")` and explore with your IDE.
+Hate Riot IDs? Just `NexarClient.get_player("username", "tag", region=Region.NA1)` and explore with your IDE.
 
 Packed with helpful doc strings and tips.
 
@@ -23,8 +23,13 @@ Check out [Why not Nexar?](docs/why-not-nexar.md) for more details.
 
 ## Installation
 
+>[!tip]
+> Considering I will likely be the only user of this library for the time being, Nexar is not published on PyPI. Install with `uv` or `pip` directly from the GitHub repo.
+>
+> If you are using or considering using Nexar, please reach out or star the repo. This would indicate to me an interest from the community, and I'd be happy to publish to PyPI and maintain a proper release cycle.
+
 ```bash
-uv pip install "git+https://github.com/joshpaulie/nexar@v1.0.0"
+uv add "git+https://github.com/joshpaulie/nexar"
 ```
 
 ## Usage example
@@ -32,6 +37,7 @@ uv pip install "git+https://github.com/joshpaulie/nexar@v1.0.0"
 Below is a real, working example from `README_example.py`:
 
 <!-- example-block-start -->
+<!-- Use `uv run scripts/update_readme_example.py` to update this example -->
 ```python
 """Example from README showing async player information retrieval."""
 
