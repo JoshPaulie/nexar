@@ -56,37 +56,80 @@ class Player:
     async def create(
         cls,
         client: NexarClient,
-        game_name: str,
-        tag_line: str,
         *,
+        game_name: str | None = None,
+        tag_line: str | None = None,
+        puuid: str | None = None,
+        riot_id: str | None = None,
         region: Region | None = None,
     ) -> Player:
         """
         Create a Player instance and fetch the riot account data immediately.
 
+        Exactly one identification pattern must be provided (all keyword-only):
+
         Args:
-            client: The client instance to use for API calls
-            game_name: Player's game name (without #)
-            tag_line: Player's tag line (without #)
-            region: The player's region (defaults to client default)
+            client: The client instance to use for API calls.
+            game_name: Player's game name (without #). Must be paired with tag_line.
+            tag_line: Player's tag line (without #). Must be paired with game_name.
+            puuid: Player's PUUID for direct lookup.
+            riot_id: Riot ID in "gameName#tagLine" format (e.g. "bexli#bex").
+            region: The player's region (defaults to client default).
 
         Returns:
-            Player instance with riot account data pre-fetched
+            Player instance with riot account data pre-fetched.
+
+        Raises:
+            ValueError: If none or an ambiguous combination of identifiers is provided.
 
         """
-        riot_account = await client.get_riot_account(
-            game_name,
-            tag_line,
-            region=region,
-        )
+        if game_name is not None and tag_line is not None:
+            riot_account = await client.get_riot_account(
+                game_name,
+                tag_line,
+                region=region,
+            )
+            return cls(
+                client=client,
+                game_name=game_name,
+                tag_line=tag_line,
+                riot_account=riot_account,
+                region=region,
+            )
 
-        return cls(
-            client=client,
-            game_name=game_name,
-            tag_line=tag_line,
-            riot_account=riot_account,
-            region=region,
-        )
+        if puuid is not None:
+            riot_account = await client.get_riot_account_by_puuid(
+                puuid,
+                region=region,
+            )
+            return cls(
+                client=client,
+                game_name=riot_account.game_name,
+                tag_line=riot_account.tag_line,
+                riot_account=riot_account,
+                region=region,
+            )
+
+        if riot_id is not None:
+            riot_id = riot_id.strip()
+            if "#" not in riot_id:
+                msg = f"Invalid Riot ID format: '{riot_id}'. Expected 'gameName#tagLine'"
+                raise ValueError(msg)
+            parsed_name, parsed_tag = riot_id.split("#", 1)
+            parsed_name = parsed_name.strip()
+            parsed_tag = parsed_tag.strip()
+            if not parsed_name or not parsed_tag:
+                msg = f"Invalid Riot ID format: '{riot_id}'. Both name and tagline must be non-empty"
+                raise ValueError(msg)
+            return await cls.create(
+                client=client,
+                game_name=parsed_name,
+                tag_line=parsed_tag,
+                region=region,
+            )
+
+        msg = "Either game_name + tag_line, puuid, or riot_id must be provided."
+        raise ValueError(msg)
 
     @classmethod
     async def by_riot_id(

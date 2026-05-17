@@ -124,10 +124,23 @@ class NexarClient:
         tag_line: str,
         region: Region | None = None,
     ) -> RiotAccount:
+        """Get a Riot account by game name and tag line."""
         game_name = game_name.strip()
         tag_line = tag_line.strip()
         resolved_region = self._resolve_region(region)
         endpoint = f"/riot/account/v1/accounts/by-riot-id/{quote(game_name)}/{quote(tag_line)}"
+        data = await self._make_api_call(endpoint, resolved_region.value, resolved_region.account_region)
+        return RiotAccount.from_api_response(data)
+
+    async def get_riot_account_by_puuid(
+        self,
+        puuid: str,
+        *,
+        region: Region | None = None,
+    ) -> RiotAccount:
+        """Get a Riot account by PUUID."""
+        resolved_region = self._resolve_region(region)
+        endpoint = f"/riot/account/v1/accounts/by-puuid/{puuid}"
         data = await self._make_api_call(endpoint, resolved_region.value, resolved_region.account_region)
         return RiotAccount.from_api_response(data)
 
@@ -188,19 +201,57 @@ class NexarClient:
 
     async def get_player(
         self,
-        game_name: str,
-        tag_line: str,
+        *,
+        game_name: str | None = None,
+        tag_line: str | None = None,
+        puuid: str | None = None,
+        riot_id: str | None = None,
         region: Region | None = None,
     ) -> "Player":
+        """
+        Get a Player by game name + tag line, PUUID, or Riot ID string.
+
+        Exactly one identification pattern must be provided (all keyword-only):
+
+        Args:
+            game_name: Player's game name (without #). Must be paired with tag_line.
+            tag_line: Player's tag line (without #). Must be paired with game_name.
+            puuid: Player's PUUID for direct lookup.
+            riot_id: Riot ID in "gameName#tagLine" format (e.g. "bexli#bex").
+            region: The player's region (defaults to client default).
+
+        Returns:
+            Player instance with riot account data pre-fetched.
+
+        Raises:
+            ValueError: If none or an ambiguous combination of identifiers is provided.
+
+        """
         from .models.player import Player
 
         resolved_region = self._resolve_region(region)
-        return await Player.create(
-            client=self,
-            game_name=game_name,
-            tag_line=tag_line,
-            region=resolved_region,
-        )
+
+        if game_name is not None and tag_line is not None:
+            return await Player.create(
+                client=self,
+                game_name=game_name,
+                tag_line=tag_line,
+                region=resolved_region,
+            )
+        if puuid is not None:
+            return await Player.create(
+                client=self,
+                puuid=puuid,
+                region=resolved_region,
+            )
+        if riot_id is not None:
+            return await Player.create(
+                client=self,
+                riot_id=riot_id,
+                region=resolved_region,
+            )
+        msg = "Either game_name + tag_line, puuid, or riot_id must be provided."
+        raise ValueError(msg)
 
     async def get_players(
         self,
