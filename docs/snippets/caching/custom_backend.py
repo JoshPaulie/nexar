@@ -22,7 +22,7 @@ async def main() -> None:
     print("--- Using Custom SQLite Backend ---")
     async with NexarClient(riot_api_key=api_key, cache_config=sqlite_config) as client:
         # Note: Using get_player which returns a Player object with both account and summoner data
-        player = await client.get_player("Agurin", "EUW", Region.EUW1)
+        player = await client.get_player(riot_id="Agurin#EUW", region=Region.EUW1)
         print(f"Got player (SQLite): {player.game_name}#{player.tag_line}")
 
     # 2. Memory Configuration
@@ -34,7 +34,7 @@ async def main() -> None:
 
     print("\n--- Using Memory Backend ---")
     async with NexarClient(riot_api_key=api_key, cache_config=memory_config) as client:
-        player = await client.get_player("Agurin", "EUW", Region.EUW1)
+        player = await client.get_player(riot_id="Agurin#EUW", region=Region.EUW1)
         print(f"Got player (Memory): {player.game_name}#{player.tag_line}")
 
 

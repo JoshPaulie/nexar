@@ -13,7 +13,7 @@ client = NexarClient(
 
 async def main() -> None:
     async with client:
-        player = await client.get_player(game_name="bexli", tag_line="bex", region=Region.NA1)
+        player = await client.get_player(riot_id="bexli#bex", region=Region.NA1)
 
         # Summoner profile icon URL
         summoner = await player.get_summoner()

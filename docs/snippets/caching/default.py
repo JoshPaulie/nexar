@@ -12,10 +12,10 @@ client = NexarClient(
 async def main() -> None:
     async with client:
         # First call hits the API
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(riot_id="bexli#bex")
 
         # Second call uses cached data
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(riot_id="bexli#bex")
 
 
 if __name__ == "__main__":

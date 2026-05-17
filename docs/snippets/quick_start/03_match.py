@@ -22,7 +22,7 @@ client = NexarClient(
 async def main() -> None:
     try:
         async with client:
-            player = await client.get_player("bexli", "bex")
+            player = await client.get_player(riot_id="bexli#bex")
             last_match = await player.get_last_match()
 
             # --8<-- [start:get-match]

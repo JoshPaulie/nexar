@@ -48,7 +48,7 @@ async def main() -> None:
 
         # --8<-- [start:champ-performance-demo]
         # Get player
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(riot_id="bexli#bex")
 
         # Get recent matches
         matches = await player.get_matches()
@@ -63,7 +63,7 @@ async def main() -> None:
 
         # --8<-- [start:match-history-demo]
         # Get player
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(riot_id="bexli#bex")
 
         # Get last 20 matches
         matches = await player.get_matches()
@@ -81,7 +81,7 @@ async def main() -> None:
 
         # --8<-- [start:player-performance-demo]
         # Get player
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(riot_id="bexli#bex")
 
         # Get recent matches
         matches = await player.get_matches(count=20)

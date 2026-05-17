@@ -29,7 +29,7 @@ async def main() -> None:
     async with client:
         print("Fetching player info...")
         # Get player information
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(riot_id="bexli#bex")
 
         print()
         riot_account = player.riot_account  # Immediately available!

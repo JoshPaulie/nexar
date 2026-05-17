@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- `get_riot_account_by_puuid(puuid, *, region)` — new public client method for account lookup by PUUID.
+- `get_player()` and `Player.create()` now accept three identification patterns:
+  - `get_player(game_name="...", tag_line="...")` — by game name + tag line (unchanged)
+  - `get_player(puuid="...")` — by PUUID
+  - `get_player(riot_id="name#tag")` — by Riot ID string
+
+### Changed
+
+- **Breaking:** `get_player()` and `Player.create()` are now keyword-only. Use `get_player(game_name="...", tag_line="...")` instead of `get_player("...", "...")`.
+
+### Wrapped API Endpoints
+
+- **Account API**
+  - `GET /riot/account/v1/accounts/by-puuid/{puuid}` → `RiotAccount` (via `get_riot_account_by_puuid`)
+
 ## [1.0.0] - 2026-05-14
 
 Initial release.

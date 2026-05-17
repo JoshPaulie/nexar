@@ -13,7 +13,7 @@ client = NexarClient(
 
 async def main() -> None:
     async with client:
-        player = await client.get_player(game_name="bexli", tag_line="bex", region=Region.NA1)
+        player = await client.get_player(riot_id="bexli#bex", region=Region.NA1)
 
         # Check if on a 3-game win streak (default min_games=3)
         on_streak = await player.is_on_win_streak()

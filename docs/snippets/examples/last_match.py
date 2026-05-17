@@ -15,7 +15,7 @@ client = NexarClient(
 async def main() -> None:
     async with client:
         # Create a player object to look up
-        player = await client.get_player(game_name="bexli", tag_line="bex", region=Region.NA1)
+        player = await client.get_player(riot_id="bexli#bex", region=Region.NA1)
 
         # Get the player's last match
         last_game = await player.get_last_match()

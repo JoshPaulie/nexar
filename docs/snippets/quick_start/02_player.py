@@ -28,16 +28,15 @@ async def main() -> None:
             from nexar.models import Player
 
             # Get player with default region set in client
-            player = await client.get_player("bexli", "bex")
+            player = await client.get_player(riot_id="bexli#bex")
             # or
             player = await Player.by_riot_id(client, "bexli#bex")
             # or
-            player = await Player.create(client, "bexli", "bex")
+            player = await Player.create(client, riot_id="bexli#bex")
 
             # Get a player from a different region
             eu_player = await client.get_player(
-                "Thebausffs",
-                "COOL",
+                riot_id="Thebausffs#COOL",
                 region=Region.EUW1,
             )
             # --8<-- [end:get-player]
@@ -54,7 +53,7 @@ async def main() -> None:
             # --8<-- [end:get-players]
 
             # Reset player to me from previous example
-            player = await client.get_player("bexli", "bex")
+            player = await client.get_player(riot_id="bexli#bex")
 
             # --8<-- [start:get-ranks]
             # Solo queue
