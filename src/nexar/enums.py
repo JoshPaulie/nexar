@@ -363,7 +363,7 @@ class Queue(Enum):
     """Unknown/undocumented queue ID not yet in the enum."""
 
     @classmethod
-    def _missing_(cls, value: object) -> "Queue":
+    def _missing_(cls, value: object) -> Queue:
         """Handle unknown queue IDs gracefully by returning UNKNOWN."""
         logger.warning("Unknown queue ID encountered: %s", value)
         return cls.UNKNOWN
@@ -437,7 +437,7 @@ class MapId(Enum):
     """Unknown/undocumented map ID not yet in the enum."""
 
     @classmethod
-    def _missing_(cls, value: object) -> "MapId":
+    def _missing_(cls, value: object) -> MapId:
         """Handle unknown map IDs gracefully by returning UNKNOWN."""
         logger.warning("Unknown map ID encountered: %s", value)
         return cls.UNKNOWN
