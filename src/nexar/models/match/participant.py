@@ -510,15 +510,15 @@ class Participant:
     team_early_surrendered: bool
     """Whether the participant's team early surrendered."""
 
-    # Complex nested objects
-    perks: "Perks"
-    """Rune and perk information."""
+    # Complex nested objects (optionally included by Riot)
+    perks: "Perks | None"
+    """Rune and perk information. May be None if not included in the API response."""
 
-    challenges: "Challenges"
-    """Challenge completion data."""
+    challenges: "Challenges | None"
+    """Challenge completion data. May be None if not included in the API response."""
 
-    missions: "Missions"
-    """Mission completion data."""
+    missions: "Missions | None"
+    """Mission completion data. May be None if not included in the API response."""
 
     # Riot ID
     game_name: str | None = None
@@ -726,10 +726,10 @@ class Participant:
             summoner_id=data["summonerId"],
             summoner_level=data["summonerLevel"],
             team_early_surrendered=data["teamEarlySurrendered"],
-            # Complex nested objects
-            perks=Perks.from_api_response(data["perks"]),
-            challenges=Challenges.from_api_response(data["challenges"]),
-            missions=Missions.from_api_response(data["missions"]),
+            # Complex nested objects (optionally included by Riot)
+            perks=Perks.from_api_response(p_data) if (p_data := data.get("perks")) else None,
+            challenges=Challenges.from_api_response(c_data) if (c_data := data.get("challenges")) else None,
+            missions=Missions.from_api_response(m_data) if (m_data := data.get("missions")) else None,
             # Riot ID (optional fields)
             game_name=data.get("riotIdGameName"),
             tagline=data.get("riotIdTagline"),
