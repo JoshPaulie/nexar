@@ -47,7 +47,7 @@ async def main() -> None:
             print(f"  Vision Score: {team.total_vision_score}")
             print(f"  Players:")
             for p in team.participants:
-                print(f"    {p.champion_name:<12} {p.kda_str}")
+                print(f"    {p.champion_name:<12} {p.kda(as_str=True)}")
             print()
 
 

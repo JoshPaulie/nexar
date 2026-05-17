@@ -19,7 +19,11 @@ async def main() -> None:
 
         participant = last_match.participants.by_puuid(player.puuid)
         assert participant
+
         challenges = participant.challenges
+        if not challenges:
+            print("No challenge data available for this match.")
+            return
 
         print(f"Challenges for {participant.game_name} on {participant.champion_name}:")
         print(f"  KDA:                {challenges.kda:.2f}")

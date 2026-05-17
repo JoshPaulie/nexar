@@ -40,7 +40,7 @@ async def main() -> None:
         cs_per_minute = cs / match_duration
         result = "won!" if participant.win else "lost."
         print(f"\n{participant.game_name} played {participant.champion_name} (and {result})")
-        print(f"KDA: {participant.kda_str} ({participant.challenges.kda:.2f})")
+        print(f"KDA: {participant.kda(as_str=True)} ({participant.kda():.2f})")
         print(f"CS: {cs} ({cs_per_minute:.1f} per minute)")
 
         # Get the player's team in that match
@@ -49,7 +49,7 @@ async def main() -> None:
         # Print teammates and their stats
         print("\nTeam:")
         for teammate in [p for p in last_team if p != participant]:
-            print(f"- {teammate.game_name} played {teammate.champion_name} ({teammate.kda_str})")
+            print(f"- {teammate.game_name} played {teammate.champion_name} ({teammate.kda(as_str=True)})")
 
         # Use the team_total_percentage utility function to calculate the percentage of the team's
         # total damage dealt to champions that was contributed by the player

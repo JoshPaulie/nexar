@@ -19,8 +19,11 @@ async def main() -> None:
 
         participant = last_match.participants.by_puuid(player.puuid)
         assert participant
+
         perks = participant.perks
-        assert perks
+        if not perks:
+            print("No perk data available for this match.")
+            return
 
         # Stat shards (defense, flex, offense)
         print(f"{participant.champion_name} stat shards:")

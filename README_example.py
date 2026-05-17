@@ -55,10 +55,8 @@ async def main() -> None:
                 continue
 
             result = "Victory!" if participant.win else "Defeat."
-            kda = participant.kda_str
-            kda_ratio = "N/A"
-            if participant.challenges:
-                kda_ratio = f"{participant.challenges.kda:.2f}"
+            kda = participant.kda(as_str=True)
+            kda_ratio = f"{participant.kda():.2f}"
 
             # Calculate time ago
             game_start = match.info.game_start_timestamp

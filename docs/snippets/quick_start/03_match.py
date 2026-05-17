@@ -46,7 +46,7 @@ async def main() -> None:
             for p in participants:
                 name = p.game_name
                 champ_name = p.champion_name
-                kda = p.kda_str
+                kda = p.kda(as_str=True)
                 print(f"{name} ({champ_name}) went {kda}")
 
             # --8<-- [end:participants]
@@ -86,8 +86,9 @@ async def main() -> None:
             drags = participant.dragon_kills
 
             # The really fun stuff
-            buffs_stolen = participant.challenges.buffs_stolen
-            gold_per_min = participant.challenges.gold_per_minute
+            if participant.challenges:
+                buffs_stolen = participant.challenges.buffs_stolen
+                gold_per_min = participant.challenges.gold_per_minute
             # --8<-- [end:participant]
     except Exception as e:  # noqa: BLE001
         print(f"Snippet execution skipped or failed (expected without valid key): {e}")

@@ -22,7 +22,7 @@ async def main() -> None:
         # highest_kda: top 3 by KDA
         print("Top 3 KDA:")
         for p in participants.highest_kda(3):
-            print(f"  {p.champion_name:<12} {p.kda_str}")
+            print(f"  {p.champion_name:<12} {p.kda(as_str=True)}")
 
         # most_kills: top 3 by kills
         print("\nMost Kills:")
