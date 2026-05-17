@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from enum import Enum
+
+logger = logging.getLogger("nexar")
 
 
 class Region(Enum):
@@ -356,6 +359,15 @@ class Queue(Enum):
     TUTORIAL_3 = 2020
     """Tutorial 3"""
 
+    UNKNOWN = -1
+    """Unknown/undocumented queue ID not yet in the enum."""
+
+    @classmethod
+    def _missing_(cls, value: object) -> "Queue":
+        """Handle unknown queue IDs gracefully by returning UNKNOWN."""
+        logger.warning("Unknown queue ID encountered: %s", value)
+        return cls.UNKNOWN
+
     @property
     def is_ranked(self) -> bool:
         """Check if this queue is a ranked queue."""
@@ -420,6 +432,15 @@ class MapId(Enum):
 
     RINGS_OF_WRATH = 30
     """Arena map"""
+
+    UNKNOWN = -1
+    """Unknown/undocumented map ID not yet in the enum."""
+
+    @classmethod
+    def _missing_(cls, value: object) -> "MapId":
+        """Handle unknown map IDs gracefully by returning UNKNOWN."""
+        logger.warning("Unknown map ID encountered: %s", value)
+        return cls.UNKNOWN
 
 
 class MatchType(Enum):

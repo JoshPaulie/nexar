@@ -1,6 +1,7 @@
 """Unit tests for enum properties and methods."""
 
 from nexar.enums import (
+    MapId,
     Queue,
     RankDivision,
     RankTier,
@@ -63,6 +64,22 @@ class TestRankTier:
         assert str(RankTier.MASTER) == "Master"
         assert str(RankTier.GRANDMASTER) == "Grandmaster"
         assert str(RankTier.CHALLENGER) == "Challenger"
+
+
+class TestUnknownQueue:
+    def test_unknown_queue_returns_unknown_sentinel(self, caplog) -> None:
+        """Queue(1750) should return Queue.UNKNOWN instead of raising."""
+        result = Queue(1750)
+        assert result is Queue.UNKNOWN
+        assert "Unknown queue ID encountered: 1750" in caplog.text
+
+
+class TestUnknownMapId:
+    def test_unknown_map_id_returns_unknown_sentinel(self, caplog) -> None:
+        """MapId(999) should return MapId.UNKNOWN instead of raising."""
+        result = MapId(999)
+        assert result is MapId.UNKNOWN
+        assert "Unknown map ID encountered: 999" in caplog.text
 
 
 class TestRankDivision:
