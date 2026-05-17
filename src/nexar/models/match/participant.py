@@ -86,14 +86,20 @@ class Participant:
     assists: int
     """Number of assists on enemy champion kills."""
 
-    @property
-    def kda_str(self) -> str:
+    def kda(self, *, as_str: bool = False) -> float | str:
         """
-        KDA formatted as 'kills/deaths/assists' string, e.g. '5/2/10'.
+        KDA ratio or formatted KDA string.
 
-        For the actual KDA ratio (kills + assists) / max(1, deaths), use `Participant.challenges.kda`.
+        By default returns the KDA ratio as (kills + assists) / max(1, deaths).
+        If as_str=True, returns a formatted string like '5/2/10'.
+
+        This is always available since kills, deaths, and assists are present
+        for all game modes. For the challenge-specific KDA, use `Participant.challenges.kda`
+        (only available when challenges are included in the API response).
         """
-        return f"{self.kills}/{self.deaths}/{self.assists}"
+        if as_str:
+            return f"{self.kills}/{self.deaths}/{self.assists}"
+        return (self.kills + self.assists) / max(self.deaths, 1)
 
     champion_level: int
     """Final champion level achieved."""

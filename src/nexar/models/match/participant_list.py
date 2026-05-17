@@ -176,11 +176,7 @@ class ParticipantList(list["Participant"]):
         """
         return ParticipantList(
             self.sort_by(
-                lambda p: p.challenges.kda
-                if p.challenges.kda is not None
-                else float(p.kills + p.assists)
-                if p.deaths == 0
-                else (p.kills + p.assists) / p.deaths,
+                lambda p: p.challenges.kda if p.challenges is not None and p.challenges.kda is not None else p.kda(),
                 reverse=True,
             )[:count],
         )
