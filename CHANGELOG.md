@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [1.1.0] - 2026-05-17
+
+> [!WARNING]
+> This release includes breaking changes. Please review the "Changed" section carefully before upgrading. [^1]
+
 ### Added
 
 - `get_riot_account_by_puuid(puuid, *, region)` — new public client method for account lookup by PUUID.
@@ -11,10 +16,17 @@ All notable changes to this project will be documented in this file.
   - `get_player(game_name="...", tag_line="...")` — by game name + tag line (unchanged)
   - `get_player(puuid="...")` — by PUUID
   - `get_player(riot_id="name#tag")` — by Riot ID string
+- Gracefully handle unknown `Queue` and `MapId` enum values from the Riot API.
+- Add `Participant.kda()`. Not all matches return a participant's "challenges", despite participants from matches of all gamemodes having kills, deaths, and assists. This is a useful convenience method for a common statistic. By default it returns a ratio float, but can return a formatted string if `as_str=True` is passed (e.g. "10/2/5").
 
 ### Changed
 
 - **Breaking:** `get_player()` and `Player.create()` are now keyword-only. Use `get_player(game_name="...", tag_line="...")` instead of `get_player("...", "...")`.
+- **Breaking:** Remove `Participant.kda_string` property. Use `Participant.kda(as_str=True)` instead.
+
+### Fixed
+
+- Make `challenges`, `perks`, and `missions` fields optional on `Participant` to prevent deserialization errors.
 
 ### Wrapped API Endpoints
 
@@ -56,3 +68,7 @@ Initial release.
 - **Convenience Methods**
   - `client.get_player(game_name, tag_line)` → `Player`
   - `client.get_players(riot_ids)` → `list[Player]`
+
+---
+
+[^1]: Pretending to have users is fun :)
