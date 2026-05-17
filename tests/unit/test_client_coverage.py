@@ -260,7 +260,7 @@ async def test_get_player_convenience(client: NexarClient, mock_aioresponse: Mag
         "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/p1",
         payload={"id": "s1", "puuid": "p1", "accountId": "a1", "name": "Game", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30},
     )
-    player = await client.get_player("Game", "Tag")
+    player = await client.get_player(game_name="Game", tag_line="Tag")
     assert player.game_name == "Game"
     await client.close()
 

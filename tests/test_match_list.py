@@ -22,7 +22,7 @@ class TestMatchList:
     @pytest.mark.slow
     async def test_get_average_stat(self, real_client: "NexarClient") -> None:
         """Test getting the average of a participant stat."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
         matches = await player.get_matches(count=5)
 
         # Test with a valid stat

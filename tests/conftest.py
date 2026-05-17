@@ -62,6 +62,12 @@ async def client(
     )
 
     mock_aioresponse.get(
+        re.compile(r"https://.*\.api\.riotgames\.com/riot/account/v1/accounts/by-puuid/.*"),
+        payload=mock_responses["riot_account"],
+        repeat=True,
+    )
+
+    mock_aioresponse.get(
         re.compile(r"https://.*\.api\.riotgames\.com/lol/summoner/v4/summoners/by-puuid/.*"),
         payload=mock_responses["summoner"],
         repeat=True,

@@ -185,7 +185,7 @@ async def test_high_level_get_player(fresh_client: NexarClient, mock_aioresponse
             "revisionDate": 1, "summonerLevel": 100,
         },
     )
-    player: Player = await fresh_client.get_player("GameName", "TagLine")
+    player: Player = await fresh_client.get_player(game_name="GameName", tag_line="TagLine")
     assert player.game_name == "GameName"
     assert player.puuid == "p1"
     await fresh_client.close()

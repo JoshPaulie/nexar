@@ -32,7 +32,7 @@ class TestPlayer:
 
     async def test_player_from_client_convenience_method(self, client: "NexarClient") -> None:
         """Test creating Player via client convenience method."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         assert isinstance(player, Player)
         assert player.game_name == "bexli"
@@ -41,7 +41,7 @@ class TestPlayer:
 
     async def test_player_riot_account_property(self, client: "NexarClient") -> None:
         """Test accessing player's riot account."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         assert player.riot_account.game_name == "bexli"
         assert player.riot_account.tag_line == "bex"
@@ -49,7 +49,7 @@ class TestPlayer:
 
     async def test_player_summoner_property(self, client: "NexarClient") -> None:
         """Test accessing player's summoner information."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         summoner = await player.get_summoner()
         riot_account = player.riot_account
@@ -58,7 +58,7 @@ class TestPlayer:
 
     async def test_player_puuid_property(self, client: "NexarClient") -> None:
         """Test accessing player's PUUID."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         riot_account = player.riot_account
         puuid = riot_account.puuid
@@ -67,7 +67,7 @@ class TestPlayer:
 
     async def test_player_league_entries_property(self, client: "NexarClient") -> None:
         """Test accessing player's league entries."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         league_entries = await player.get_league_entries()
         assert isinstance(league_entries, list)
@@ -75,7 +75,7 @@ class TestPlayer:
 
     async def test_player_rank_properties(self, client: "NexarClient") -> None:
         """Test accessing player's rank information."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         # Get league entries to check for ranks
         league_entries = await player.get_league_entries()
@@ -91,7 +91,7 @@ class TestPlayer:
     @pytest.mark.slow
     async def test_player_get_recent_matches(self, real_client: "NexarClient") -> None:
         """Test getting recent matches."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         matches = await player.get_matches(count=5)
         assert isinstance(matches, list)
@@ -107,7 +107,7 @@ class TestPlayer:
         real_client: "NexarClient",
     ) -> None:
         """Test getting recent matches with various filters."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         # Test with queue filter
         matches = await player.get_matches(count=10, queue=Queue.RANKED_SOLO_5x5)
@@ -124,7 +124,7 @@ class TestPlayer:
     @pytest.mark.slow
     async def test_player_get_champion_stats(self, real_client: "NexarClient") -> None:
         """Test getting champion statistics."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         matches = await player.get_matches(count=10)
         stats = matches.get_champion_stats()
@@ -140,7 +140,7 @@ class TestPlayer:
     @pytest.mark.slow
     async def test_player_get_top_champions(self, real_client: "NexarClient") -> None:
         """Test getting top played champions."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
         matches = await player.get_matches(count=10)
         top_champions = matches.get_champion_stats()[:3]
 
@@ -151,7 +151,7 @@ class TestPlayer:
 
     async def test_player_refresh_cache(self, client: "NexarClient") -> None:
         """Test cache refresh functionality."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         # Get initial data to populate cache
         await player.get_summoner()
@@ -168,7 +168,7 @@ class TestPlayer:
 
     async def test_player_string_representations(self, client: "NexarClient") -> None:
         """Test string representations of Player."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         str_repr = str(player)
         assert str_repr == "bexli#bex"
@@ -184,7 +184,7 @@ class TestPlayer:
         real_client: "NexarClient",
     ) -> None:
         """Test getting performance summary."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         matches = await player.get_matches(count=10)
         summary = matches.get_performance_stats()
@@ -210,7 +210,7 @@ class TestPlayer:
         real_client: "NexarClient",
     ) -> None:
         """Test getting performance summary with queue and match type filters."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         # Test with queue filter
         matches = await player.get_matches(count=5)
@@ -227,7 +227,7 @@ class TestPlayer:
     @pytest.mark.slow
     async def test_player_is_on_win_streak(self, real_client: "NexarClient") -> None:
         """Test win streak detection."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         # Test the method exists and returns a boolean
         win_streak = await player.is_on_win_streak(min_games=2)
@@ -239,7 +239,7 @@ class TestPlayer:
         real_client: "NexarClient",
     ) -> None:
         """Test getting performance statistics by role."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         role_performance = await player.get_recent_performance_by_role(count=10)
         assert isinstance(role_performance, dict)
@@ -256,7 +256,7 @@ class TestPlayer:
         real_client: "NexarClient",
     ) -> None:
         """Test getting role performance with queue filter."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         from nexar.enums import Queue
 
@@ -268,7 +268,7 @@ class TestPlayer:
 
     async def test_player_cache_behavior(self, client: "NexarClient") -> None:
         """Test that Player properties are properly cached."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         # First access should make API calls and cache results
         riot_account1 = player.riot_account
@@ -314,7 +314,7 @@ class TestPlayer:
         real_client: "NexarClient",
     ) -> None:
         """Test performance summary with minimal match count."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         # Test with very small count to verify method handles edge cases
         matches = await player.get_matches(count=1)
@@ -328,7 +328,7 @@ class TestPlayer:
         real_client: "NexarClient",
     ) -> None:
         """Test champion stats with queue filter."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         matches = await player.get_matches(count=10, queue=Queue.RANKED_SOLO_5x5)
         stats = matches.get_champion_stats()
@@ -343,7 +343,7 @@ class TestPlayer:
         real_client: "NexarClient",
     ) -> None:
         """Test champion stats with match type filter."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         from nexar.enums import MatchType
 
@@ -354,7 +354,7 @@ class TestPlayer:
     @pytest.mark.slow
     async def test_top_champions_edge_cases(self, real_client: "NexarClient") -> None:
         """Test top champions with edge cases."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         # Test with small count
         matches = await player.get_matches(count=5)
@@ -370,7 +370,7 @@ class TestPlayer:
         """Test Player methods that accept datetime filters."""
         from datetime import datetime, timedelta
 
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
         # Test with datetime objects
         end_time = datetime.now(UTC)
@@ -389,7 +389,7 @@ class TestPlayer:
 
     async def test_player_puuid_consistency(self, client: "NexarClient") -> None:
         """Test that PUUID is consistent across different access methods."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         # PUUID should be the same whether accessed via property or riot_account
         riot_account = player.riot_account
@@ -402,7 +402,7 @@ class TestPlayer:
 
     async def test_player_rank_properties_edge_cases(self, client: "NexarClient") -> None:
         """Test rank properties when player has no ranked entries."""
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         # Even if player is unranked, this should not crash
         league_entries = await player.get_league_entries()
@@ -470,14 +470,14 @@ class TestPlayer:
         assert stats.total_assists >= 0
 
     async def test_get_last_match(self, client: "NexarClient") -> None:
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
         match = await player.get_last_match()
         assert match is not None
         assert match.metadata is not None
         assert match.info is not None
 
     async def test_get_solo_rank_value_ranked(self, client: "NexarClient") -> None:
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
         result = await player.get_solo_rank_value()
         assert result is not None
         tier_value, lp = result
@@ -485,7 +485,98 @@ class TestPlayer:
         assert isinstance(lp, int)
 
     async def test_get_solo_rank_value_unranked(self, client: "NexarClient", mocker: "pytest_mock.MockerFixture") -> None:
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
         mocker.patch.object(player, "get_solo_rank", return_value=None)
         result = await player.get_solo_rank_value()
         assert result is None
+
+    # --- get_player / Player.create overload tests ---
+
+    async def test_get_player_by_puuid(self, client: "NexarClient") -> None:
+        """Test get_player with puuid keyword argument."""
+        # First get a player to obtain their puuid
+        player_by_name = await client.get_player(game_name="bexli", tag_line="bex")
+        puuid = player_by_name.puuid
+
+        # Re-fetch by puuid
+        player_by_puuid = await client.get_player(puuid=puuid)
+
+        assert player_by_puuid.game_name == "bexli"
+        assert player_by_puuid.tag_line == "bex"
+        assert player_by_puuid.puuid == puuid
+
+    async def test_get_player_by_riot_id(self, client: "NexarClient") -> None:
+        """Test get_player with riot_id keyword argument."""
+        player = await client.get_player(riot_id="bexli#bex")
+
+        assert player.game_name == "bexli"
+        assert player.tag_line == "bex"
+        assert player.puuid is not None
+
+    async def test_player_create_by_puuid(self, client: "NexarClient") -> None:
+        """Test Player.create with puuid keyword argument."""
+        player_by_name = await Player.create(client=client, game_name="bexli", tag_line="bex")
+        puuid = player_by_name.puuid
+
+        player_by_puuid = await Player.create(client=client, puuid=puuid)
+
+        assert player_by_puuid.game_name == "bexli"
+        assert player_by_puuid.tag_line == "bex"
+        assert player_by_puuid.puuid == puuid
+
+    async def test_player_create_by_riot_id(self, client: "NexarClient") -> None:
+        """Test Player.create with riot_id keyword argument."""
+        player = await Player.create(client=client, riot_id="bexli#bex")
+
+        assert player.game_name == "bexli"
+        assert player.tag_line == "bex"
+
+    async def test_get_player_with_puuid_and_region(self, client: "NexarClient") -> None:
+        """Test get_player with puuid and explicit region."""
+        player_by_name = await client.get_player(game_name="bexli", tag_line="bex")
+        puuid = player_by_name.puuid
+
+        player = await client.get_player(puuid=puuid, region=Region.NA1)
+
+        assert player.puuid == puuid
+        assert player.region == Region.NA1
+
+    async def test_get_player_no_args_raises(self, client: "NexarClient") -> None:
+        """Test that get_player with no identification raises ValueError."""
+        with pytest.raises(ValueError, match="Either game_name \\+ tag_line, puuid, or riot_id"):
+            await client.get_player()
+
+    async def test_get_player_ambiguous_args_raises(self, client: "NexarClient") -> None:
+        """Test that get_player with game_name only (no tag_line) raises ValueError."""
+        with pytest.raises(ValueError, match="Either game_name \\+ tag_line, puuid, or riot_id"):
+            await client.get_player(game_name="bexli")
+
+    async def test_get_player_by_riot_id_invalid_format(self, client: "NexarClient") -> None:
+        """Test that get_player with invalid riot_id format raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid Riot ID format"):
+            await client.get_player(riot_id="no_hash")
+
+        with pytest.raises(ValueError, match="Invalid Riot ID format"):
+            await client.get_player(riot_id="#onlytag")
+
+        with pytest.raises(ValueError, match="Invalid Riot ID format"):
+            await client.get_player(riot_id="onlyname#")
+
+    async def test_get_riot_account_by_puuid(self, client: "NexarClient") -> None:
+        """Test client.get_riot_account_by_puuid method directly."""
+        account_by_name = await client.get_riot_account("bexli", "bex")
+        puuid = account_by_name.puuid
+
+        account_by_puuid = await client.get_riot_account_by_puuid(puuid)
+
+        assert account_by_puuid.puuid == puuid
+        assert account_by_puuid.game_name == "bexli"
+        assert account_by_puuid.tag_line == "bex"
+
+    async def test_get_players_still_works(self, client: "NexarClient") -> None:
+        """Test that get_players batch method still works correctly."""
+        players = await client.get_players(["bexli#bex"])
+
+        assert len(players) == 1
+        assert players[0].game_name == "bexli"
+        assert players[0].tag_line == "bex"

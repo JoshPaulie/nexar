@@ -29,7 +29,7 @@ class TestMatchModels:
     @pytest.mark.slow
     async def test_match_from_api_response(self, real_client: "NexarClient") -> None:
         """Test Match creation from real API response."""
-        player = await real_client.get_player("bexli", "bex")
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
         matches = await player.get_matches(count=1)
 
         if matches:
