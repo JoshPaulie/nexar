@@ -200,3 +200,9 @@ For some reading on how AI almost ruined this project, check out the [llm post-m
 ### LLM Contributions
 
 Used sparingly, and in the same fashion as above, it would hypocritical to not allow LLM contributions. But vibe coded, unchecked, slop may result in ban.
+
+---
+
+Required legal disclaimer:
+
+*Nexar is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.*
