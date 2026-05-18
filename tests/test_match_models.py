@@ -161,3 +161,31 @@ class TestMatchModels:
         participant_names = [participant.game_name for participant in match.participants]
 
         assert participant_names == ["BluePlayer", "RedPlayer"]
+
+    async def test_get_player_returns_player(self, client: "NexarClient") -> None:
+        """Test that Participant.get_player() returns a Player."""
+        participant = create_test_participant(puuid="test-puuid-123")
+
+        player = await participant.get_player(client)
+
+        assert player.game_name == "bexli"
+        assert player.tag_line == "bex"
+        assert player.riot_account is not None
+
+    @pytest.mark.slow
+    async def test_get_player_with_real_client(self, real_client: "NexarClient") -> None:
+        """Integration test: get_player() returns a real Player."""
+        player = await real_client.get_player(game_name="bexli", tag_line="bex")
+        matches = await player.get_matches(count=1)
+
+        if matches:
+            first_match = matches[0]
+            # Find the participant matching this player's PUUID
+            participant = first_match.participants.by_puuid(player.puuid)
+            assert participant is not None
+
+            player_from_participant = await participant.get_player(real_client)
+
+            # Both Players should reference the same Riot account (same PUUID)
+            assert player_from_participant.riot_account.puuid == player.riot_account.puuid
+            assert player_from_participant.riot_account is not None
