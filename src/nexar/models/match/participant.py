@@ -9,6 +9,10 @@ from nexar.enums import MatchParticipantPosition
 from .match import BLUE_TEAM_ID
 
 if TYPE_CHECKING:
+    from nexar.client import NexarClient
+    from nexar.enums import Region
+    from nexar.models.player import Player
+
     from .challenges import Challenges, Missions
     from .perks import Perks
 
@@ -100,6 +104,31 @@ class Participant:
         if as_str:
             return f"{self.kills}/{self.deaths}/{self.assists}"
         return (self.kills + self.assists) / max(self.deaths, 1)
+
+    async def get_player(
+        self,
+        client: "NexarClient",
+        *,
+        region: "Region | None" = None,
+    ) -> "Player":
+        """
+        Get a Player object for this participant.
+
+        Uses the participant's PUUID to look up their Riot account and create
+        a Player, which provides convenient access to summoner data, league
+        entries, match history, and more.
+
+        Args:
+            client: The NexarClient instance to use for API calls.
+            region: The player's region (defaults to client default).
+
+        Returns:
+            A Player instance for this participant.
+
+        """
+        from nexar.models.player import Player
+
+        return await Player.create(client=client, puuid=self.puuid, region=region)
 
     champion_level: int
     """Final champion level achieved."""
