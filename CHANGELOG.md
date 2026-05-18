@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- `Participant.get_player(client, *, region=None)` — async method to get a `Player` from a match participant via PUUID.
+
 ## [1.1.0] - 2026-05-17
 
 > [!WARNING]

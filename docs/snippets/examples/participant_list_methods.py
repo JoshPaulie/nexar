@@ -42,6 +42,11 @@ async def main() -> None:
         print(f"Winners: {len(participants.winners())} players")
         print(f"Losers:  {len(participants.losers())} players")
 
+        # Get a Player from a participant for further queries
+        top_kda_participant = participants.highest_kda(1)[0]
+        top_player = await top_kda_participant.get_player(client, region=Region.NA1)
+        print(f"\nTop KDA player: {top_player}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
