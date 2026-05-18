@@ -28,6 +28,7 @@ GEMINI.md
 # Local dev
 TODO.md
 *.db
+*.log
 
 # Opencode vector database
 .opencode/index
