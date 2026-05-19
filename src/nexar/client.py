@@ -454,6 +454,11 @@ class NexarClient:
 
                 async with self._session.get(url, headers=headers, params=params) as response:
                     if response.status == HTTP_TOO_MANY_REQUESTS:
+                        retry_after = response.headers.get("Retry-After", "?")
+                        logger.warning(
+                            "429 on attempt %d/%d for %s (region: %s). Retry-After: %ss",
+                            _attempt + 1, max_retries, endpoint, platform_region, retry_after,
+                        )
                         self._call_stats["retries"] += 1
                         await self.rate_limiter.release(platform_region, method_id)
                         await self.rate_limiter.update_from_headers(

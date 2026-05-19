@@ -104,7 +104,7 @@ class RateLimiter:
 
             max_wait = self._calculate_max_wait(limits, now)
             if max_wait > 0:
-                logger.warning("Rate limit approaching for %s/%s. Sleeping %.2fs", region, method, max_wait)
+                self._log_rate_limit_wait(limits, now, region, method, max_wait)
                 await asyncio.sleep(max_wait)
                 now = time.time()
                 limits = self._get_all_for_region(region, method)
@@ -159,7 +159,15 @@ class RateLimiter:
                 wait_sec = 5.0
 
             storage_type = self._detect_rate_limit_type(headers)
-            logger.warning("429 Rate Limit (%s) hit. Blocking for %ss", storage_type, wait_sec)
+            logger.warning(
+                "429 Rate Limit (%s) for %s/%s. Blocking for %.1fs",
+                storage_type, region, method, wait_sec,
+            )
+            logger.debug(
+                "429 response headers: %s",
+                {k: v for k, v in headers.items() if "rate" in k.lower() or k == "Retry-After"},
+            )
+            self._log_bucket_state(region, method)
 
             region_limits = self._get_or_create_region(region)
             method_param = method if storage_type == "method" else None
@@ -399,3 +407,68 @@ class RateLimiter:
                 blocked_until=old_blocked,
                 request_times=local_times,
             )
+
+    # ------------------------------------------------------------------
+    # Diagnostic helpers
+    # ------------------------------------------------------------------
+
+    def dump_state(self) -> dict[str, dict[str, dict[str, object]]]:
+        """Return a snapshot of all rate limit buckets for diagnostics."""
+        snapshot: dict[str, dict[str, dict[str, object]]] = {}
+        now = time.time()
+        for region, records in self._limits.items():
+            snapshot[region] = {}
+            for key, record in records.items():
+                elapsed = now - record.window_start
+                snapshot[region][key] = {
+                    "type": record.type,
+                    "count": record.count,
+                    "limit": record.limit_val,
+                    "window_s": record.window_seconds,
+                    "elapsed_s": round(elapsed, 2),
+                    "fill_pct": round(record.count / max(record.limit_val, 1) * 100, 1),
+                    "blocked_remaining_s": round(max(record.blocked_until - now, 0), 1),
+                }
+        return snapshot
+
+    def _log_bucket_state(self, region: str, method: str) -> None:
+        """Log a human-readable snapshot of all buckets for a region."""
+        now = time.time()
+        limits = self._get_all_for_region(region, method)
+        if not limits:
+            return
+        lines = ["  Current bucket state:"]
+        for r in limits:
+            fill_pct = r.count / max(r.limit_val, 1) * 100
+            blocked = max(r.blocked_until - now, 0)
+            parts = [f"    {r.key}", f"fill={r.count}/{r.limit_val} ({fill_pct:.0f}%)"]
+            if blocked > 0:
+                parts.append(f"blocked={blocked:.1f}s")
+            lines.append(" | ".join(parts))
+        logger.info("\n".join(lines))
+
+    def _log_rate_limit_wait(
+        self,
+        limits: list[RateLimitRecord],
+        now: float,
+        region: str,
+        method: str,
+        max_wait: float,
+    ) -> None:
+        """Log which bucket triggered the rate limit wait."""
+        for r in limits:
+            if r.blocked_until > now:
+                logger.info(
+                    "Rate limit BLOCKED for %s/%s: %s blocked for %.1fs more. Sleeping %.2fs",
+                    region, method, r.key, r.blocked_until - now, max_wait,
+                )
+                return
+            elapsed = now - r.window_start
+            if elapsed < r.window_seconds and r.count >= r.limit_val:
+                fill_pct = r.count / max(r.limit_val, 1) * 100
+                logger.info(
+                    "Rate limit FULL for %s/%s: %s at %d/%d (%.0f%%). Sleeping %.2fs",
+                    region, method, r.key, r.count, r.limit_val, fill_pct, max_wait,
+                )
+                return
+        logger.info("Rate limit wait for %s/%s. Sleeping %.2fs", region, method, max_wait)
