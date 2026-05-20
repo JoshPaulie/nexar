@@ -1,32 +1,16 @@
-"""In-memory rate limiting for Riot API requests."""
+"""Rate limiting for Riot API requests backed by aiolimiter leaky buckets."""
 
 import asyncio
 import logging
 import time
-from collections import defaultdict, deque
-from dataclasses import dataclass, field, replace
+
+from aiolimiter import AsyncLimiter
 
 logger = logging.getLogger("nexar")
 
 # Standard Riot API rate limits: https://developer.riotgames.com/docs/portal
 PERSONAL_LIMITS: tuple[tuple[int, int], ...] = ((20, 1), (100, 120))
 PRODUCTION_LIMITS: tuple[tuple[int, int], ...] = ((500, 10), (30000, 600))
-
-
-@dataclass
-class RateLimitRecord:
-    """One rate limit bucket (app, method, or service) for a region."""
-
-    key: str
-    type: str
-    region: str
-    count: int
-    window_start: float
-    limit_val: int
-    window_seconds: int
-    blocked_until: float
-    request_times: deque[float] = field(default_factory=deque)
-    """Timestamps of requests in the current window, used for accurate window_start tracking."""
 
 
 def _validate_rate_limit(limit: int, window: int) -> None:
@@ -47,41 +31,42 @@ def _validate_rate_limit(limit: int, window: int) -> None:
 
 class RateLimiter:
     """
-    In-memory rate limiter supporting app, method, and service limits per region.
+    Rate limiter for Riot API using aiolimiter's leaky bucket algorithm.
 
     Full Riot API rate limit details: meta/riot_rate_limits.md
 
     Parses Riot API response headers (X-App-Rate-Limit, X-Method-Rate-Limit,
-    X-Service-Rate-Limit) to dynamically adjust limits and handles 429 responses
-    with Retry-After blocking.
+    X-Service-Rate-Limit) to dynamically create method/service limiters and
+    handles 429 responses with Retry-After blocking.
 
     **Service rate limits** are shared across all applications calling a given service.
-    The server provides the authoritative count via headers, so this class simply
-    mirrors what the server reports.
+    The server provides the authoritative count via headers; this class creates
+    AsyncLimiter instances that mirror the server-defined limits.
 
     **"Other" limits**: Some underlying services enforce their own rate limits
     independently of the API edge. In these cases, a 429 response will arrive
     *without* an X-Rate-Limit-Type header. When this happens, we cannot determine
-    which bucket overflowed, so we fall back to blocking app-level records as the
-    safest defensive posture.
+    which bucket overflowed, so we fall back to blocking all buckets for the region
+    as the safest defensive posture.
 
     **Static data** endpoints (e.g., Data Dragon) do not count against app rate
     limits per Riot's documentation. Calls to such endpoints should skip the rate
     limiter via a bypass flag on the client.
 
     TODO: Add a bypass flag to skip rate limiting for static-data endpoints.
-
-    State stored in `_limits` and `_locks` grows with unique (region, method)
-    pairs. In practice the Riot API surface bounds this to a few hundred entries,
-    so no pruning mechanism is needed.
     """
 
-    def __init__(self, app_limits: tuple[tuple[int, int], ...], safety_margin: float = 0.01) -> None:
+    def __init__(
+        self,
+        app_limits: tuple[tuple[int, int], ...] = PERSONAL_LIMITS,
+        safety_margin: float = 0.01,
+    ) -> None:
         """
-        Initialize the rate limiter with default application limits.
+        Initialize the rate limiter with application-level limits.
 
         Args:
             app_limits: Application-level rate limits as (count, window_seconds) tuples.
+                Defaults to PERSONAL_LIMITS (20 req/1s + 100 req/120s).
             safety_margin: Fraction of quota to reserve as headroom (0.01 = 1%).
                 Effective limit = floor(limit_val * (1 - safety_margin)).
 
@@ -90,8 +75,99 @@ class RateLimiter:
             _validate_rate_limit(limit, window)
         self._app_limits = app_limits
         self._safety_margin = safety_margin
-        self._limits: dict[str, dict[str, RateLimitRecord]] = defaultdict(dict)
+
+        # Per-region app-level AsyncLimiter instances (lazily created)
+        self._app_buckets: dict[str, list[AsyncLimiter]] = {}
+
+        # Dynamic method/service limiters created from response headers
+        self._dynamic: dict[str, AsyncLimiter] = {}
+
+        # Per-region locks for serializing acquire and header updates
         self._locks: dict[str, asyncio.Lock] = {}
+
+        # 429 Retry-After blocking: bucket_key → unblock timestamp
+        self._blocked: dict[str, float] = {}
+
+    # -- public API --------------------------------------------------------
+
+    async def acquire(self, region: str, method: str) -> None:
+        """Acquire permission to make a request. Blocks if limits are exceeded."""
+        async with self._get_lock(region):
+            while True:
+                now = time.time()
+                block_wait = self._calc_block_wait(region, method, now)
+
+                buckets = self._collect_buckets(region, method)
+                all_ready = all(b.has_capacity() for b in buckets)
+
+                if block_wait <= 0 and all_ready:
+                    break
+
+                wait = max(block_wait, 0.1)
+                self._log_wait(region, method, wait, blocked=block_wait > 0, full=not all_ready)
+                await asyncio.sleep(wait)
+
+            # All buckets have capacity; acquire atomically under the lock
+            for bucket in self._collect_buckets(region, method):
+                await bucket.acquire()
+
+    async def update_from_headers(
+        self,
+        headers: dict[str, str],
+        region: str,
+        method: str,
+    ) -> None:
+        """Update limits based on authoritative Riot response headers."""
+        async with self._get_lock(region):
+            self._sync_update_from_headers(headers, region, method)
+
+    def dump_state(self) -> dict[str, object]:
+        """Return a snapshot of all rate limit buckets for diagnostics."""
+        now = time.time()
+        snapshot: dict[str, object] = {}
+
+        for region, buckets in self._app_buckets.items():
+            snapshot[region] = {
+                "app_buckets": [self._bucket_info(b, f"app_{region}_{b.max_rate}:{b.time_period}") for b in buckets],
+            }
+
+        dynamic_info: dict[str, dict[str, object]] = {}
+        for key, bucket in self._dynamic.items():
+            dynamic_info[key] = self._bucket_info(bucket, key)
+        if dynamic_info:
+            snapshot["__dynamic__"] = dynamic_info
+
+        blocked_info = {k: round(max(0, v - now), 1) for k, v in self._blocked.items() if v > now}
+        if blocked_info:
+            snapshot["__blocked__"] = blocked_info
+
+        return snapshot
+
+    # -- header detection --------------------------------------------------
+
+    @staticmethod
+    def _detect_rate_limit_type(headers: dict[str, str]) -> tuple[str, bool]:
+        """
+        Determine the type of rate limit from response headers.
+
+        Returns (type_label, is_explicit) where is_explicit is False when
+        the X-Rate-Limit-Type header was absent.
+        """
+        raw_type = headers.get("X-Rate-Limit-Type", "").lower()
+        type_map = {"application": "app", "method": "method", "service": "service"}
+        if raw_type:
+            return type_map.get(raw_type, "app"), True
+
+        # Ambiguous: no explicit type header.
+        if headers.get("X-Service-Rate-Limit"):
+            return "service", False
+        if headers.get("X-App-Rate-Limit"):
+            return "app", False
+        if headers.get("X-Method-Rate-Limit"):
+            return "method", False
+        return "service", False
+
+    # -- internals ---------------------------------------------------------
 
     def _get_lock(self, region: str) -> asyncio.Lock:
         """Get or create an asyncio Lock for a specific region."""
@@ -99,47 +175,53 @@ class RateLimiter:
             self._locks[region] = asyncio.Lock()
         return self._locks[region]
 
-    def _get_or_create_region(self, region: str) -> dict[str, RateLimitRecord]:
-        """Get the dictionary of rate limit records for a specific region."""
-        return self._limits[region]
+    def _effective_limit(self, limit: int) -> int:
+        """Apply safety margin to limit value."""
+        return max(1, int(limit * (1 - self._safety_margin)))
 
-    async def acquire(self, region: str, method: str) -> None:
-        """Acquire permission to make a request. Sleeps if limits are exceeded."""
-        async with self._get_lock(region):
-            while True:
-                now = time.time()
-                limits = self._get_all_for_region(region, method)
-                limits = self._ensure_initial_app_limits(region, method, now, limits)
-                max_wait = self._calculate_max_wait(limits, now)
-                if max_wait <= 0:
-                    break
-                self._log_rate_limit_wait(limits, now, region, method, max_wait)
-                await asyncio.sleep(max_wait)
+    def _get_or_create_app_buckets(self, region: str) -> list[AsyncLimiter]:
+        """Lazily create app-level AsyncLimiter instances for a region."""
+        if region not in self._app_buckets:
+            self._app_buckets[region] = [
+                AsyncLimiter(self._effective_limit(limit), window) for limit, window in self._app_limits
+            ]
+        return self._app_buckets[region]
 
-            self._increment_counters(region, limits, now)
+    def _collect_buckets(self, region: str, method: str) -> list[AsyncLimiter]:
+        """Collect all applicable AsyncLimiter instances for a request."""
+        buckets = list(self._get_or_create_app_buckets(region))
+        method_prefix = f"method_{region}_{method}_"
+        service_prefix = f"service_{region}_"
+        for key, bucket in self._dynamic.items():
+            if key.startswith((method_prefix, service_prefix)):
+                buckets.append(bucket)
+        return buckets
 
-    async def release(self, region: str, method: str) -> None:
-        """Release a previously acquired request token (e.g., on 429 rollback)."""
-        async with self._get_lock(region):
-            self._sync_release(region, method)
+    def _calc_block_wait(self, region: str, method: str, now: float) -> float:
+        """Calculate seconds to wait due to 429 Retry-After blocking."""
+        wait = 0.0
+        for key, blocked_until in self._blocked.items():
+            if blocked_until <= now:
+                continue
+            if key.startswith((f"app_{region}", f"method_{region}_{method}", f"service_{region}")):
+                wait = max(wait, blocked_until - now)
+        return wait
 
-    async def update_from_headers(self, headers: dict[str, str], region: str, method: str) -> None:
-        """Update limits based on authoritative Riot response headers."""
-        async with self._get_lock(region):
-            self._sync_update_from_headers(headers, region, method)
+    # -- header parsing ----------------------------------------------------
 
-    def _sync_update_from_headers(self, headers: dict[str, str], region: str, method: str) -> None:
-        """Synchronously parse rate limit headers and update records."""
-        time.time()
+    def _sync_update_from_headers(
+        self,
+        headers: dict[str, str],
+        region: str,
+        method: str,
+    ) -> None:
+        """Parse rate limit headers and update internal state."""
+        # Handle 429 blocking first
+        if "Retry-After" in headers:
+            self._apply_retry_after_block(headers, region, method)
 
-        self._parse_and_update(
-            headers.get("X-App-Rate-Limit"),
-            headers.get("X-App-Rate-Limit-Count"),
-            "app",
-            region,
-        )
-
-        self._parse_and_update(
+        # Parse method rate limits
+        self._parse_and_apply(
             headers.get("X-Method-Rate-Limit"),
             headers.get("X-Method-Rate-Limit-Count"),
             "method",
@@ -147,32 +229,29 @@ class RateLimiter:
             method,
         )
 
-        self._parse_and_update(
+        # Parse service rate limits
+        self._parse_and_apply(
             headers.get("X-Service-Rate-Limit"),
             headers.get("X-Service-Rate-Limit-Count"),
             "service",
             region,
+            method=None,
         )
 
-        if "Retry-After" in headers:
-            self._apply_retry_after_block(headers, region, method)
-
-    def _apply_retry_after_block(self, headers: dict[str, str], region: str, method: str) -> None:
-        """Apply Retry-After blocking to the appropriate rate limit records."""
+    def _apply_retry_after_block(
+        self,
+        headers: dict[str, str],
+        region: str,
+        method: str,
+    ) -> None:
+        """Apply Retry-After blocking to the appropriate buckets."""
         now = time.time()
-        try:
-            wait_sec = float(headers["Retry-After"])
-        except ValueError:
-            logger.warning(
-                "Invalid Retry-After header value: %s. Using default of 5.0 seconds",
-                headers["Retry-After"],
-            )
-            wait_sec = 5.0
+        wait_sec = self._parse_retry_after(headers)
+        limit_type, is_explicit = self._detect_rate_limit_type(headers)
 
-        storage_type, is_explicit = self._detect_rate_limit_type(headers)
         logger.warning(
             "429 Rate Limit (%s) for %s/%s. Blocking for %.1fs",
-            storage_type,
+            limit_type,
             region,
             method,
             wait_sec,
@@ -181,204 +260,72 @@ class RateLimiter:
             "429 response headers: %s",
             {k: v for k, v in headers.items() if "rate" in k.lower() or k == "Retry-After"},
         )
-        self._log_bucket_state(region, method)
-
-        region_limits = self._get_or_create_region(region)
 
         if not is_explicit:
-            # Ambiguous 429: no X-Rate-Limit-Type header means an underlying
-            # service limit. Block every record since we can't tell which one was hit.
-            for record in region_limits.values():
-                record.blocked_until = now + wait_sec
+            # Ambiguous 429 — block every bucket for this region.
+            self._block_region(region, now, wait_sec)
             return
 
-        method_param = method if storage_type == "method" else None
-        for key, record in region_limits.items():
-            if record.type != storage_type:
-                continue
-            if storage_type == "method" and method_param and not key.startswith(f"method_{region}_{method_param}_"):
-                continue
-            record.blocked_until = now + wait_sec
+        self._block_by_type(limit_type, region, method, now, wait_sec)
 
         # When a service/method 429 lacks its own limit header, the app
         # bucket was also exhausted — block app records too.
-        if (storage_type == "service" and not headers.get("X-Service-Rate-Limit")) or (
-            storage_type == "method" and not headers.get("X-Method-Rate-Limit")
-        ):
-            for record in region_limits.values():
-                if record.type == "app":
-                    record.blocked_until = now + wait_sec
+        if self._missing_limit_header(limit_type, headers):
+            self._block_app_limits(region, now, wait_sec)
 
-    def _sync_release(self, region: str, method: str) -> None:
-        """Synchronously decrement counters for a failed request."""
-        region_limits = self._get_or_create_region(region)
-        method_prefix = f"method_{region}_{method}_" if method else ""
-        for key, record in region_limits.items():
-            is_app_or_service = record.type in {"app", "service"}
-            is_matching_method = method and record.type == "method" and key.startswith(method_prefix)
-            if not (is_app_or_service or is_matching_method):
-                continue
-            if record.request_times:
-                record.request_times.pop()
-            self._recount_from_times(record)
+    @staticmethod
+    def _parse_retry_after(headers: dict[str, str]) -> float:
+        try:
+            return float(headers["Retry-After"])
+        except ValueError:
+            logger.warning(
+                "Invalid Retry-After header value: %s. Using default of 5.0 seconds",
+                headers["Retry-After"],
+            )
+            return 5.0
 
-    def _get_all_for_region(self, region: str, method: str | None = None) -> list[RateLimitRecord]:
-        """Retrieve all applicable rate limit records for a region and optional method."""
-        region_limits = self._get_or_create_region(region)
-        result: list[RateLimitRecord] = []
+    @staticmethod
+    def _missing_limit_header(limit_type: str, headers: dict[str, str]) -> bool:
+        if limit_type == "service":
+            return not bool(headers.get("X-Service-Rate-Limit"))
+        if limit_type == "method":
+            return not bool(headers.get("X-Method-Rate-Limit"))
+        return False
 
-        method_prefix = f"method_{region}_{method}_" if method else ""
-        for key, record in region_limits.items():
-            is_service_or_app = record.type in {"app", "service"}
-            is_matching_method = method and record.type == "method" and key.startswith(method_prefix)
-            if is_service_or_app or is_matching_method:
-                result.append(replace(record))
+    def _block_region(self, region: str, now: float, wait_sec: float) -> None:
+        for key in self._collect_block_keys_for_region(region):
+            self._blocked[key] = now + wait_sec
 
-        return result
-
-    def _ensure_initial_app_limits(
+    def _block_by_type(
         self,
+        limit_type: str,
         region: str,
         method: str,
         now: float,
-        limits: list[RateLimitRecord],
-    ) -> list[RateLimitRecord]:
-        """Ensure default app limits exist if no app limits are currently tracked."""
-        if any(limit.type == "app" for limit in limits):
-            return limits
+        wait_sec: float,
+    ) -> None:
+        if limit_type == "app":
+            self._block_app_limits(region, now, wait_sec)
+        elif limit_type == "method":
+            for key in self._dynamic:
+                if key.startswith(f"method_{region}_{method}_"):
+                    self._blocked[key] = now + wait_sec
+        elif limit_type == "service":
+            for key in self._dynamic:
+                if key.startswith(f"service_{region}_"):
+                    self._blocked[key] = now + wait_sec
 
-        region_limits = self._get_or_create_region(region)
-        for limit_val, window_sec in self._app_limits:
-            key = f"app_{region}_{limit_val}:{window_sec}"
-            if key not in region_limits:
-                region_limits[key] = RateLimitRecord(
-                    key=key,
-                    type="app",
-                    region=region,
-                    count=0,
-                    window_start=now,
-                    limit_val=limit_val,
-                    window_seconds=window_sec,
-                    blocked_until=0.0,
-                )
+    def _block_app_limits(self, region: str, now: float, wait_sec: float) -> None:
+        for limit, window in self._app_limits:
+            self._blocked[f"app_{region}_{limit}:{window}"] = now + wait_sec
 
-        return self._get_all_for_region(region, method)
+    def _collect_block_keys_for_region(self, region: str) -> list[str]:
+        """Collect all bucket keys associated with a region for blocking."""
+        keys: list[str] = [f"app_{region}_{limit}:{window}" for limit, window in self._app_limits]
+        keys.extend(k for k in self._dynamic if region in k)
+        return keys
 
-    def _calculate_max_wait(self, limits: list[RateLimitRecord], now: float) -> float:
-        """Calculate the maximum wait time required across all applicable limits."""
-        max_wait = 0.0
-
-        for limit in limits:
-            if limit.blocked_until > now:
-                max_wait = max(max_wait, limit.blocked_until - now)
-
-        for limit in limits:
-            elapsed = now - limit.window_start
-            effective_limit = max(1, int(limit.limit_val * (1 - self._safety_margin)))
-            if elapsed < limit.window_seconds and limit.count >= effective_limit:
-                max_wait = max(max_wait, limit.window_seconds - elapsed)
-
-        return max_wait
-
-    def _increment_counters(self, region: str, limits: list[RateLimitRecord], now: float) -> None:
-        """Increment the request counters for all provided rate limit records."""
-        region_limits = self._get_or_create_region(region)
-        for limit in limits:
-            key = limit.key
-            if key not in region_limits:
-                continue
-            record = region_limits[key]
-            window_cutoff = now - record.window_seconds
-
-            # Prune timestamps outside the current window
-            while record.request_times and record.request_times[0] <= window_cutoff:
-                record.request_times.popleft()
-
-            record.request_times.append(now)
-            self._recount_from_times(record)
-
-    def _detect_rate_limit_type(self, headers: dict[str, str]) -> tuple[str, bool]:
-        """
-        Determine the type of rate limit from the response headers.
-
-        Returns (type_label, is_explicit) where is_explicit is False when the
-        X-Rate-Limit-Type header was absent, meaning the 429 came from an
-        underlying service limit that we can't identify precisely.
-        """
-        raw_type = headers.get("X-Rate-Limit-Type", "").lower()
-        if raw_type:
-            return {"application": "app", "method": "method", "service": "service"}.get(raw_type, "app"), True
-
-        # Ambiguous: no explicit type header — could be an underlying
-        # service rate limit. Fall back to whichever limit headers are present.
-        explicit = False
-        if headers.get("X-Service-Rate-Limit"):
-            return "service", explicit
-        if headers.get("X-App-Rate-Limit"):
-            return "app", explicit
-        if headers.get("X-Method-Rate-Limit"):
-            return "method", explicit
-        return "service", explicit
-
-    @staticmethod
-    def _recount_from_times(record: RateLimitRecord) -> None:
-        """Update count and window_start from the request_times deque."""
-        record.count = len(record.request_times)
-        record.window_start = record.request_times[0] if record.request_times else time.time()
-
-    def _parse_limit_count_headers(
-        self,
-        limit_hdr: str,
-        count_hdr: str,
-        limit_type: str,
-        region: str,
-    ) -> list[tuple[int, int, int]] | None:
-        """Parse limit and count headers into list of (limit_val, window_sec, count) tuples."""
-        try:
-            limits = [tuple(x.split(":")) for x in limit_hdr.split(",")]
-            counts = [tuple(x.split(":")) for x in count_hdr.split(",")]
-        except ValueError:
-            logger.warning("Malformed rate limit headers: limit=%s count=%s", limit_hdr, count_hdr)
-            return None
-
-        if len(limits) != len(counts):
-            logger.warning("Mismatched rate limit header counts: %d limits, %d counts", len(limits), len(counts))
-            return None
-
-        result: list[tuple[int, int, int]] = []
-        for (limit_val_str, window_sec_str), (count_str, _) in zip(limits, counts, strict=True):
-            try:
-                limit_val = int(limit_val_str)
-                window_sec = int(window_sec_str)
-                count = int(count_str)
-            except ValueError:
-                logger.warning(
-                    "Failed to parse rate limit values: limit=%s window=%s count=%s",
-                    limit_val_str,
-                    window_sec_str,
-                    count_str,
-                )
-                continue
-
-            if limit_val <= 0 or window_sec <= 0 or count < 0:
-                logger.warning("Invalid rate limit value: limit=%s window=%s count=%s", limit_val, window_sec, count)
-                continue
-
-            if count > limit_val:
-                logger.warning(
-                    "Response count (%d) exceeds limit (%d) for %s/%s. Clamping to limit.",
-                    count,
-                    limit_val,
-                    limit_type,
-                    region,
-                )
-                count = limit_val
-
-            result.append((limit_val, window_sec, count))
-
-        return result
-
-    def _parse_and_update(
+    def _parse_and_apply(
         self,
         limit_hdr: str | None,
         count_hdr: str | None,
@@ -386,136 +333,84 @@ class RateLimiter:
         region: str,
         method: str | None = None,
     ) -> None:
-        """Parse limit and count headers to update the internal rate limit records."""
+        """Parse limit/count headers and create/update dynamic AsyncLimiter instances."""
         if not limit_hdr or not count_hdr:
             return
 
-        parsed = self._parse_limit_count_headers(limit_hdr, count_hdr, limit_type, region)
+        parsed = self._parse_limit_header(limit_hdr)
         if parsed is None:
             return
 
-        now = time.time()
-        region_limits = self._get_or_create_region(region)
-
-        for limit_val, window_sec, count in parsed:
-            key_parts = [limit_type, region]
-            if method:
-                key_parts.append(method)
-            key_parts.append(f"{limit_val}:{window_sec}")
-            key = "_".join(key_parts)
-
-            old_record = region_limits.get(key)
-            old_blocked = old_record.blocked_until if old_record else 0.0
-
-            # Reconcile local request timestamps with server count
-            local_times = old_record.request_times if old_record else deque()
-            cutoff = now - window_sec
-            while local_times and local_times[0] <= cutoff:
-                local_times.popleft()
-
-            if len(local_times) == count:
-                # Local tracking matches server — trust our window_start
-                window_start = local_times[0] if local_times else now
-            elif len(local_times) < count:
-                # Server says we have more requests than we tracked locally
-                # (e.g., after a 429 retry where the server counted the failed call).
-                # Add evenly-spaced synthetic timestamps at the start of the window
-                # to preserve our actual recent history while matching the server count.
-                missing = count - len(local_times)
-                oldest = local_times[0] if local_times else now
-                spacing = window_sec / max(count, 1)
-                for i in range(missing):
-                    local_times.appendleft(oldest - (i + 1) * spacing)
-                window_start = local_times[0]
+        for limit_val, window_sec in parsed:
+            if limit_type == "method" and method:
+                key = f"method_{region}_{method}_{limit_val}:{window_sec}"
             else:
-                # Server says we have fewer requests — trim oldest timestamps
-                for _ in range(len(local_times) - count):
-                    local_times.popleft()
-                window_start = local_times[0] if local_times else now
+                key = f"service_{region}_{limit_val}:{window_sec}"
 
-            region_limits[key] = RateLimitRecord(
-                key=key,
-                type=limit_type,
-                region=region,
-                count=count,
-                window_start=window_start,
-                limit_val=limit_val,
-                window_seconds=window_sec,
-                blocked_until=old_blocked,
-                request_times=local_times,
+            # Replace with a fresh limiter (AsyncLimiter.max_rate is immutable)
+            self._dynamic[key] = AsyncLimiter(
+                self._effective_limit(limit_val),
+                window_sec,
             )
 
-    # ------------------------------------------------------------------
-    # Diagnostic helpers
-    # ------------------------------------------------------------------
+    @staticmethod
+    def _parse_limit_header(limit_hdr: str) -> list[tuple[int, int]] | None:
+        """Parse a rate limit header like '20:1,100:120' into (limit, window) pairs."""
+        try:
+            parts = [tuple(x.split(":")) for x in limit_hdr.split(",")]
+        except ValueError:
+            logger.warning("Malformed rate limit header: %s", limit_hdr)
+            return None
 
-    def dump_state(self) -> dict[str, dict[str, dict[str, object]]]:
-        """Return a snapshot of all rate limit buckets for diagnostics."""
-        snapshot: dict[str, dict[str, dict[str, object]]] = {}
-        now = time.time()
-        for region, records in self._limits.items():
-            snapshot[region] = {}
-            for key, record in records.items():
-                elapsed = now - record.window_start
-                snapshot[region][key] = {
-                    "type": record.type,
-                    "count": record.count,
-                    "limit": record.limit_val,
-                    "window_s": record.window_seconds,
-                    "elapsed_s": round(elapsed, 2),
-                    "fill_pct": round(record.count / max(record.limit_val, 1) * 100, 1),
-                    "blocked_remaining_s": round(max(record.blocked_until - now, 0), 1),
-                }
-        return snapshot
+        result: list[tuple[int, int]] = []
+        for limit_str, window_str in parts:
+            try:
+                limit_val = int(limit_str)
+                window_sec = int(window_str)
+            except ValueError:
+                logger.warning(
+                    "Failed to parse rate limit values: limit=%s window=%s",
+                    limit_str,
+                    window_str,
+                )
+                continue
+            if limit_val > 0 and window_sec > 0:
+                result.append((limit_val, window_sec))
+        return result if result else None
 
-    def _log_bucket_state(self, region: str, method: str) -> None:
-        """Log a human-readable snapshot of all buckets for a region."""
-        now = time.time()
-        limits = self._get_all_for_region(region, method)
-        if not limits:
-            return
-        lines = ["  Current bucket state:"]
-        for r in limits:
-            fill_pct = r.count / max(r.limit_val, 1) * 100
-            blocked = max(r.blocked_until - now, 0)
-            parts = [f"    {r.key}", f"fill={r.count}/{r.limit_val} ({fill_pct:.0f}%)"]
-            if blocked > 0:
-                parts.append(f"blocked={blocked:.1f}s")
-            lines.append(" | ".join(parts))
-        logger.info("\n".join(lines))
+    # -- diagnostics -------------------------------------------------------
 
-    def _log_rate_limit_wait(
+    @staticmethod
+    def _bucket_info(bucket: AsyncLimiter, key: str) -> dict[str, object]:
+        """Return diagnostic info for a single AsyncLimiter."""
+        return {
+            "key": key,
+            "max_rate": bucket.max_rate,
+            "time_period": bucket.time_period,
+            "has_capacity": bucket.has_capacity(),
+        }
+
+    def _log_wait(
         self,
-        limits: list[RateLimitRecord],
-        now: float,
         region: str,
         method: str,
-        max_wait: float,
+        wait: float,
+        *,
+        blocked: bool,
+        full: bool,
     ) -> None:
-        """Log which bucket triggered the rate limit wait."""
-        for r in limits:
-            if r.blocked_until > now:
-                logger.info(
-                    "Rate limit BLOCKED for %s/%s: %s blocked for %.1fs more. Sleeping %.2fs",
-                    region,
-                    method,
-                    r.key,
-                    r.blocked_until - now,
-                    max_wait,
-                )
-                return
-            elapsed = now - r.window_start
-            if elapsed < r.window_seconds and r.count >= r.limit_val:
-                fill_pct = r.count / max(r.limit_val, 1) * 100
-                logger.info(
-                    "Rate limit FULL for %s/%s: %s at %d/%d (%.0f%%). Sleeping %.2fs",
-                    region,
-                    method,
-                    r.key,
-                    r.count,
-                    r.limit_val,
-                    fill_pct,
-                    max_wait,
-                )
-                return
-        logger.info("Rate limit wait for %s/%s. Sleeping %.2fs", region, method, max_wait)
+        """Log the reason for a rate limit wait."""
+        if blocked:
+            logger.info(
+                "Rate limit BLOCKED (429) for %s/%s. Sleeping %.2fs",
+                region,
+                method,
+                wait,
+            )
+        elif full:
+            logger.info(
+                "Rate limit FULL for %s/%s. Sleeping %.2fs",
+                region,
+                method,
+                wait,
+            )

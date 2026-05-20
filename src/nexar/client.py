@@ -468,7 +468,6 @@ class NexarClient:
                             retry_after,
                         )
                         self._call_stats["retries"] += 1
-                        await self.rate_limiter.release(platform_region, method_id)
                         await self.rate_limiter.update_from_headers(
                             dict(response.headers),
                             platform_region,
