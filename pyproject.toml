@@ -7,7 +7,11 @@ authors = [
     { name = "bex", email = "30572280+JoshPaulie@users.noreply.github.com" },
 ]
 requires-python = ">=3.13"
-dependencies = ["aiohttp>=3.12.13", "aiohttp-client-cache[all,sqlite]>=0.13.0"]
+dependencies = [
+    "aiohttp>=3.12.13",
+    "aiohttp-client-cache[all,sqlite]>=0.13.0",
+    "aiolimiter>=1.2.1",
+]
 
 [dependency-groups]
 dev = [
@@ -39,7 +43,9 @@ python_functions = ["test_*"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "--cov=src/nexar --cov-report=term-missing --cov-report=html"
-markers = ["slow: tests that make real Riot API calls (excluded from quick test suite)"]
+markers = [
+    "slow: tests that make real Riot API calls (excluded from quick test suite)",
+]
 log_cli = true
 log_cli_level = "WARNING"
 log_cli_format = "%(levelname)s [%(name)s] %(message)s"
