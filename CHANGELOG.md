@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Changed
+
+- Rate limiter backend replaced with `aiolimiter` for a more robust leaky bucket implementation. The public API is unchanged.
+
+### Removed
+
+- `RateLimiter.release()` — removed as aiolimiter's leaky bucket recovers capacity naturally.
+
 ### Added
 
 - `Participant.get_player(client, *, region=None)` — async method to get a `Player` from a match participant via PUUID.

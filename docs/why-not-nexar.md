@@ -12,14 +12,14 @@ Issues are encouraged for features I haven't thought of.
 
 There's really nothing magic going on.
 
-It's just `aiohttp` to make async API calls with a custom in-memory rate limiter, then use `aiohttp-client-cache` to save responses to disk.
+It's just `aiohttp` to make async API calls with an `aiolimiter` leaky bucket rate limiter, then use `aiohttp-client-cache` to save responses to disk.
 
 - Need the cache in a different format?
 - Need some sort of middleware?
-- Need a "production ready" solution?
+- Need a "production ready" rate limiter (or production-anything)?
 - Need different rate limits for different endpoints?
 
-Nexar is not for you.
+Nexar is not for you. Read [more below](#the-recommended-alternative).
 
 ## It's only League of Legends
 
@@ -31,22 +31,12 @@ Any TFT related issues or requests will be laughed at and closed.
 
 ## More SDK than wrapper
 
-Nexar doesn't completely cover all League related endpoints, at least not yet. The goal is stat pulling, particularly summoner and match history.
+I wanted Nexar to be a bit more of a complete package, documenting and stitching together the oddities of the Riot API, rather than just a thin wrapper around it.
 
-## Comparing Nexar to related libraries
+In other words, this is intended for hobbyists; people who just want to get an API key and start pulling stats with terminology that makes sense to them, not learning the Riot API from scratch.
 
-|                           Library                            | Async/sync | Wrapper only |       Caching       | Rate limiting | Active dev |
-| :----------------------------------------------------------: | :--------: | :----------: | :-----------------: | :-----------: | :--------: |
-|         [Nexar](https://github.com/joshpaulie/nexar)         |   Async    |      No      | SQLite or in-memory |    Precise    |    Yes     |
-|      [Pulsefire](https://github.com/iann838/pulsefire)       |   Async    |     Yes      |   Many solutions    |    Precise    |    Yes     |
-| [Cassiopeia](https://github.com/meraki-analytics/cassiopeia) |    Sync    |      No      |    In-memory[^1]    |    Precise    |  Partial   |
-| [RiotWatcher](https://github.com/pseudonym117/Riot-Watcher)  |    Sync    |     Yes      |        None         |     Naive     |  Partial   |
-|           [Pyot](https://github.com/iann838/pyot)            |   Async    |      No      |   Many solutions    |    Precise    |     No     |
+## The recommended alternative
 
-[^1]: A disk caching plugin package is available
+[Pulsefire](https://github.com/iann838/pulsefire) is the recommended Nexar alternative. Async, type safe, idiomatic and completely wraps all Riot Games APIs.
 
-Pulsefire is the recommended Nexar alternative. Async, type safe, idiomatic and completely wraps all Riot Games APIs.
-
-Nexar was created as a simpler, League-only Pulsefire alternative, focusing on developer experience (helper functions, robust models, doc strings galore, and usage examples). It's heavily inspired by Pulsefire's predicate library, Pyot.
-
-Nexar is nowhere near "production ready" in the enterprise sense, but it's perfect for your personal projects.
+Nexar was created as a simple, League-only Pulsefire alternative, focusing on developer experience (helper functions, robust models, doc strings galore, and usage examples). It's heavily inspired by Pulsefire's predicate library, Pyot.

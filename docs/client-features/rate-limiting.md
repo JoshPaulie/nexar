@@ -52,9 +52,31 @@ await client.get_riot_account("Doublelift", "NA1", region=Region.NA1)  # Uses NA
 await client.get_riot_account("G2 Wunder", "EUW", region=Region.EUW1)  # Uses EUW1 budget
 ```
 
+## Safety Margin
+
+By default, Nexar reserves a 1% buffer from every rate limit bucket to avoid hitting Riot's exact boundary and getting 429 errors. For example, with a 500 req/10s limit, the effective limit is 495 req/10s.
+
+
+You can adjust or disable it:
+
+```python
+client = NexarClient(
+    riot_api_key="your-key",
+    rate_limit_safety_margin=0.05,  # Reserve 5%
+)
+
+# Or disable entirely (At your own risk)
+client = NexarClient(
+    riot_api_key="your-key",
+    rate_limit_safety_margin=0.0,
+)
+```
+
 ## How It Works
 
-Nexar uses an in-memory rate limiter that tracks counts per region and method. It parses Riot response headers (`X-App-Rate-Limit`, `X-Method-Rate-Limit`, `X-Service-Rate-Limit`) to adjust limits and handles 429 responses.
+Nexar uses a leaky bucket rate limiter backed by `aiolimiter`. It parses Riot response headers (`X-App-Rate-Limit`, `X-Method-Rate-Limit`, `X-Service-Rate-Limit`) to create dynamic limit buckets and handles 429 responses with `Retry-After` blocking.
+
+The effective limit for each bucket is `floor(limit × (1 - safety_margin))`, rounded down to avoid overstepping. Rate limits are enforced per region with per-region locking to prevent race conditions.
 
 Rate limits are not persisted across restarts. Cached responses do not count against rate limits.
 
