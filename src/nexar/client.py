@@ -70,6 +70,7 @@ class NexarClient:
         default_region: Region | None = None,
         cache_config: CacheConfig | None = None,
         app_rate_limits: tuple[tuple[int, int], ...] = PERSONAL_LIMITS,
+        rate_limit_safety_margin: float = 0.01,
     ) -> None:
         """
         Initialize the Nexar client.
@@ -81,12 +82,15 @@ class NexarClient:
             app_rate_limits: Application-level rate limits as (count, window_seconds) tuples.
                 Defaults to PERSONAL_LIMITS (20 req/1s + 100 req/120s).
                 For production keys use PRODUCTION_LIMITS: ((500, 10), (30000, 600)).
+            rate_limit_safety_margin: Fraction of quota to reserve (0.01 = 1%).
+                Reduces effective limits to avoid precise boundary 429s.
+                Effective limit = floor(limit_val * (1 - safety_margin)).
 
         """
         self.riot_api_key = riot_api_key
         self.default_region = default_region
         self.cache_config = cache_config or DEFAULT_CACHE_CONFIG
-        self.rate_limiter = RateLimiter(app_rate_limits)
+        self.rate_limiter = RateLimiter(app_rate_limits, safety_margin=rate_limit_safety_margin)
 
         self._api_call_count = 0
         self._call_stats: dict[str, int] = {
@@ -457,7 +461,11 @@ class NexarClient:
                         retry_after = response.headers.get("Retry-After", "?")
                         logger.warning(
                             "429 on attempt %d/%d for %s (region: %s). Retry-After: %ss",
-                            _attempt + 1, max_retries, endpoint, platform_region, retry_after,
+                            _attempt + 1,
+                            max_retries,
+                            endpoint,
+                            platform_region,
+                            retry_after,
                         )
                         self._call_stats["retries"] += 1
                         await self.rate_limiter.release(platform_region, method_id)

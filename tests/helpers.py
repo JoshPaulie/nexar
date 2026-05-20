@@ -15,8 +15,12 @@ from nexar.rate_limiter import PERSONAL_LIMITS, RateLimiter, RateLimitRecord
 class MockRateLimiter:
     """Wraps RateLimiter to expose internal state for testing."""
 
-    def __init__(self, app_limits: tuple[tuple[int, int], ...] = PERSONAL_LIMITS) -> None:
-        self._inner = RateLimiter(app_limits)
+    def __init__(
+        self,
+        app_limits: tuple[tuple[int, int], ...] = PERSONAL_LIMITS,
+        safety_margin: float = 0.01,
+    ) -> None:
+        self._inner = RateLimiter(app_limits, safety_margin)
 
     @property
     def limits(self) -> dict[str, dict[str, RateLimitRecord]]:
@@ -28,7 +32,7 @@ class MockRateLimiter:
     async def update_from_headers(self, headers: dict[str, str], region: str, method: str) -> None:
         await self._inner.update_from_headers(headers, region, method)
 
-    def detect_rate_limit_type(self, headers: dict[str, str]) -> str:
+    def detect_rate_limit_type(self, headers: dict[str, str]) -> tuple[str, bool]:
         return self._inner._detect_rate_limit_type(headers)
 
 

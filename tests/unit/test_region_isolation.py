@@ -7,7 +7,7 @@ from tests.helpers import MockRateLimiter
 
 @pytest.mark.asyncio
 async def test_rate_limit_per_platform_region() -> None:
-    limiter = MockRateLimiter(((2, 10), (10, 60)))
+    limiter = MockRateLimiter(((2, 10), (10, 60)), safety_margin=0)
 
     await limiter.acquire("na1", "summoner-v4")
     await limiter.acquire("na1", "summoner-v4")
@@ -30,7 +30,7 @@ async def test_rate_limit_per_platform_region() -> None:
 
 @pytest.mark.asyncio
 async def test_multiple_regions_isolated() -> None:
-    limiter = MockRateLimiter(((1, 10), (10, 60)))
+    limiter = MockRateLimiter(((1, 10), (10, 60)), safety_margin=0)
 
     regions = ["na1", "br1", "euw1", "kr", "oc1"]
     for region in regions:

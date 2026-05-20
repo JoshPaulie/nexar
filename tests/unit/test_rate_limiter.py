@@ -9,7 +9,7 @@ from tests.helpers import MockRateLimiter
 
 @pytest.mark.asyncio
 async def test_acquire_under_limit() -> None:
-    limiter = MockRateLimiter(((2, 1), (10, 60)))
+    limiter = MockRateLimiter(((2, 1), (10, 60)), safety_margin=0)
     await limiter.acquire("na1", "summoner-v4")
     app_key = "app_na1_2:1"
     assert limiter.limits["na1"][app_key].count == 1
@@ -20,7 +20,7 @@ async def test_acquire_under_limit() -> None:
 
 @pytest.mark.asyncio
 async def test_acquire_over_limit_with_sleep(mocker) -> None:
-    limiter = MockRateLimiter(((1, 10), (100, 600)))
+    limiter = MockRateLimiter(((1, 10), (100, 600)), safety_margin=0)
 
     mock_sleep = mocker.patch("asyncio.sleep", return_value=None)
     current_time = [time.time()]
