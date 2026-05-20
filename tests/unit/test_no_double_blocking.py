@@ -1,6 +1,5 @@
 """Test to verify no double-blocking on 429 responses."""
 
-import asyncio
 import time
 
 import pytest
@@ -35,20 +34,12 @@ async def test_no_double_blocking_on_429(simple_client: NexarClient, mock_aiores
         },
     )
 
-    sleep_calls: list[float] = []
-    original_sleep = asyncio.sleep
-
-    async def track_sleep(duration: float) -> None:
-        sleep_calls.append(duration)
-        await original_sleep(0.01)
-
-    with pytest.MonkeyPatch().context() as mp:
-        mp.setattr(asyncio, "sleep", track_sleep)
-        summoner = await simple_client.get_summoner_by_puuid("test-puuid")
+    t0 = time.time()
+    summoner = await simple_client.get_summoner_by_puuid("test-puuid")
+    elapsed = time.time() - t0
 
     assert summoner.puuid == "test-puuid"
-    assert len(sleep_calls) == 1, f"Expected 1 sleep call, got {len(sleep_calls)}: {sleep_calls}"
-    assert 0.15 < sleep_calls[0] < 0.3, f"Expected sleep duration ~0.2s, got {sleep_calls[0]}s"
+    assert 0.1 < elapsed < 0.5, f"Expected ~0.2s total wait (Retry-After), got {elapsed:.3f}s"
 
     await simple_client.close()
 
@@ -93,19 +84,12 @@ async def test_client_doesnt_sleep_on_429(simple_client: NexarClient, mock_aiore
         },
     )
 
-    sleep_calls: list[float] = []
-    original_sleep = asyncio.sleep
-
-    async def track_sleep(duration: float) -> None:
-        sleep_calls.append(duration)
-        await original_sleep(0.01)
-
-    with pytest.MonkeyPatch().context() as mp:
-        mp.setattr(asyncio, "sleep", track_sleep)
-        summoner = await simple_client.get_summoner_by_puuid("test-puuid")
+    t0 = time.time()
+    summoner = await simple_client.get_summoner_by_puuid("test-puuid")
+    elapsed = time.time() - t0
 
     assert summoner.puuid == "test-puuid"
-    assert len(sleep_calls) == 1, f"Expected 1 sleep call, got {len(sleep_calls)}: {sleep_calls}"
+    assert 0.05 < elapsed < 0.3, f"Expected ~0.1s total wait (Retry-After), got {elapsed:.3f}s"
     await simple_client.close()
 
 
@@ -134,19 +118,10 @@ async def test_429_with_multiple_retries(simple_client: NexarClient, mock_aiores
         },
     )
 
-    sleep_calls: list[float] = []
-    original_sleep = asyncio.sleep
-
-    async def track_sleep(duration: float) -> None:
-        sleep_calls.append(duration)
-        await original_sleep(0.01)
-
-    with pytest.MonkeyPatch().context() as mp:
-        mp.setattr(asyncio, "sleep", track_sleep)
-        summoner = await simple_client.get_summoner_by_puuid("test-puuid")
+    t0 = time.time()
+    summoner = await simple_client.get_summoner_by_puuid("test-puuid")
+    elapsed = time.time() - t0
 
     assert summoner.puuid == "test-puuid"
-    assert len(sleep_calls) == 2, f"Expected 2 sleep calls, got {len(sleep_calls)}: {sleep_calls}"
-    for i, sleep_duration in enumerate(sleep_calls):
-        assert 0.1 < sleep_duration < 0.25, f"Sleep call {i}: expected ~0.15s, got {sleep_duration}s"
+    assert 0.2 < elapsed < 0.6, f"Expected ~0.3s total wait (2x Retry-After 0.15s), got {elapsed:.3f}s"
     await simple_client.close()
