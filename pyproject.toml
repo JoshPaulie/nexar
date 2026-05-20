@@ -107,6 +107,19 @@ ignore = [
     "ERA001",  # Allow commented out code in snippets
     "E501",    # Allow long lines in snippets
 ]
+"dogfood/*.py" = [
+    "S311",    # Allow non-crypto random in dogfood scripts
+    "BLE001",  # Allow blind except in dogfood scripts
+    "S110",    # Allow try-except-pass in dogfood scripts
+    "SLF001",  # Allow private member access for hydration
+    "PLR0915", # Allow long functions in dogfood scripts
+    "C901",    # Allow complex functions in dogfood scripts
+    "PLR0912", # Allow many branches in dogfood scripts
+    "PLW0603", # Allow global statements in dogfood scripts
+    "ANN001",  # Allow missing type annotations in dogfood
+    "ANN202",  # Allow missing return type annotations in dogfood
+    "ARG001",  # Allow unused arguments in dogfood
+]
 "playground*.py" = ["D1"]
 
 [tool.ruff]
