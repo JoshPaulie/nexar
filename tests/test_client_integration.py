@@ -48,7 +48,6 @@ async def test_client_updates_rate_limiter_on_429() -> None:
 
     client.rate_limiter = MagicMock()
     client.rate_limiter.acquire = AsyncMock()
-    client.rate_limiter.release = AsyncMock()
     client.rate_limiter.update_from_headers = AsyncMock()
 
     mock_response_429 = AsyncMock()

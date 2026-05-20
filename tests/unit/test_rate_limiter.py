@@ -1,4 +1,4 @@
-"""Unit tests for the RateLimiter class."""
+"""Unit tests for the RateLimiter class backed by aiolimiter."""
 
 import time
 
@@ -9,17 +9,22 @@ from tests.helpers import MockRateLimiter
 
 @pytest.mark.asyncio
 async def test_acquire_under_limit() -> None:
+    """Acquiring within the limit should not block and should consume capacity."""
     limiter = MockRateLimiter(((2, 1), (10, 60)), safety_margin=0)
-    await limiter.acquire("na1", "summoner-v4")
-    app_key = "app_na1_2:1"
-    assert limiter.limits["na1"][app_key].count == 1
 
     await limiter.acquire("na1", "summoner-v4")
-    assert limiter.limits["na1"][app_key].count == 2
+    # After 1 acquire on a 2/1s bucket, there should still be capacity
+    buckets = limiter.app_buckets["na1"]
+    assert buckets[0].has_capacity()  # 1/2 used
+
+    await limiter.acquire("na1", "summoner-v4")
+    # After 2 acquires on a 2/1s bucket, capacity exhausted
+    assert not buckets[0].has_capacity()  # 2/2 used
 
 
 @pytest.mark.asyncio
 async def test_acquire_over_limit_with_sleep(mocker) -> None:
+    """Acquiring over the limit should sleep until capacity is available."""
     limiter = MockRateLimiter(((1, 10), (100, 600)), safety_margin=0)
 
     mock_sleep = mocker.patch("asyncio.sleep", return_value=None)
@@ -31,7 +36,6 @@ async def test_acquire_over_limit_with_sleep(mocker) -> None:
     mocker.patch("time.time", side_effect=get_time)
 
     await limiter.acquire("na1", "summoner-v4")
-    current_time[0] += 1
 
     async def mock_sleep_adv(sec) -> None:
         current_time[0] += sec + 1
@@ -39,12 +43,13 @@ async def test_acquire_over_limit_with_sleep(mocker) -> None:
     mock_sleep.side_effect = mock_sleep_adv
     await limiter.acquire("na1", "summoner-v4")
 
-    assert mock_sleep.call_count == 1
-    assert limiter.limits["na1"]["app_na1_1:10"].count == 1  # Reset after sleep
+    # Should have slept because bucket was full
+    assert mock_sleep.call_count >= 1
 
 
 @pytest.mark.asyncio
 async def test_update_from_headers() -> None:
+    """Method rate limits from headers should create dynamic AsyncLimiter instances."""
     limiter = MockRateLimiter(((20, 1), (100, 120)))
 
     headers = {
@@ -56,13 +61,15 @@ async def test_update_from_headers() -> None:
 
     await limiter.update_from_headers(headers, "na1", "summoner-v4")
 
-    assert "app_na1_20:1" in limiter.limits["na1"]
-    assert limiter.limits["na1"]["app_na1_20:1"].count == 5
-    assert limiter.limits["na1"]["method_na1_summoner-v4_100:10"].count == 1
+    # Method limit buckets should exist in dynamic
+    method_key = "method_na1_summoner-v4_100:10"
+    assert method_key in limiter.dynamic
+    assert limiter.dynamic[method_key].max_rate == 99  # 100 * 0.99 safety margin
 
 
 @pytest.mark.asyncio
 async def test_update_from_headers_service() -> None:
+    """Service rate limits from headers should create dynamic AsyncLimiter instances."""
     limiter = MockRateLimiter(((20, 1), (100, 120)))
 
     headers = {
@@ -72,5 +79,7 @@ async def test_update_from_headers_service() -> None:
 
     await limiter.update_from_headers(headers, "na1", "summoner-v4")
 
-    assert "service_na1_500:60" in limiter.limits["na1"]
-    assert limiter.limits["na1"]["service_na1_500:60"].count == 200
+    # Service limit bucket should exist in dynamic
+    service_key = "service_na1_500:60"
+    assert service_key in limiter.dynamic
+    assert limiter.dynamic[service_key].max_rate == 495  # 500 * 0.99 safety margin
