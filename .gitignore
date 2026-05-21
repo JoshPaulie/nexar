@@ -18,9 +18,10 @@ playground*.py
 # Environment setter
 riot-key.sh
 
-# Copilot instructions for writing tests
+# LLM/agent files
 .github/copilot-instructions.md
 GEMINI.md
+AGENTS.md
 
 # Cache files
 *.sqlite
@@ -30,9 +31,8 @@ TODO.md
 *.db
 *.log
 
-# Opencode vector database
-.opencode/index
-AGENTS.md
-
 # Docs output
 site
+
+# Temp (while under dev)
+dogfood/
