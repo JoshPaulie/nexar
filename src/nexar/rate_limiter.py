@@ -450,7 +450,7 @@ class RateLimiter:
     ) -> None:
         """Log the reason for a rate limit wait."""
         if blocked:
-            logger.info(
+            logger.warning(
                 "Rate limit BLOCKED (429) for %s/%s. Sleeping %.2fs",
                 region,
                 method,
