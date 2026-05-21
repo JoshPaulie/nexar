@@ -11,7 +11,13 @@ from nexar.enums import Region
 
 @pytest.fixture
 def simple_client() -> NexarClient:
-    return NexarClient(riot_api_key="test-api-key", default_region=Region.NA1)
+    # Use only the 20/1s bucket to avoid ~1.2s refill from the 100/120s bucket
+    # interfering with timing assertions in these tests.
+    return NexarClient(
+        riot_api_key="test-api-key",
+        default_region=Region.NA1,
+        app_rate_limits=((20, 1),),
+    )
 
 
 @pytest.mark.asyncio

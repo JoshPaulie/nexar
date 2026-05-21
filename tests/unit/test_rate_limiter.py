@@ -14,7 +14,7 @@ async def test_acquire_under_limit() -> None:
     App-level buckets use burst=1 to conservatively match Riot's sliding-window
     enforcement. A single acquire drains the bucket; further acquires wait for refill.
     """
-    limiter = MockRateLimiter(((2, 1), (10, 60)), safety_margin=0)
+    limiter = MockRateLimiter(((2, 1), (10, 60)))
 
     await limiter.acquire("na1", "summoner-v4")
     # Burst=1 bucket: capacity is exhausted after 1 acquire
@@ -32,7 +32,7 @@ async def test_acquire_over_limit_with_sleep(mocker) -> None:
 
     With burst=1 and limit=1 per 10s, the bucket refills after ~10s.
     """
-    limiter = MockRateLimiter(((1, 10), (100, 600)), safety_margin=0)
+    limiter = MockRateLimiter(((1, 10), (100, 600)))
 
     mock_sleep = mocker.patch("asyncio.sleep", return_value=None)
     current_time = [time.time()]
@@ -71,7 +71,7 @@ async def test_update_from_headers() -> None:
     # Method limit buckets should exist in dynamic
     method_key = "method_na1_summoner-v4_100:10"
     assert method_key in limiter.dynamic
-    assert limiter.dynamic[method_key].max_rate == 99  # 100 * 0.99 safety margin
+    assert limiter.dynamic[method_key].max_rate == 100
 
 
 @pytest.mark.asyncio
@@ -89,69 +89,36 @@ async def test_update_from_headers_service() -> None:
     # Service limit bucket should exist in dynamic
     service_key = "service_na1_500:60"
     assert service_key in limiter.dynamic
-    assert limiter.dynamic[service_key].max_rate == 495  # 500 * 0.99 safety margin
+    assert limiter.dynamic[service_key].max_rate == 500
 
 
 # -- _compute_burst_period ---------------------------------------------------
 
 
 def test_compute_burst_period_limit_20_per_1s() -> None:
-    """20 req / 1s with safety_margin=0 should produce period ~0.0526s."""
+    """20 req / 1s should produce period ~0.0526s."""
     from nexar.rate_limiter import RateLimiter
 
-    period = RateLimiter._compute_burst_period(20, 1, 0)
+    period = RateLimiter._compute_burst_period(20, 1)
     # period = 1 / (20 - 1) = 1/19 ≈ 0.05263
     assert period == pytest.approx(1 / 19)
 
 
 def test_compute_burst_period_limit_100_per_120s() -> None:
-    """100 req / 120s with safety_margin=0 should produce period ~1.212s."""
+    """100 req / 120s should produce period ~1.212s."""
     from nexar.rate_limiter import RateLimiter
 
-    period = RateLimiter._compute_burst_period(100, 120, 0)
+    period = RateLimiter._compute_burst_period(100, 120)
     # period = 120 / (100 - 1) = 120/99 ≈ 1.21212
     assert period == pytest.approx(120 / 99)
 
 
 def test_compute_burst_period_limit_1() -> None:
-    """Limit=1: burst consumes entire quota, so period > window."""
+    """Limit=1: burst consumes entire quota, so period = window."""
     from nexar.rate_limiter import RateLimiter
 
-    period = RateLimiter._compute_burst_period(1, 10, 0)
-    # period = 10 * (1 + 0) = 10
+    period = RateLimiter._compute_burst_period(1, 10)
     assert period == 10
-
-
-def test_compute_burst_period_limit_1_with_safety_margin() -> None:
-    """Limit=1 with safety margin scales the window."""
-    from nexar.rate_limiter import RateLimiter
-
-    period = RateLimiter._compute_burst_period(1, 10, 0.05)
-    # period = 10 * (1 + 0.05) = 10.5
-    assert period == 10.5
-
-
-def test_compute_burst_period_with_safety_margin() -> None:
-    """Safety margin scales the period proportionally."""
-    from nexar.rate_limiter import RateLimiter
-
-    period_no_margin = RateLimiter._compute_burst_period(20, 1, 0)
-    period_with_margin = RateLimiter._compute_burst_period(20, 1, 0.10)
-    assert period_with_margin == pytest.approx(period_no_margin * 1.10)
-
-
-def test_compute_burst_period_safety_margin_does_not_exceed_actual_limit() -> None:
-    """Even with safety_margin, the burst=1 bucket stays under the limit.
-
-    For limit=20, window=1, safety_margin=0.01:
-    period = 1/19 * 1.01 ≈ 0.05316
-    max reqs in window = 1 + floor(1 / 0.05316) = 1 + 18 = 19 < 20
-    """
-    from nexar.rate_limiter import RateLimiter
-
-    period = RateLimiter._compute_burst_period(20, 1, 0.01)
-    max_reqs_in_window = 1 + int(1 / period)
-    assert max_reqs_in_window < 20
 
 
 # -- _refill_wait -------------------------------------------------------------

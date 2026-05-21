@@ -20,9 +20,8 @@ class MockRateLimiter:
     def __init__(
         self,
         app_limits: tuple[tuple[int, int], ...] = PERSONAL_LIMITS,
-        safety_margin: float = 0.01,
     ) -> None:
-        self._inner = RateLimiter(app_limits, safety_margin)
+        self._inner = RateLimiter(app_limits)
 
     @property
     def app_buckets(self) -> dict[str, list[AsyncLimiter]]:
