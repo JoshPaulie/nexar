@@ -64,11 +64,17 @@ class RateLimiter:
         """
         Initialize the rate limiter with application-level limits.
 
+        App-level limiters use burst=1 AsyncLimiter instances to conservatively
+        match Riot's sliding-window enforcement. A token bucket with large burst
+        allows ~2x the nominal limit in a sliding window (burst + refill), but
+        a burst=1 bucket stays strictly under the limit.
+
         Args:
             app_limits: Application-level rate limits as (count, window_seconds) tuples.
                 Defaults to PERSONAL_LIMITS (20 req/1s + 100 req/120s).
             safety_margin: Fraction of quota to reserve as headroom (0.01 = 1%).
-                Effective limit = floor(limit_val * (1 - safety_margin)).
+                The sustained rate is reduced to limit * (1 - safety_margin).
+                Higher values reduce throughput but add safety against timing jitter.
 
         """
         for limit, window in app_limits:
@@ -103,7 +109,9 @@ class RateLimiter:
                 if block_wait <= 0 and all_ready:
                     break
 
-                wait = max(block_wait, 0.1)
+                # Compute wait: use Retry-After blocking time if set,
+                # otherwise estimate from the longest empty bucket's refill period.
+                wait = block_wait if block_wait > 0 else self._refill_wait(buckets)
                 self._log_wait(region, method, wait, blocked=block_wait > 0, full=not all_ready)
                 await asyncio.sleep(wait)
 
@@ -176,14 +184,36 @@ class RateLimiter:
         return self._locks[region]
 
     def _effective_limit(self, limit: int) -> int:
-        """Apply safety margin to limit value."""
+        """Apply safety margin to limit value (used for dynamic method/service limiters)."""
         return max(1, int(limit * (1 - self._safety_margin)))
 
+    @staticmethod
+    def _compute_burst_period(limit: int, window: int, safety_margin: float) -> float:
+        """
+        Compute period for a burst=1 bucket that stays under the sliding window.
+
+        With burst=1: max requests in window = 1 + floor(window / period).
+        To stay strictly under the limit: period >= window / (limit - 1) for limit >= 2.
+        For limit=1 the burst itself consumes the entire quota, so period > window.
+        The safety_margin adds headroom on top.
+        """
+        if limit <= 1:
+            return window * (1 + safety_margin)
+        return window / (limit - 1) * (1 + safety_margin)
+
     def _get_or_create_app_buckets(self, region: str) -> list[AsyncLimiter]:
-        """Lazily create app-level AsyncLimiter instances for a region."""
+        """
+        Lazily create app-level AsyncLimiter instances for a region.
+
+        Uses burst=1 buckets to match Riot's sliding-window enforcement.
+        A large-burst token bucket would allow ~2x the nominal limit in a
+        window (burst capacity + full-window refill), triggering 429s when
+        the initial burst exceeds the sliding-window cap.
+        """
         if region not in self._app_buckets:
             self._app_buckets[region] = [
-                AsyncLimiter(self._effective_limit(limit), window) for limit, window in self._app_limits
+                AsyncLimiter(1, self._compute_burst_period(limit, window, self._safety_margin))
+                for limit, window in self._app_limits
             ]
         return self._app_buckets[region]
 
@@ -196,6 +226,25 @@ class RateLimiter:
             if key.startswith((method_prefix, service_prefix)):
                 buckets.append(bucket)
         return buckets
+
+    @staticmethod
+    def _refill_wait(buckets: list[AsyncLimiter]) -> float:
+        """
+        Estimate seconds until all empty buckets have refilled a token.
+
+        All buckets must have capacity before a request can proceed, so we
+        wait on the slowest-to-refill empty bucket. For burst=1 app buckets
+        the token refill time is time_period / max_rate; for larger-burst
+        dynamic buckets we fall back to a short poll.
+        """
+        periods: list[float] = [
+            b.time_period / b.max_rate for b in buckets if not b.has_capacity()
+        ]
+        if not periods:
+            return 0.1
+        # Wait 15% of the longest refill time, then re-check all buckets.
+        # This polls ~6-7 times per refill cycle, adding minimal latency.
+        return max(periods) * 0.15
 
     def _calc_block_wait(self, region: str, method: str, now: float) -> float:
         """Calculate seconds to wait due to 429 Retry-After blocking."""
