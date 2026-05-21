@@ -76,7 +76,7 @@ client = NexarClient(
 
 Nexar uses a leaky bucket rate limiter backed by `aiolimiter`. It parses Riot response headers (`X-App-Rate-Limit`, `X-Method-Rate-Limit`, `X-Service-Rate-Limit`) to create dynamic limit buckets and handles 429 responses with `Retry-After` blocking.
 
-The effective limit for each bucket is `floor(limit × (1 - safety_margin))`, rounded down to avoid overstepping. Rate limits are enforced per region with per-region locking to prevent race conditions.
+The effective limit for each bucket is `max(1, floor(limit × (1 - safety_margin)))`, rounded down to avoid overstepping and ensuring the limit never drops to 0. Rate limits are enforced per region with per-region locking to prevent race conditions.
 
 Rate limits are not persisted across restarts. Cached responses do not count against rate limits.
 
@@ -87,8 +87,8 @@ Rate limiter decisions are logged at DEBUG level. See the [Logging](./logging.md
 When rate limits are hit, you'll see messages like:
 
 ```
-[nexar] Rate limit hit for na1/api_get_account. Sleeping 0.85s
-[nexar] Rate limit hit for na1/api_get_account. Sleeping 1.23s
+[nexar] Rate limit FULL for na1/api_get_account. Sleeping 0.85s
+[nexar] Rate limit BLOCKED (429) for na1/api_get_account. Sleeping 1.23s
 ```
 
 ## Rate Limiting vs Caching
