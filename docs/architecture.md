@@ -200,20 +200,9 @@ The `RateLimiter` uses `aiolimiter.AsyncLimiter` (leaky bucket algorithm) to enf
          |  Key: service_{region}_{limit}:{window}
 ```
 
-### Safety margin
+### App bucket creation
 
-```
- Effective limit = max(1, floor(server_limit * (1 - safety_margin)))
 
- Example: server says 500 req / 10s, safety_margin = 0.01
-          → effective = max(1, floor(500 * 0.99)) = 495 req / 10s
-
- This reserves 1% headroom to avoid hitting the exact boundary
- where Riot might issue a 429. The max(1, ...) guard ensures the
- limit never drops to zero for small values.
-```
-
-## Component: Cache
 
 Nexar uses `aiohttp-client-cache` for transparent HTTP caching.
 
