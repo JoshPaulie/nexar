@@ -59,7 +59,6 @@ class RateLimiter:
     def __init__(
         self,
         app_limits: tuple[tuple[int, int], ...] = PERSONAL_LIMITS,
-        safety_margin: float = 0.01,
     ) -> None:
         """
         Initialize the rate limiter with application-level limits.
@@ -72,15 +71,11 @@ class RateLimiter:
         Args:
             app_limits: Application-level rate limits as (count, window_seconds) tuples.
                 Defaults to PERSONAL_LIMITS (20 req/1s + 100 req/120s).
-            safety_margin: Fraction of quota to reserve as headroom (0.01 = 1%).
-                The sustained rate is reduced to limit * (1 - safety_margin).
-                Higher values reduce throughput but add safety against timing jitter.
 
         """
         for limit, window in app_limits:
             _validate_rate_limit(limit, window)
         self._app_limits = app_limits
-        self._safety_margin = safety_margin
 
         # Per-region app-level AsyncLimiter instances (lazily created)
         self._app_buckets: dict[str, list[AsyncLimiter]] = {}
@@ -183,23 +178,18 @@ class RateLimiter:
             self._locks[region] = asyncio.Lock()
         return self._locks[region]
 
-    def _effective_limit(self, limit: int) -> int:
-        """Apply safety margin to limit value (used for dynamic method/service limiters)."""
-        return max(1, int(limit * (1 - self._safety_margin)))
-
     @staticmethod
-    def _compute_burst_period(limit: int, window: int, safety_margin: float) -> float:
+    def _compute_burst_period(limit: int, window: int) -> float:
         """
         Compute period for a burst=1 bucket that stays under the sliding window.
 
         With burst=1: max requests in window = 1 + floor(window / period).
         To stay strictly under the limit: period >= window / (limit - 1) for limit >= 2.
         For limit=1 the burst itself consumes the entire quota, so period > window.
-        The safety_margin adds headroom on top.
         """
         if limit <= 1:
-            return window * (1 + safety_margin)
-        return window / (limit - 1) * (1 + safety_margin)
+            return float(window)
+        return window / (limit - 1)
 
     def _get_or_create_app_buckets(self, region: str) -> list[AsyncLimiter]:
         """
@@ -212,7 +202,7 @@ class RateLimiter:
         """
         if region not in self._app_buckets:
             self._app_buckets[region] = [
-                AsyncLimiter(1, self._compute_burst_period(limit, window, self._safety_margin))
+                AsyncLimiter(1, self._compute_burst_period(limit, window))
                 for limit, window in self._app_limits
             ]
         return self._app_buckets[region]
@@ -398,7 +388,7 @@ class RateLimiter:
 
             # Replace with a fresh limiter (AsyncLimiter.max_rate is immutable)
             self._dynamic[key] = AsyncLimiter(
-                self._effective_limit(limit_val),
+                limit_val,
                 window_sec,
             )
 
