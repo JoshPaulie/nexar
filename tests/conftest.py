@@ -1,6 +1,5 @@
 """Test configuration and fixtures."""
 
-import asyncio
 import json
 import logging
 import os
@@ -12,15 +11,13 @@ import pytest
 import pytest_asyncio
 from aioresponses import aioresponses
 
+from _quota import ensure_rate_limit_quota, write_last_ran
 from nexar import NexarClient
 from nexar.cache import NO_CACHE_CONFIG
 from nexar.enums import Region
 
 # Configure logging so rate limiter warnings (proactive pacing and 429s) are visible
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s [%(name)s] %(message)s")
-
-# Seconds to pause between integration tests to respect Riot API rate limits
-INTEGRATION_TEST_PAUSE = 25
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -135,8 +132,12 @@ async def real_client(riot_api_key: str) -> AsyncGenerator[NexarClient]:
     await client.close()
 
 
-@pytest.fixture(autouse=True)
-def _pause_between_integration_tests(request: pytest.FixtureRequest) -> None:
-    """Pause before each slow (integration) test to respect Riot API rate limits."""
-    if "slow" in request.node.keywords:
-        asyncio.run(asyncio.sleep(INTEGRATION_TEST_PAUSE))
+@pytest.fixture(scope="session", autouse=True)
+def _ensure_quota_before_slow_tests(request: pytest.FixtureRequest) -> None:
+    """Block until the rate-limit quota window has elapsed since the last dogfood or test run."""
+    # Only applies when running slow (integration) tests that make real API calls
+    slow_items = [item for item in request.session.items if "slow" in item.keywords]
+    if not slow_items:
+        return
+    ensure_rate_limit_quota()
+    write_last_ran()
