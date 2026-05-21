@@ -62,6 +62,7 @@ nav:
       - Infrastructure:
           - Custom Cache & Stats: examples/custom_cache_and_stats.md
   - Reference:
+      - Architecture: architecture.md
       - Client: reference/client.md
       - Models:
           - Account: reference/models/account.md
