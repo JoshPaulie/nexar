@@ -82,13 +82,13 @@ Rate limits are not persisted across restarts. Cached responses do not count aga
 
 ## Debugging Rate Limits
 
-Rate limiter decisions are logged at DEBUG level. See the [Logging](./logging.md) page to enable and configure Nexar's logging.
+Rate limiter decisions are logged at `INFO` level. See the [Logging](./logging.md) page to enable and configure Nexar's logging.
 
 When rate limits are hit, you'll see messages like:
 
 ```
-[nexar] Rate limit FULL for na1/api_get_account. Sleeping 0.85s
-[nexar] Rate limit BLOCKED (429) for na1/api_get_account. Sleeping 1.23s
+[nexar] Rate limit FULL for na1/api_get_account. Sleeping 0.85s  (INFO)
+[nexar] Rate limit BLOCKED (429) for na1/api_get_account. Sleeping 1.23s  (WARNING)
 ```
 
 ## Rate Limiting vs Caching
