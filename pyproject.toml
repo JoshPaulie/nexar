@@ -65,6 +65,7 @@ ignore = [
     "D105",    # Ignore missing docstring in magic methods
     "D107",    # Ignore missing docstring in __init__
     "D212",    # Ignore dumb rule about docstrings and how they start
+    "D203",    # Silence D203/D211 conflict warning (D211 preferred)
     "D401",    # Allow declarative docstrings
     "DTZ006",  # Ignore missing tz in datetime
     "FIX002",  # Allow fixme comments
