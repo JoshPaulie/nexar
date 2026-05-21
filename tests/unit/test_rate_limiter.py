@@ -9,22 +9,29 @@ from tests.helpers import MockRateLimiter
 
 @pytest.mark.asyncio
 async def test_acquire_under_limit() -> None:
-    """Acquiring within the limit should not block and should consume capacity."""
+    """Acquiring within the limit should not block and should consume capacity.
+
+    App-level buckets use burst=1 to conservatively match Riot's sliding-window
+    enforcement. A single acquire drains the bucket; further acquires wait for refill.
+    """
     limiter = MockRateLimiter(((2, 1), (10, 60)), safety_margin=0)
 
     await limiter.acquire("na1", "summoner-v4")
-    # After 1 acquire on a 2/1s bucket, there should still be capacity
+    # Burst=1 bucket: capacity is exhausted after 1 acquire
     buckets = limiter.app_buckets["na1"]
-    assert buckets[0].has_capacity()  # 1/2 used
+    assert not buckets[0].has_capacity()  # burst=1 fully consumed
 
+    # Second acquire: bucket is empty, must wait for refill then acquire
     await limiter.acquire("na1", "summoner-v4")
-    # After 2 acquires on a 2/1s bucket, capacity exhausted
-    assert not buckets[0].has_capacity()  # 2/2 used
+    assert not buckets[0].has_capacity()  # burst=1 consumed again
 
 
 @pytest.mark.asyncio
 async def test_acquire_over_limit_with_sleep(mocker) -> None:
-    """Acquiring over the limit should sleep until capacity is available."""
+    """Acquiring over the limit should sleep until capacity is available.
+
+    With burst=1 and limit=1 per 10s, the bucket refills after ~10s.
+    """
     limiter = MockRateLimiter(((1, 10), (100, 600)), safety_margin=0)
 
     mock_sleep = mocker.patch("asyncio.sleep", return_value=None)
@@ -83,3 +90,149 @@ async def test_update_from_headers_service() -> None:
     service_key = "service_na1_500:60"
     assert service_key in limiter.dynamic
     assert limiter.dynamic[service_key].max_rate == 495  # 500 * 0.99 safety margin
+
+
+# -- _compute_burst_period ---------------------------------------------------
+
+
+def test_compute_burst_period_limit_20_per_1s() -> None:
+    """20 req / 1s with safety_margin=0 should produce period ~0.0526s."""
+    from nexar.rate_limiter import RateLimiter
+
+    period = RateLimiter._compute_burst_period(20, 1, 0)
+    # period = 1 / (20 - 1) = 1/19 ≈ 0.05263
+    assert period == pytest.approx(1 / 19)
+
+
+def test_compute_burst_period_limit_100_per_120s() -> None:
+    """100 req / 120s with safety_margin=0 should produce period ~1.212s."""
+    from nexar.rate_limiter import RateLimiter
+
+    period = RateLimiter._compute_burst_period(100, 120, 0)
+    # period = 120 / (100 - 1) = 120/99 ≈ 1.21212
+    assert period == pytest.approx(120 / 99)
+
+
+def test_compute_burst_period_limit_1() -> None:
+    """Limit=1: burst consumes entire quota, so period > window."""
+    from nexar.rate_limiter import RateLimiter
+
+    period = RateLimiter._compute_burst_period(1, 10, 0)
+    # period = 10 * (1 + 0) = 10
+    assert period == 10
+
+
+def test_compute_burst_period_limit_1_with_safety_margin() -> None:
+    """Limit=1 with safety margin scales the window."""
+    from nexar.rate_limiter import RateLimiter
+
+    period = RateLimiter._compute_burst_period(1, 10, 0.05)
+    # period = 10 * (1 + 0.05) = 10.5
+    assert period == 10.5
+
+
+def test_compute_burst_period_with_safety_margin() -> None:
+    """Safety margin scales the period proportionally."""
+    from nexar.rate_limiter import RateLimiter
+
+    period_no_margin = RateLimiter._compute_burst_period(20, 1, 0)
+    period_with_margin = RateLimiter._compute_burst_period(20, 1, 0.10)
+    assert period_with_margin == pytest.approx(period_no_margin * 1.10)
+
+
+def test_compute_burst_period_safety_margin_does_not_exceed_actual_limit() -> None:
+    """Even with safety_margin, the burst=1 bucket stays under the limit.
+
+    For limit=20, window=1, safety_margin=0.01:
+    period = 1/19 * 1.01 ≈ 0.05316
+    max reqs in window = 1 + floor(1 / 0.05316) = 1 + 18 = 19 < 20
+    """
+    from nexar.rate_limiter import RateLimiter
+
+    period = RateLimiter._compute_burst_period(20, 1, 0.01)
+    max_reqs_in_window = 1 + int(1 / period)
+    assert max_reqs_in_window < 20
+
+
+# -- _refill_wait -------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_refill_wait_all_capacity_available() -> None:
+    """When all buckets have capacity, _refill_wait returns the floor of 0.1s."""
+    from aiolimiter import AsyncLimiter
+
+    from nexar.rate_limiter import RateLimiter
+
+    # Fresh burst=1 buckets — all have capacity
+    buckets = [AsyncLimiter(1, 10), AsyncLimiter(1, 120)]
+    wait = RateLimiter._refill_wait(buckets)
+    assert wait == 0.1
+
+
+@pytest.mark.asyncio
+async def test_refill_wait_one_empty() -> None:
+    """One empty burst=1 bucket: wait is 15% of its refill period."""
+    from aiolimiter import AsyncLimiter
+
+    from nexar.rate_limiter import RateLimiter
+
+    bucket = AsyncLimiter(1, 10)  # burst=1, refills one token per 10s
+    await bucket.acquire()  # drain the token
+
+    wait = RateLimiter._refill_wait([bucket])
+    # refill time = time_period / max_rate = 10 / 1 = 10s, * 0.15 = 1.5
+    assert wait == 1.5
+
+
+@pytest.mark.asyncio
+async def test_refill_wait_mixed_empty_and_full() -> None:
+    """Wait is determined by the slowest-to-refill empty bucket."""
+    from aiolimiter import AsyncLimiter
+
+    from nexar.rate_limiter import RateLimiter
+
+    slow = AsyncLimiter(1, 100)  # refill: 100s per token
+    fast = AsyncLimiter(1, 10)   # refill: 10s per token
+    await slow.acquire()
+    await fast.acquire()
+
+    full = AsyncLimiter(1, 50)  # still has capacity
+
+    wait = RateLimiter._refill_wait([slow, fast, full])
+    # slow dominates: 100s * 0.15 = 15s
+    assert wait == 15.0
+
+
+@pytest.mark.asyncio
+async def test_refill_wait_with_dynamic_large_burst_bucket() -> None:
+    """Dynamic buckets have larger burst; refill time is time_period / max_rate."""
+    from aiolimiter import AsyncLimiter
+
+    from nexar.rate_limiter import RateLimiter
+
+    # Simulate a dynamic bucket: burst=100, window=10s, rate=10/s
+    bucket = AsyncLimiter(100, 10)
+    await bucket.acquire()  # drain one token, bucket still has capacity
+
+    # Bucket still has capacity (99 left), so no wait
+    wait = RateLimiter._refill_wait([bucket])
+    assert wait == 0.1
+
+
+@pytest.mark.asyncio
+async def test_refill_wait_dynamic_bucket_fully_drained() -> None:
+    """Fully drained dynamic bucket: wait is 15% of (window / max_rate)."""
+    from aiolimiter import AsyncLimiter
+
+    from nexar.rate_limiter import RateLimiter
+
+    # Dynamic bucket: burst=500, window=10s
+    bucket = AsyncLimiter(500, 10)
+    for _ in range(500):
+        await bucket.acquire()
+    assert not bucket.has_capacity()
+
+    # refill time = 10 / 500 = 0.02s per token, * 0.15 = 0.003
+    wait = RateLimiter._refill_wait([bucket])
+    assert wait == pytest.approx(0.02 * 0.15)
