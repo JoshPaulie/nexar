@@ -110,3 +110,63 @@ async def test_block_does_not_leak_across_regions() -> None:
     t0 = time.monotonic()
     await limiter.acquire("br1")
     assert time.monotonic() - t0 < 0.05
+
+
+@pytest.mark.asyncio
+async def test_seed_from_counts_admits_only_remaining_slots() -> None:
+    """A fresh client oriented from server counts admits exactly the remainder.
+
+    Regression for the cold-start hole: without the seed, a restarted client
+    assumes empty windows and re-bursts into a partially spent quota.
+    """
+    limits = ((5, 1), (10, 3))
+    limiter = RateLimiter(limits)
+
+    await limiter.acquire("na1")  # the "current call", counted by the server
+    limiter.seed_from_counts("na1", {1: 1, 3: 6})
+
+    # The 5 counted calls land in the older band (outside the 1s window), so
+    # the 1s window is not poisoned by the seed and the 4 remaining long-window
+    # slots (10 - 6) admit instantly. This is the regression check: a per-window
+    # seed would put all 5 inside the 1s window and block for a full second.
+    t0 = time.monotonic()
+    await asyncio.gather(*(limiter.acquire("na1") for _ in range(4)))
+    elapsed = time.monotonic() - t0
+    assert elapsed < 0.5, f"short window was poisoned by the seed: {elapsed:.2f}s"
+
+    # both windows are now full (5/5 in 1s, 10/10 in 3s): the next acquire
+    # must wait for the seeded band to age out, not admit
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(limiter.acquire("na1"), timeout=0.5)
+
+
+@pytest.mark.asyncio
+async def test_seed_inner_band_holds_short_window() -> None:
+    """Calls counted inside the shortest window must hold its slots."""
+    limits = ((5, 1), (10, 3))
+    limiter = RateLimiter(limits)
+
+    await limiter.acquire("na1")
+    limiter.seed_from_counts("na1", {1: 5, 3: 10})
+
+    # 5/5 in the 1s window (current + 4 seeded at now): the next acquire
+    # must wait ~1s for the inner band to age out, not admit
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(limiter.acquire("na1"), timeout=0.5)
+
+
+@pytest.mark.asyncio
+async def test_seed_is_idempotent_and_region_scoped() -> None:
+    limiter = RateLimiter(((5, 1), (10, 3)))
+    await limiter.acquire("na1")
+    limiter.seed_from_counts("na1", {1: 1, 3: 6})
+    before = len(limiter._admitted["na1"])
+
+    # A second seed (later response) must be a no-op
+    limiter.seed_from_counts("na1", {1: 99, 3: 99})
+    assert len(limiter._admitted["na1"]) == before
+
+    # Seeding na1 must not touch br1
+    t0 = time.monotonic()
+    await limiter.acquire("br1")
+    assert time.monotonic() - t0 < 0.05

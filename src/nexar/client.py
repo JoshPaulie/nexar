@@ -397,9 +397,16 @@ class NexarClient:
         params: dict[str, Any] | None,
     ) -> dict[str, Any]:
         """Handle errors, record stats, and return response data."""
+        from_cache = getattr(response, "from_cache", False)
+        if not from_cache:
+            counts = self._parse_rate_limit_counts(response.headers.get("X-App-Rate-Limit-Count"))
+            if counts:
+                # Orient from the server's own usage ledger (no-op after the
+                # first seed per region) so a restarted client doesn't
+                # re-burst into a partially spent window.
+                self.rate_limiter.seed_from_counts(platform_region, counts)
         await self._handle_response_errors(response)
         response_data: dict[str, Any] = await response.json()
-        from_cache = getattr(response, "from_cache", False)
         if from_cache:
             self._call_stats["cache_hits"] += 1
         else:
@@ -571,6 +578,20 @@ class NexarClient:
                 DEFAULT_RETRY_AFTER_SECONDS,
             )
             return DEFAULT_RETRY_AFTER_SECONDS
+
+    @staticmethod
+    def _parse_rate_limit_counts(value: str | None) -> dict[int, int]:
+        """Parse X-App-Rate-Limit-Count ("5:1,90:120") into {window: count}."""
+        counts: dict[int, int] = {}
+        if not value:
+            return counts
+        for segment in value.split(","):
+            try:
+                count_str, window_str = segment.split(":")
+                counts[int(window_str)] = int(count_str)
+            except ValueError:
+                logger.debug("Unparsable rate limit count segment %r; skipping orientation", segment)
+        return counts
 
     def _debug_print_response(
         self,

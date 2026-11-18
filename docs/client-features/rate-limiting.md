@@ -60,6 +60,12 @@ Method and service rate limit headers are deliberately not tracked: the applicat
 
 The check-and-claim is synchronous, which is atomic on a single event loop — no locks, and concurrent callers never starve each other. Rate limit state is not persisted across restarts. Cached responses do not count against rate limits.
 
+### Restarting a script (orientation)
+
+A fresh client assumes empty windows, but Riot's ledger may be partially spent from a previous run. On the first fresh response for a region, Nexar reads Riot's own usage ledger (`X-App-Rate-Limit-Count`) and pre-fills the window log with the counted requests — so rerunning a script within two minutes cannot re-burst into a partially spent quota. Later responses hand the counts over too, but the limiter only orients once per region.
+
+The seed cannot know the *age* of the counted requests, so each one is placed at the newest timestamp the counts allow (pessimistic about age): it can hold a slot slightly longer than strictly needed, never shorter. Cached responses never orient — they make no API call.
+
 ## Debugging Rate Limits
 
 Rate limiter pacing decisions are logged at `DEBUG` level; 429s are logged at `WARNING`. See the [Logging](./logging.md) page to enable and configure Nexar's logging.
@@ -74,6 +80,12 @@ When a 429 arrives, at `WARNING`:
 
 ```
 [nexar] 429 on attempt 1/5 for /lol/match/v5/matches/NA1_123 (region: na1). Blocking region for 3.0s
+```
+
+And once per region, at `INFO`, when a fresh client orients itself from the server's counts:
+
+```
+[nexar] Oriented na1 rate limits from server counts: {1: 5, 120: 90}
 ```
 
 ## Rate Limiting vs Caching

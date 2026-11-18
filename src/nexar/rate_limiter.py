@@ -65,6 +65,8 @@ class RateLimiter:
         self._admitted: dict[str, deque[float]] = {}
         # region -> unblock timestamp (monotonic), set by 429 Retry-After
         self._blocked_until: dict[str, float] = {}
+        # regions whose window log has been oriented from server counts once
+        self._seeded: set[str] = set()
 
     async def acquire(self, region: str) -> None:
         """Acquire permission to make one request. Blocks until every window has a slot."""
@@ -98,3 +100,43 @@ class RateLimiter:
     def block(self, region: str, seconds: float) -> None:
         """Block all admissions for `region` for `seconds` (429 Retry-After)."""
         self._blocked_until[region] = time.monotonic() + max(0.0, seconds)
+
+    def seed_from_counts(self, region: str, counts: dict[int, int]) -> None:
+        """Orient a fresh client from the server's own usage ledger (once per region).
+
+        Riot reports your per-window usage in ``X-App-Rate-Limit-Count`` on
+        every response. The client passes the parsed counts here on every
+        fresh response; this pre-fills the window log on the first one, so a
+        restarted client does not re-burst into a partially spent window.
+        Later calls are no-ops. Assumes the current request was just admitted
+        (it is already in the log and counted by the server).
+
+        Riot's windows are nested — the calls counted in a shorter window
+        are a subset of a longer window's count. Each counted request becomes
+        one synthetic admission, banded by age at the *newest* timestamp
+        consistent with the counts: the innermost band (shortest window) is
+        placed at now, and each older band just outside the window below it.
+        The seed is therefore pessimistic about the age of the counted
+        requests: it can hold a slot longer than strictly needed, never
+        shorter. For back-to-back script runs the extra wait is bounded by
+        how old the previous run's calls were.
+        """
+        if region in self._seeded:
+            return
+        self._seeded.add(region)
+        now = time.monotonic()
+        dq = self._admitted.setdefault(region, deque())
+        # (placed_at, n) per band, innermost (newest) first
+        bands: list[tuple[float, int]] = []
+        prev_window = 0
+        prev_count = 1  # the current request is already in the log
+        for _, window in sorted(self._app_limits, key=lambda lw: lw[1]):
+            count = max(counts.get(window, 0), prev_count)
+            bands.append((now - prev_window, max(count - prev_count, 0)))
+            prev_window, prev_count = window, count
+        # append oldest-first, then restore chronological order (the real
+        # current entry was appended before the seed)
+        for placed_at, n in reversed(bands):
+            dq.extend([placed_at] * n)
+        self._admitted[region] = deque(sorted(dq))
+        logger.info("Oriented %s rate limits from server counts: %s", region, counts)
