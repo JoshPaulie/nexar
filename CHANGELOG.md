@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 - **Breaking:** Rate limiter rewritten as a sliding-window log that mirrors Riot's documented enforcement. Batches now run at the full documented quota (e.g. 12 match fetches in ~1s instead of ~14s under the previous burst=1 buckets). `RateLimiter.acquire()` no longer takes a `method` argument. Method and service rate limit headers are no longer tracked — the application window always binds first at every key tier, so tracking them cannot change behavior.
 - On a 429 without a parseable `Retry-After` header, the region is now blocked for a conservative 5s default instead of retrying unpaced.
 - `aiolimiter` dependency removed; rate limiting is now stdlib-only.
+- `aiohttp-client-cache` narrowed to the `sqlite` extra — aioboto3, motor, redis and friends no longer land in the lockfile of a SQLite-only SDK.
+- `ruff` is now a declared dev dependency, so a clean checkout can run `just check`.
 
 ### Removed
 
@@ -20,6 +22,10 @@ All notable changes to this project will be documented in this file.
 - `Participant.get_player(client, *, region=None)` — async method to get a `Player` from a match participant via PUUID.
 - Restart orientation: every fresh response hands Riot's `X-App-Rate-Limit-Count` to the limiter, which pre-fills its window log once per region — rerunning a script within 2 minutes of a heavy run no longer re-bursts into a partially spent quota (the cold-start 429 hole).
 - CI now runs tests, mypy and ruff on every pull request and push to main, gating the docs deploy; Python is pinned to 3.13 in both jobs.
+
+### Fixed
+
+- `ruff check src` now passes on a clean checkout: D213 (the other half of the D212 docstring toggle) is ignored, and `NexarClient.__aenter__` is typed as `Self` (PYI034).
 
 ## [1.1.0] - 2026-05-17
 

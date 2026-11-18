@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.13",
-    "aiohttp-client-cache[all,sqlite]>=0.13.0",
+    "aiohttp-client-cache[sqlite]>=0.13.0",
 ]
 
 [dependency-groups]
@@ -25,6 +25,7 @@ dev = [
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.14.1",
+    "ruff>=0.15.15,<0.16",
 ]
 
 [build-system]
@@ -64,6 +65,7 @@ ignore = [
     "D105",    # Ignore missing docstring in magic methods
     "D107",    # Ignore missing docstring in __init__
     "D212",    # Ignore dumb rule about docstrings and how they start
+    "D213",    # Silence the other half of the D212/D213 summary-line toggle
     "D203",    # Silence D203/D211 conflict warning (D211 preferred)
     "D401",    # Allow declarative docstrings
     "DTZ006",  # Ignore missing tz in datetime

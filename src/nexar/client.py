@@ -7,7 +7,7 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from types import TracebackType
-from typing import Any, cast
+from typing import Any, Self, cast
 from urllib.parse import quote
 
 import aiohttp
@@ -98,7 +98,7 @@ class NexarClient:
         }
         self._session: CachedSession | aiohttp.ClientSession | None = None
 
-    async def __aenter__(self) -> "NexarClient":
+    async def __aenter__(self) -> Self:
         await self._ensure_session()
         return self
 
