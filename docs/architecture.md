@@ -22,8 +22,8 @@ This document describes the internal architecture of Nexar using ASCII flow diag
               v              v              v
     +--------------+  +-----------+  +------------+
     |  RateLimiter |  |   Cache   |  |  Models    |
-    |  (leaky      |  | (SQLite / |  | (Player,   |
-    |   buckets)   |  |  memory)  |  |  Match...) |
+    |  (sliding    |  | (SQLite / |  | (Player,   |
+    |   windows)   |  |  memory)  |  |  Match...) |
     +--------------+  +-----------+  +------------+
               |              |
               v              v
@@ -52,21 +52,19 @@ The `NexarClient` is the single entry point. Every API call flows through `_make
    |           |
    |           +--- MISS ---> continue
    |
-   +--[3]--> rate_limiter.acquire(region, method_id)
+   +--[3]--> rate_limiter.acquire(region)
    |           |
-   |           |  Blocks until app + method + service buckets
-   |           |  all have capacity. Observes Retry-After blocks.
-   |           |
+   |           |  Blocks until every rate window has a free slot
+   |           |  (e.g. 20/1s, 100/120s). Observes 429 blocks.
+   |
    +--[4]--> session.get(url, headers, params)
    |           |
    |           +--- 200 OK ---> _record_success_response()
-   |           |                   |  update_from_headers()
    |           |                   |  handle_response_errors()
    |           |                   +-- return response data
-   |           |
+   |
    |           +--- 429 -----> retry loop
-   |           |                   |  update_from_headers()
-   |           |                   |  apply Retry-After blocking
+   |           |                   |  block(region, Retry-After)
    |           |                   +-- back to [3]
    |           |
    |           +--- 4xx/5xx --> raise RiotAPIError subclass
@@ -88,7 +86,7 @@ The `NexarClient` is the single entry point. Every API call flows through `_make
    |           |
    +--[2]--> _try_cache_response()  →  always returns None
    |
-   +--[3]--> rate_limiter.acquire(region, method_id)
+   +--[3]--> rate_limiter.acquire(region)
    |
    +--[4]--> session.get(url, headers, params)
    |           |
@@ -111,7 +109,7 @@ The `NexarClient` is the single entry point. Every API call flows through `_make
      |     |
      |     +--- 200/304 ---> SUCCESS (return)
      |     |
-     |     +--- 429 -------> update_from_headers()
+     |     +--- 429 -------> block(region, Retry-After)
      |     |                  retries += 1
      |     |                  continue loop
      |     |
@@ -124,50 +122,26 @@ The `NexarClient` is the single entry point. Every API call flows through `_make
 
 ## Component: RateLimiter
 
-The `RateLimiter` uses `aiolimiter.AsyncLimiter` (leaky bucket algorithm) to enforce Riot's rate limits across three tiers.
+The `RateLimiter` mirrors Riot's documented enforcement directly: each application rate window (e.g. 20 per 1s, 100 per 120s) is a sliding window, enforced per region. The limiter records the monotonic timestamp of every admitted request and admits the next one only when every window has a free slot — the same rule the server applies. The full documented quota is therefore usable (20 requests may fire in the first second), while no window is ever exceeded.
 
-### Bucket hierarchy
-
-```
-                        +----------------------+
-                        |    APP LIMITS        |  <-- static, from config
-                        | e.g. 20/1s, 100/120s |
-                        +----------+-----------+
-                                   |
-                        +----------+-----------+
-                        |   SERVICE LIMITS     |  <-- dynamic, from headers
-                        | per-region, per-svc  |
-                        +----------+-----------+
-                                   |
-                        +----------+-----------+
-                        |   METHOD LIMITS      |  <-- dynamic, from headers
-                        | per-region, per-method|
-                        +----------------------+
-```
+Method and service rate limits are deliberately not tracked: the application window always binds first at every key tier (personal: 100/120s app vs. method limits like 2000/10s; production: 50/s app vs. 200/s method), so tracking them cannot change behavior.
 
 ### acquire() flow
 
 ```
- rate_limiter.acquire(region="na1", method="league-v4")
+ rate_limiter.acquire(region="na1")
    |
-   +-- acquire region lock (asyncio.Lock)
+   +-- LOOP (no locks; the claim is synchronous, so atomic on one event loop):
    |
-   +-- LOOP:
+   |     +-- inside a 429 block? --> sleep out the remainder, loop
    |     |
-   |     +-- calc_block_wait: are we in a Retry-After penalty?
+   |     +-- prune timestamps older than the longest window
    |     |
-   |     +-- collect_buckets(region, method)
-   |     |     |  app buckets        (static, per-region)
-   |     |     |  + service buckets  (dynamic, matching region)
-   |     |     |  + method buckets   (dynamic, matching region+method)
-   |     |
-   |     +-- all have_capacity()?
-   |     |     |
-   |     |     +--- YES + no block --> break loop
-   |     |     +--- NO  ------------> sleep(longest of block_wait or refill_wait),
-   |     |                              log reason, loop again
-   |
-   +-- acquire() on every collected bucket (atomic under lock)
+   |     +-- every window has a free slot?
+   |           |
+   |           +--- YES --> record timestamp (claim) --> return
+   |           +--- NO  --> sleep until the oldest admission exits
+   |                        the fullest window, loop
    |
    v
  REQUEST ALLOWED
@@ -176,33 +150,17 @@ The `RateLimiter` uses `aiolimiter.AsyncLimiter` (leaky bucket algorithm) to enf
 ### 429 handling flow
 
 ```
- update_from_headers(headers, region, method)
+ response 429
    |
-   +-- Retry-After present?
-   |     |
-   |     +--- YES --> _apply_retry_after_block()
-   |     |              |
-   |     |              +-- detect rate limit type from headers
-   |     |              |     |  "application" -> block app buckets
-   |     |              |     |  "method"      -> block method buckets
-   |     |              |     |  "service"     -> block service buckets
-   |     |              |     |  (absent)      -> block ALL region buckets
-   |     |              |
-   |     |              +-- if service/method 429 lacks its own limit
-   |     |                  header, also block app buckets (cascading)
-   |     |
-   +-- Parse X-Method-Rate-Limit + X-Method-Rate-Limit-Count
-   |     |  Create/replace dynamic method AsyncLimiter
-   |     |  Key: method_{region}_{method}_{limit}:{window}
+   +-- client parses Retry-After (fallback: 5s if absent or invalid)
    |
-   +-- Parse X-Service-Rate-Limit + X-Service-Rate-Limit-Count
-         |  Create/replace dynamic service AsyncLimiter
-         |  Key: service_{region}_{limit}:{window}
+   +-- rate_limiter.block(region, seconds)
+         |  no admissions for the region until the block expires
+         |
+         +-- the retry loop waits at acquire() and retries
 ```
 
-### App bucket creation
-
-
+## Component: Cache
 
 Nexar uses `aiohttp-client-cache` for transparent HTTP caching.
 

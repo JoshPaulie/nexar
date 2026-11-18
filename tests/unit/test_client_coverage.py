@@ -2,6 +2,7 @@
 
 import os
 import re
+import time
 from datetime import UTC, datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -290,9 +291,12 @@ async def test_retry_logic_429(client: NexarClient, mock_aioresponse: MagicMock)
     url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/retry"
     mock_aioresponse.get(url, status=429, headers={"Retry-After": "0.1"}, payload={"status": {"message": "Rate limit", "status_code": 429}})
     mock_aioresponse.get(url, status=200, payload={"id": "retry", "puuid": "retry", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30})
-    with patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
-        await client.get_summoner_by_puuid("retry")
-        assert mock_sleep.called
+    t0 = time.monotonic()
+    summoner = await client.get_summoner_by_puuid("retry")
+    elapsed = time.monotonic() - t0
+    assert summoner.puuid == "retry"
+    # The Retry-After block must be honored once, in real time.
+    assert 0.05 <= elapsed <= 1.0, f"expected ~0.1s wait, got {elapsed:.2f}s"
     await client.close()
 
 
@@ -322,8 +326,12 @@ async def test_max_retries_exceeded(client: NexarClient, mock_aioresponse: Magic
     url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/retry_fail"
     for _ in range(6):
         mock_aioresponse.get(url, status=429, headers={"Retry-After": "0.1"}, payload={"status": {"message": "Rate limit", "status_code": 429}})
-    with patch("asyncio.sleep", new_callable=AsyncMock), pytest.raises(RateLimitError, match="Max retries .5. exceeded"):
+    t0 = time.monotonic()
+    with pytest.raises(RateLimitError, match="Max retries .5. exceeded"):
         await client.get_summoner_by_puuid("retry_fail")
+    elapsed = time.monotonic() - t0
+    # 5 blocked retries at 0.1s each must actually wait.
+    assert elapsed >= 0.4, f"retries did not honor Retry-After: {elapsed:.2f}s"
     await client.close()
 
 

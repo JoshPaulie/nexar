@@ -4,7 +4,6 @@ import asyncio
 import json
 import logging
 import os
-import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from types import TracebackType
@@ -37,6 +36,8 @@ HTTP_TOO_MANY_REQUESTS = 429
 
 MAX_MATCH_ID_COUNT = 100
 DEFAULT_MATCH_ID_COUNT = 20
+# Fallback 429 block duration when Riot omits or garbles Retry-After.
+DEFAULT_RETRY_AFTER_SECONDS = 5.0
 
 
 @dataclass(frozen=True)
@@ -391,17 +392,11 @@ class NexarClient:
         self,
         response: aiohttp.ClientResponse,
         platform_region: str,
-        method_id: str,
         url: str,
         endpoint: str,
         params: dict[str, Any] | None,
     ) -> dict[str, Any]:
-        """Update rate limiter, handle errors, record stats, and return response data."""
-        await self.rate_limiter.update_from_headers(
-            dict(response.headers),
-            platform_region,
-            method_id,
-        )
+        """Handle errors, record stats, and return response data."""
         await self._handle_response_errors(response)
         response_data: dict[str, Any] = await response.json()
         from_cache = getattr(response, "from_cache", False)
@@ -449,32 +444,26 @@ class NexarClient:
                 if cached_data is not None:
                     return cached_data
 
-                method_id = self._extract_method_id(endpoint)
-                await self.rate_limiter.acquire(platform_region, method_id)
+                await self.rate_limiter.acquire(platform_region)
 
                 async with self._session.get(url, headers=headers, params=params) as response:
                     if response.status == HTTP_TOO_MANY_REQUESTS:
-                        retry_after = response.headers.get("Retry-After", "?")
+                        retry_after = self._parse_retry_after(response.headers.get("Retry-After"))
+                        self._call_stats["retries"] += 1
                         logger.warning(
-                            "429 on attempt %d/%d for %s (region: %s). Retry-After: %ss",
+                            "429 on attempt %d/%d for %s (region: %s). Blocking region for %.1fs",
                             _attempt + 1,
                             max_retries,
                             endpoint,
                             platform_region,
                             retry_after,
                         )
-                        self._call_stats["retries"] += 1
-                        await self.rate_limiter.update_from_headers(
-                            dict(response.headers),
-                            platform_region,
-                            method_id,
-                        )
+                        self.rate_limiter.block(platform_region, retry_after)
                         continue
 
                     return await self._record_success_response(
                         response,
                         platform_region,
-                        method_id,
                         url,
                         endpoint,
                         params,
@@ -569,47 +558,19 @@ class NexarClient:
         return int(value.timestamp())
 
     @staticmethod
-    def _extract_method_id(endpoint: str) -> str:
-        parts = endpoint.lstrip("/").split("/")
-
-        if len(parts) < 2:
-            logger.debug("_extract_method_id: short endpoint '%s', returning 'unknown'", endpoint)
-            return "unknown"
-
-        if len(parts) >= 3 and re.match(r"^v\d+$", parts[2]):
-            method = parts[1]
-            version = parts[2]
-            return f"{method}-{version}"
-
-        if parts[0] == "static-data" and len(parts) >= 3:
-            resource = parts[2]
-            return f"{resource}-static"
-
-        for i, part in enumerate(parts):
-            if re.match(r"^v\d+$", part) and i > 0:
-                method = parts[i - 1]
-                version = part
-                logger.debug(
-                    "_extract_method_id: used fallback regex match for '%s' -> %s-%s",
-                    endpoint,
-                    method,
-                    version,
-                )
-                return f"{method}-{version}"
-
-        if len(parts) >= 2:
-            service = parts[0]
-            method = parts[1]
-            result = f"{method}-{service}" if len(parts) >= 3 else f"{service}-{method}"
-            logger.debug(
-                "_extract_method_id: fell through to low-confidence heuristic for '%s' -> %s",
-                endpoint,
-                result,
+    def _parse_retry_after(value: str | None) -> float:
+        """Parse a Retry-After header (seconds). Falls back to a conservative default."""
+        if value is None:
+            return DEFAULT_RETRY_AFTER_SECONDS
+        try:
+            return float(value)
+        except ValueError:
+            logger.warning(
+                "Invalid Retry-After header %r. Using default of %.0f seconds",
+                value,
+                DEFAULT_RETRY_AFTER_SECONDS,
             )
-            return result
-
-        logger.debug("_extract_method_id: no match for '%s', returning 'unknown'", endpoint)
-        return "unknown"
+            return DEFAULT_RETRY_AFTER_SECONDS
 
     def _debug_print_response(
         self,

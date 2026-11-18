@@ -4,16 +4,16 @@ Nexar includes built-in rate limiting to comply with Riot's API limits and avoid
 
 !!! Note
 
-    If you hit a rate limit and Riot provides a `Retry-After` header, Nexar will wait the required duration and continue.
+    If you hit a rate limit and Riot provides a `Retry-After` header, Nexar blocks the region for that duration and retries. If the header is missing or unparsable, a conservative 5-second block is applied instead.
 
 ## Default Rate Limits
 
-By default, Nexar enforces:
+By default, Nexar enforces Riot's personal-key limits:
 
 - 20 requests per 1 second
 - 100 requests per 2 minutes
 
-These are the default rates for Riot personal API keys.
+These are enforced as sliding windows per region — the same rule Riot's edge applies — so the full quota is usable: 20 requests may fire in the first second, and short batches complete without artificial pacing.
 
 ## Basic Usage
 
@@ -52,22 +52,28 @@ await client.get_riot_account("Doublelift", "NA1", region=Region.NA1)  # Uses NA
 await client.get_riot_account("G2 Wunder", "EUW", region=Region.EUW1)  # Uses EUW1 budget
 ```
 
-
 ## How It Works
 
-Nexar uses a leaky bucket rate limiter backed by `aiolimiter`. It parses Riot response headers (`X-App-Rate-Limit`, `X-Method-Rate-Limit`, `X-Service-Rate-Limit`) to create dynamic limit buckets and handles 429 responses with `Retry-After` blocking.
+Nexar records the timestamp of every admitted request, per region, and admits the next request only when every rate window has a free slot. This mirrors Riot's documented sliding-window enforcement directly, so the limiter is exactly as accurate as the server's own count for a single process using one key.
 
-Rate limits are enforced per region with per-region locking to prevent race conditions. Rate limits are not persisted across restarts. Cached responses do not count against rate limits.
+Method and service rate limit headers are deliberately not tracked: the application window always binds first at every key tier (personal: 100/120s app vs. method limits like 2000/10s; production: 50/s app vs. 200/s method), so tracking them cannot change behavior.
+
+The check-and-claim is synchronous, which is atomic on a single event loop — no locks, and concurrent callers never starve each other. Rate limit state is not persisted across restarts. Cached responses do not count against rate limits.
 
 ## Debugging Rate Limits
 
-Rate limiter decisions are logged at `INFO` level. See the [Logging](./logging.md) page to enable and configure Nexar's logging.
+Rate limiter pacing decisions are logged at `DEBUG` level; 429s are logged at `WARNING`. See the [Logging](./logging.md) page to enable and configure Nexar's logging.
 
-When rate limits are hit, you'll see messages like:
+When the client is pacing, you'll see at `DEBUG`:
 
 ```
-[nexar] Rate limit FULL for na1/api_get_account. Sleeping 0.85s  (INFO)
-[nexar] Rate limit BLOCKED (429) for na1/api_get_account. Sleeping 1.23s  (WARNING)
+[nexar] Rate limit pacing for na1: waiting 1.21s
+```
+
+When a 429 arrives, at `WARNING`:
+
+```
+[nexar] 429 on attempt 1/5 for /lol/match/v5/matches/NA1_123 (region: na1). Blocking region for 3.0s
 ```
 
 ## Rate Limiting vs Caching

@@ -51,20 +51,13 @@ async def test_no_double_blocking_on_429(simple_client: NexarClient, mock_aiores
 
 
 @pytest.mark.asyncio
-async def test_rate_limiter_blocks_on_429_headers(simple_client: NexarClient) -> None:
-    headers = {
-        "Retry-After": "0.2",
-        "X-Rate-Limit-Type": "application",
-        "X-App-Rate-Limit": "20:1",
-        "X-App-Rate-Limit-Count": "1:1",
-    }
-
+async def test_rate_limiter_blocks_on_429(simple_client: NexarClient) -> None:
     await simple_client._ensure_session()
-    await simple_client.rate_limiter.update_from_headers(headers, "na1", "summoner-v4")
+    simple_client.rate_limiter.block("na1", 0.2)
 
-    start_time = time.time()
-    await simple_client.rate_limiter.acquire("na1", "summoner-v4")
-    elapsed = time.time() - start_time
+    start_time = time.monotonic()
+    await simple_client.rate_limiter.acquire("na1")
+    elapsed = time.monotonic() - start_time
 
     assert 0.15 < elapsed < 0.35, f"Expected ~0.2s block, got {elapsed}s"
     await simple_client.close()

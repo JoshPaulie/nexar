@@ -9,43 +9,6 @@ from nexar.models.match.match import Match, MatchInfo, MatchMetadata
 from nexar.models.match.participant import Participant
 from nexar.models.match.participant_list import ParticipantList
 from nexar.models.match.perks import Perks, PerkStats
-from aiolimiter import AsyncLimiter
-
-from nexar.rate_limiter import PERSONAL_LIMITS, RateLimiter
-
-
-class MockRateLimiter:
-    """Wraps RateLimiter to expose internal state for testing."""
-
-    def __init__(
-        self,
-        app_limits: tuple[tuple[int, int], ...] = PERSONAL_LIMITS,
-    ) -> None:
-        self._inner = RateLimiter(app_limits)
-
-    @property
-    def app_buckets(self) -> dict[str, list[AsyncLimiter]]:
-        """Per-region app-level AsyncLimiter instances."""
-        return self._inner._app_buckets
-
-    @property
-    def dynamic(self) -> dict[str, AsyncLimiter]:
-        """Dynamic method/service AsyncLimiter instances from headers."""
-        return self._inner._dynamic
-
-    @property
-    def blocked(self) -> dict[str, float]:
-        """429 Retry-After blocking: bucket_key → unblock timestamp."""
-        return self._inner._blocked
-
-    async def acquire(self, region: str, method: str) -> None:
-        await self._inner.acquire(region, method)
-
-    async def update_from_headers(self, headers: dict[str, str], region: str, method: str) -> None:
-        await self._inner.update_from_headers(headers, region, method)
-
-    def detect_rate_limit_type(self, headers: dict[str, str]) -> tuple[str, bool]:
-        return self._inner._detect_rate_limit_type(headers)
 
 
 def create_test_participant(**overrides: object) -> Participant:

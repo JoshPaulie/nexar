@@ -54,7 +54,7 @@ The `"nexar"` logger emits messages at the following levels:
 
 | Level     | Used For                                                      |
 | --------- | ------------------------------------------------------------- |
-| `DEBUG`   | Rate limiter decisions, method ID extraction, cache internals |
+| `DEBUG`   | Rate limiter pacing decisions, cache internals |
 | `INFO`    | API calls, response status, cache management, call stats      |
 | `WARNING` | Transient request retries (network errors, timeouts)          |
 | `ERROR`   | Non-retryable request failures and API exceptions             |

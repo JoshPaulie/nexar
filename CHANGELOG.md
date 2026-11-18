@@ -6,11 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Rate limiter backend replaced with `aiolimiter` for a more robust leaky bucket implementation. The public API is unchanged.
+- **Breaking:** Rate limiter rewritten as a sliding-window log that mirrors Riot's documented enforcement. Batches now run at the full documented quota (e.g. 12 match fetches in ~1s instead of ~14s under the previous burst=1 buckets). `RateLimiter.acquire()` no longer takes a `method` argument. Method and service rate limit headers are no longer tracked — the application window always binds first at every key tier, so tracking them cannot change behavior.
+- On a 429 without a parseable `Retry-After` header, the region is now blocked for a conservative 5s default instead of retrying unpaced.
+- `aiolimiter` dependency removed; rate limiting is now stdlib-only.
 
 ### Removed
 
-- `RateLimiter.release()` — removed as aiolimiter's leaky bucket recovers capacity naturally.
+- `RateLimiter.update_from_headers()` and `RateLimiter.dump_state()`.
+- `NexarClient._extract_method_id()` (the limiter no longer tracks per-method limits).
 
 ### Added
 
