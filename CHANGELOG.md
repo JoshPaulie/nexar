@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 
 - `Participant.get_player(client, *, region=None)` — async method to get a `Player` from a match participant via PUUID.
 - Restart orientation: every fresh response hands Riot's `X-App-Rate-Limit-Count` to the limiter, which pre-fills its window log once per region — rerunning a script within 2 minutes of a heavy run no longer re-bursts into a partially spent quota (the cold-start 429 hole).
+- CI now runs tests, mypy and ruff on every pull request and push to main, gating the docs deploy; Python is pinned to 3.13 in both jobs.
 
 ## [1.1.0] - 2026-05-17
 
