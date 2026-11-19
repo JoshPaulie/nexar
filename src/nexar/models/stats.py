@@ -25,10 +25,14 @@ class ChampionStats:
 
     @property
     def avg_kda(self) -> float:
-        """Average KDA ratio."""
-        if self.games_played == 0 or self.total_deaths == 0:
+        """
+        Average KDA ratio, as (total kills + total assists) / max(total deaths, 1).
+
+        Mirrors `Participant.kda`: a zero-death record is a perfect KDA rather than 0.0.
+        """
+        if self.games_played == 0:
             return 0.0
-        return (self.total_kills + self.total_assists) / self.total_deaths
+        return (self.total_kills + self.total_assists) / max(self.total_deaths, 1)
 
     @property
     def avg_kills(self) -> float:

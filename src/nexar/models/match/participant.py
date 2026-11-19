@@ -25,11 +25,13 @@ class Participant:
     puuid: str
     """Player's universally unique identifier."""
 
-    _summoner_name: str
+    _summoner_name: str | None
     """
     Player's summoner name at the time of the match.
 
     **Deprecated by Riot.** Use `Participant.game_name` instead.
+
+    May be None if Riot omitted the field from the response.
     """
 
     champion_id: int
@@ -69,11 +71,13 @@ class Participant:
 
     @property
     @warnings.deprecated("Participant.summoner_name is deprecated. Use Participant.game_name instead.")
-    def summoner_name(self) -> str:
+    def summoner_name(self) -> str | None:
         """
         Player's summoner name at the time of the match.
 
         **Deprecated by Riot.** Use `Participant.game_name` instead.
+
+        Returns None if Riot omitted the field from the response.
         """
         return self._summoner_name
 
@@ -530,8 +534,12 @@ class Participant:
     items_purchased: int
     """Total number of items purchased."""
 
-    placement: int
-    """Final placement in the match."""
+    placement: int | None
+    """
+    Final placement in the match (TFT and other mode-specific queues only).
+
+    None for standard Summoner's Rift games, and when Riot omits the field.
+    """
 
     profile_icon: int
     """Profile icon ID used by the participant."""
@@ -631,136 +639,138 @@ class Participant:
         return cls(
             # Core participant data
             puuid=data["puuid"],
-            _summoner_name=data["summonerName"],
+            _summoner_name=data.get("summonerName"),
             champion_id=data["championId"],
             champion_name=data["championName"],
             team_id=data["teamId"],
             participant_id=data["participantId"],
             # Basic stats
-            kills=data["kills"],
-            deaths=data["deaths"],
-            assists=data["assists"],
-            champion_level=data["champLevel"],
-            gold_earned=data["goldEarned"],
-            gold_spent=data["goldSpent"],
-            vision_score=data["visionScore"],
+            kills=data.get("kills", 0),
+            deaths=data.get("deaths", 0),
+            assists=data.get("assists", 0),
+            champion_level=data.get("champLevel", 0),
+            gold_earned=data.get("goldEarned", 0),
+            gold_spent=data.get("goldSpent", 0),
+            vision_score=data.get("visionScore", 0),
             win=data["win"],
             # Items
-            item_0=data["item0"],
-            item_1=data["item1"],
-            item_2=data["item2"],
-            item_3=data["item3"],
-            item_4=data["item4"],
-            item_5=data["item5"],
-            item_6=data["item6"],
+            item_0=data.get("item0", 0),
+            item_1=data.get("item1", 0),
+            item_2=data.get("item2", 0),
+            item_3=data.get("item3", 0),
+            item_4=data.get("item4", 0),
+            item_5=data.get("item5", 0),
+            item_6=data.get("item6", 0),
             # Position and role
-            individual_position=MatchParticipantPosition(data["individualPosition"]),
-            team_position=MatchParticipantPosition(data["teamPosition"]),
-            lane=data["lane"],
-            role=data["role"],
+            individual_position=MatchParticipantPosition(
+                data.get("individualPosition", MatchParticipantPosition.INVALID),
+            ),
+            team_position=MatchParticipantPosition(data.get("teamPosition", MatchParticipantPosition.INVALID)),
+            lane=data.get("lane", ""),
+            role=data.get("role", ""),
             # Ping stats
-            all_in_pings=data["allInPings"],
-            assist_me_pings=data["assistMePings"],
-            command_pings=data["commandPings"],
-            enemy_missing_pings=data["enemyMissingPings"],
-            enemy_vision_pings=data["enemyVisionPings"],
-            get_back_pings=data["getBackPings"],
-            hold_pings=data["holdPings"],
-            need_vision_pings=data["needVisionPings"],
-            on_my_way_pings=data["onMyWayPings"],
-            push_pings=data["pushPings"],
-            vision_cleared_pings=data["visionClearedPings"],
+            all_in_pings=data.get("allInPings", 0),
+            assist_me_pings=data.get("assistMePings", 0),
+            command_pings=data.get("commandPings", 0),
+            enemy_missing_pings=data.get("enemyMissingPings", 0),
+            enemy_vision_pings=data.get("enemyVisionPings", 0),
+            get_back_pings=data.get("getBackPings", 0),
+            hold_pings=data.get("holdPings", 0),
+            need_vision_pings=data.get("needVisionPings", 0),
+            on_my_way_pings=data.get("onMyWayPings", 0),
+            push_pings=data.get("pushPings", 0),
+            vision_cleared_pings=data.get("visionClearedPings", 0),
             # Kill stats
-            baron_kills=data["baronKills"],
-            double_kills=data["doubleKills"],
-            dragon_kills=data["dragonKills"],
-            inhibitor_kills=data["inhibitorKills"],
-            killing_sprees=data["killingSprees"],
-            largest_killing_spree=data["largestKillingSpree"],
-            largest_multi_kill=data["largestMultiKill"],
-            nexus_kills=data["nexusKills"],
-            penta_kills=data["pentaKills"],
-            quadra_kills=data["quadraKills"],
-            triple_kills=data["tripleKills"],
-            turret_kills=data["turretKills"],
-            unreal_kills=data["unrealKills"],
+            baron_kills=data.get("baronKills", 0),
+            double_kills=data.get("doubleKills", 0),
+            dragon_kills=data.get("dragonKills", 0),
+            inhibitor_kills=data.get("inhibitorKills", 0),
+            killing_sprees=data.get("killingSprees", 0),
+            largest_killing_spree=data.get("largestKillingSpree", 0),
+            largest_multi_kill=data.get("largestMultiKill", 0),
+            nexus_kills=data.get("nexusKills", 0),
+            penta_kills=data.get("pentaKills", 0),
+            quadra_kills=data.get("quadraKills", 0),
+            triple_kills=data.get("tripleKills", 0),
+            turret_kills=data.get("turretKills", 0),
+            unreal_kills=data.get("unrealKills", 0),
             # Damage stats
-            damage_dealt_to_buildings=data["damageDealtToBuildings"],
-            damage_dealt_to_objectives=data["damageDealtToObjectives"],
-            damage_dealt_to_turrets=data["damageDealtToTurrets"],
-            damage_self_mitigated=data["damageSelfMitigated"],
-            largest_critical_strike=data["largestCriticalStrike"],
-            magic_damage_dealt=data["magicDamageDealt"],
-            magic_damage_dealt_to_champions=data["magicDamageDealtToChampions"],
-            magic_damage_taken=data["magicDamageTaken"],
-            physical_damage_dealt=data["physicalDamageDealt"],
-            physical_damage_dealt_to_champions=data["physicalDamageDealtToChampions"],
-            physical_damage_taken=data["physicalDamageTaken"],
-            total_damage_dealt=data["totalDamageDealt"],
-            total_damage_dealt_to_champions=data["totalDamageDealtToChampions"],
-            total_damage_shielded_on_teammates=data["totalDamageShieldedOnTeammates"],
-            total_damage_taken=data["totalDamageTaken"],
-            true_damage_dealt=data["trueDamageDealt"],
-            true_damage_dealt_to_champions=data["trueDamageDealtToChampions"],
-            true_damage_taken=data["trueDamageTaken"],
+            damage_dealt_to_buildings=data.get("damageDealtToBuildings", 0),
+            damage_dealt_to_objectives=data.get("damageDealtToObjectives", 0),
+            damage_dealt_to_turrets=data.get("damageDealtToTurrets", 0),
+            damage_self_mitigated=data.get("damageSelfMitigated", 0),
+            largest_critical_strike=data.get("largestCriticalStrike", 0),
+            magic_damage_dealt=data.get("magicDamageDealt", 0),
+            magic_damage_dealt_to_champions=data.get("magicDamageDealtToChampions", 0),
+            magic_damage_taken=data.get("magicDamageTaken", 0),
+            physical_damage_dealt=data.get("physicalDamageDealt", 0),
+            physical_damage_dealt_to_champions=data.get("physicalDamageDealtToChampions", 0),
+            physical_damage_taken=data.get("physicalDamageTaken", 0),
+            total_damage_dealt=data.get("totalDamageDealt", 0),
+            total_damage_dealt_to_champions=data.get("totalDamageDealtToChampions", 0),
+            total_damage_shielded_on_teammates=data.get("totalDamageShieldedOnTeammates", 0),
+            total_damage_taken=data.get("totalDamageTaken", 0),
+            true_damage_dealt=data.get("trueDamageDealt", 0),
+            true_damage_dealt_to_champions=data.get("trueDamageDealtToChampions", 0),
+            true_damage_taken=data.get("trueDamageTaken", 0),
             # Minion and jungle stats
-            neutral_minions_killed=data["neutralMinionsKilled"],
-            total_ally_jungle_minions_killed=data["totalAllyJungleMinionsKilled"],
-            total_enemy_jungle_minions_killed=data["totalEnemyJungleMinionsKilled"],
-            total_minions_killed=data["totalMinionsKilled"],
+            neutral_minions_killed=data.get("neutralMinionsKilled", 0),
+            total_ally_jungle_minions_killed=data.get("totalAllyJungleMinionsKilled", 0),
+            total_enemy_jungle_minions_killed=data.get("totalEnemyJungleMinionsKilled", 0),
+            total_minions_killed=data.get("totalMinionsKilled", 0),
             # Healing and support stats
-            total_heal=data["totalHeal"],
-            total_heals_on_teammates=data["totalHealsOnTeammates"],
-            total_units_healed=data["totalUnitsHealed"],
+            total_heal=data.get("totalHeal", 0),
+            total_heals_on_teammates=data.get("totalHealsOnTeammates", 0),
+            total_units_healed=data.get("totalUnitsHealed", 0),
             # Time stats
-            longest_time_spent_living=data["longestTimeSpentLiving"],
-            time_ccing_others=data["timeCCingOthers"],
-            time_played=data["timePlayed"],
-            total_time_cc_dealt=data["totalTimeCCDealt"],
-            total_time_spent_dead=data["totalTimeSpentDead"],
+            longest_time_spent_living=data.get("longestTimeSpentLiving", 0),
+            time_ccing_others=data.get("timeCCingOthers", 0),
+            time_played=data.get("timePlayed", 0),
+            total_time_cc_dealt=data.get("totalTimeCCDealt", 0),
+            total_time_spent_dead=data.get("totalTimeSpentDead", 0),
             # Ward and vision stats
-            detector_wards_placed=data["detectorWardsPlaced"],
-            sight_wards_bought_in_game=data["sightWardsBoughtInGame"],
-            vision_wards_bought_in_game=data["visionWardsBoughtInGame"],
-            wards_killed=data["wardsKilled"],
-            wards_placed=data["wardsPlaced"],
+            detector_wards_placed=data.get("detectorWardsPlaced", 0),
+            sight_wards_bought_in_game=data.get("sightWardsBoughtInGame", 0),
+            vision_wards_bought_in_game=data.get("visionWardsBoughtInGame", 0),
+            wards_killed=data.get("wardsKilled", 0),
+            wards_placed=data.get("wardsPlaced", 0),
             # Spell casts
-            spell_1_casts=data["spell1Casts"],
-            spell_2_casts=data["spell2Casts"],
-            spell_3_casts=data["spell3Casts"],
-            spell_4_casts=data["spell4Casts"],
-            summoner_1_casts=data["summoner1Casts"],
-            summoner_1_id=data["summoner1Id"],
-            summoner_2_casts=data["summoner2Casts"],
-            summoner_2_id=data["summoner2Id"],
+            spell_1_casts=data.get("spell1Casts", 0),
+            spell_2_casts=data.get("spell2Casts", 0),
+            spell_3_casts=data.get("spell3Casts", 0),
+            spell_4_casts=data.get("spell4Casts", 0),
+            summoner_1_casts=data.get("summoner1Casts", 0),
+            summoner_1_id=data.get("summoner1Id", 0),
+            summoner_2_casts=data.get("summoner2Casts", 0),
+            summoner_2_id=data.get("summoner2Id", 0),
             # Structure stats
-            inhibitor_takedowns=data["inhibitorTakedowns"],
-            inhibitors_lost=data["inhibitorsLost"],
-            nexus_takedowns=data["nexusTakedowns"],
-            nexus_lost=data["nexusLost"],
-            turret_takedowns=data["turretTakedowns"],
-            turrets_lost=data["turretsLost"],
+            inhibitor_takedowns=data.get("inhibitorTakedowns", 0),
+            inhibitors_lost=data.get("inhibitorsLost", 0),
+            nexus_takedowns=data.get("nexusTakedowns", 0),
+            nexus_lost=data.get("nexusLost", 0),
+            turret_takedowns=data.get("turretTakedowns", 0),
+            turrets_lost=data.get("turretsLost", 0),
             # Objectives
-            objectives_stolen=data["objectivesStolen"],
-            objectives_stolen_assists=data["objectivesStolenAssists"],
+            objectives_stolen=data.get("objectivesStolen", 0),
+            objectives_stolen_assists=data.get("objectivesStolenAssists", 0),
             # Game state
             bounty_level=data.get("bountyLevel"),
-            champ_experience=data["champExperience"],
-            champion_transform=data["championTransform"],
-            consumables_purchased=data["consumablesPurchased"],
-            eligible_for_progression=data["eligibleForProgression"],
-            first_blood_assist=data["firstBloodAssist"],
-            first_blood_kill=data["firstBloodKill"],
-            first_tower_assist=data["firstTowerAssist"],
-            first_tower_kill=data["firstTowerKill"],
-            game_ended_in_early_surrender=data["gameEndedInEarlySurrender"],
-            game_ended_in_surrender=data["gameEndedInSurrender"],
-            items_purchased=data["itemsPurchased"],
-            placement=data["placement"],
-            profile_icon=data["profileIcon"],
-            summoner_id=data["summonerId"],
-            summoner_level=data["summonerLevel"],
-            team_early_surrendered=data["teamEarlySurrendered"],
+            champ_experience=data.get("champExperience", 0),
+            champion_transform=data.get("championTransform", 0),
+            consumables_purchased=data.get("consumablesPurchased", 0),
+            eligible_for_progression=data.get("eligibleForProgression", False),
+            first_blood_assist=data.get("firstBloodAssist", False),
+            first_blood_kill=data.get("firstBloodKill", False),
+            first_tower_assist=data.get("firstTowerAssist", False),
+            first_tower_kill=data.get("firstTowerKill", False),
+            game_ended_in_early_surrender=data.get("gameEndedInEarlySurrender", False),
+            game_ended_in_surrender=data.get("gameEndedInSurrender", False),
+            items_purchased=data.get("itemsPurchased", 0),
+            placement=data.get("placement"),
+            profile_icon=data.get("profileIcon", 0),
+            summoner_id=data.get("summonerId", ""),
+            summoner_level=data.get("summonerLevel", 0),
+            team_early_surrendered=data.get("teamEarlySurrendered", False),
             # Complex nested objects (optionally included by Riot)
             perks=Perks.from_api_response(p_data) if (p_data := data.get("perks")) else None,
             challenges=Challenges.from_api_response(c_data) if (c_data := data.get("challenges")) else None,

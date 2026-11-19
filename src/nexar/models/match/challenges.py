@@ -163,8 +163,8 @@ class Challenges:
     dragon_takedowns: int | None = None
     """Dragon takedowns"""
 
-    legendary_item_used: list[int] | None = None
-    """List of legendary items used"""
+    legendary_item_used: tuple[int, ...] | None = None
+    """Legendary items used. A tuple so the frozen dataclass stays hashable."""
 
     effective_heal_and_shielding: float | None = None
     """Effective healing and shielding provided"""
@@ -601,6 +601,8 @@ class Challenges:
     def from_api_response(cls, data: dict[str, Any]) -> "Challenges":
         """Create Challenges from API response."""
         kwargs: dict[str, Any] = {py_name: data.get(api_name) for api_name, py_name in cls._FIELD_MAP.items()}
+        legendary_items = kwargs.get("legendary_item_used")
+        kwargs["legendary_item_used"] = tuple(legendary_items) if legendary_items else None
         return cls(**kwargs)
 
 

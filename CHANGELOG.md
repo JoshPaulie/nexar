@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file.
 - `aiolimiter` dependency removed; rate limiting is now stdlib-only.
 - `aiohttp-client-cache` narrowed to the `sqlite` extra — aioboto3, motor, redis and friends no longer land in the lockfile of a SQLite-only SDK.
 - `ruff` is now a declared dev dependency, so a clean checkout can run `just check`.
+- `Participant.placement` and `Participant.summoner_name` are now `int | None` / `str | None` (parsed to `None` when Riot omits them).
+- `Perks.styles`, `PerkStyle.selections` and `Challenges.legendary_item_used` are tuples now, so those frozen dataclasses are hashable.
+- `ChampionStats.avg_kda` now treats a zero-death record as a perfect KDA instead of returning `0.0`.
 
 ### Removed
 
@@ -26,6 +29,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - `ruff check src` now passes on a clean checkout: D213 (the other half of the D212 docstring toggle) is ignored, and `NexarClient.__aenter__` is typed as `Self` (PYI034).
+- Participants and perks now parse with sane defaults when Riot omits zero-valued keys (Riot includes only non-empty values), instead of raising `KeyError` — including `placement`, `summonerName`, `statPerks`, perk vars and zero-stat pings.
 
 ## [1.1.0] - 2026-05-17
 

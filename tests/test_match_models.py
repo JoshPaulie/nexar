@@ -9,6 +9,7 @@ from nexar.enums import MapId, MatchParticipantPosition, PlatformId, Queue
 from nexar.models import (
     Ban,
     Challenges,
+    ChampionStats,
     Match,
     MatchInfo,
     MatchMetadata,
@@ -71,6 +72,37 @@ class TestMatchModels:
         assert challenges.damage_per_minute == 833.33
         assert challenges.gold_per_minute == 500.0
         assert challenges.vision_score_per_minute == 1.5
+
+    def test_champion_stats_avg_kda_with_zero_deaths(self) -> None:
+        """A zero-death champion record has a perfect KDA, not 0.0."""
+        stats = ChampionStats(
+            champion_id=1,
+            champion_name="Annie",
+            games_played=3,
+            wins=3,
+            losses=0,
+            total_kills=15,
+            total_deaths=0,
+            total_assists=30,
+        )
+
+        # (15 + 30) / max(0, 1) == 45.0, mirroring Participant.kda().
+        assert stats.avg_kda == 45.0
+
+    def test_champion_stats_avg_kda_with_deaths(self) -> None:
+        """A normal champion record still divides by real deaths."""
+        stats = ChampionStats(
+            champion_id=1,
+            champion_name="Annie",
+            games_played=2,
+            wins=1,
+            losses=1,
+            total_kills=10,
+            total_deaths=4,
+            total_assists=6,
+        )
+
+        assert stats.avg_kda == 4.0
 
     def test_objectives_creation(self) -> None:
         """Test Objectives creation from API response."""
