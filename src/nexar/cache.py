@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+from http.cookies import CookieError
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from aiohttp_client_cache.backends.base import DictCache
 from aiohttp_client_cache.backends.sqlite import SQLiteBackend
+
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from aiohttp import ClientResponse
+    from aiohttp_client_cache.response import CachedResponse
+
+logger = logging.getLogger("nexar.cache")
 
 
 def ttl(*, minutes: int = 0, hours: int = 0, days: int = 0) -> int:
@@ -30,13 +40,53 @@ _SMART_ENDPOINT_TTLS: dict[str, int | None] = {
 }
 
 
+class NexarSQLiteBackend(SQLiteBackend):
+    """SQLite backend that never caches cookies and drops rows it cannot load.
+
+    Riot's API responses carry a Cloudflare ``__cf_bm`` Set-Cookie whose ``Partitioned``
+    attribute ``http.cookies`` rejects when a cached row is unpickled. aiohttp-client-cache
+    pickles the whole response — cookies included — and its deserialize guard does not catch
+    ``CookieError``, so a single cached cookie made every later read of that row crash.
+    Cookies are anti-bot session noise, not API data: they are stripped before the row is
+    written, and a row written by an older version that still fails to load is deleted and
+    treated as a cache miss, so a poisoned cache heals itself on the next fetch.
+    """
+
+    async def save_response(
+        self,
+        response: ClientResponse,
+        cache_key: str | None = None,
+        expires: datetime | None = None,
+    ) -> None:
+        """Save a response with its cookie jar emptied.
+
+        The jar on the live response is a parsed copy nobody consumes — the session's
+        cookie jar was already updated when the response arrived, so nothing is lost.
+        """
+        response.cookies.clear()
+        for redirected in response.history:
+            redirected.cookies.clear()
+        await super().save_response(response, cache_key, expires)
+
+    async def get_response(self, key: str) -> CachedResponse | None:
+        """Read a cached response, treating an unreadable row as a cache miss."""
+        try:
+            return await super().get_response(key)
+        except CookieError:
+            logger.warning("Dropping cached row %s: its stored cookie cannot be loaded. Refetching.", key)
+            # kv-level delete: CacheBackend.delete() deserializes the row first,
+            # which would raise CookieError again.
+            await self.responses.delete(key)
+            return None
+
+
 def create_cache_backend(config: CacheConfig) -> SQLiteBackend | DictCache:
     """Create an aiohttp-client-cache backend based on the provided configuration."""
     if config.backend == "sqlite":
         cache_dir = Path(config.cache_dir) if config.cache_dir else (Path.home() / ".nexar")
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_path = cache_dir / f"{config.cache_name}.sqlite"
-        return SQLiteBackend(
+        return NexarSQLiteBackend(
             cache_name=str(cache_path.with_suffix("")),
             expire_after=config.expire_after,
             urls_expire_after=_SMART_ENDPOINT_TTLS,
