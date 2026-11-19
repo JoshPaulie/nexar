@@ -41,6 +41,7 @@ All notable changes to this project will be documented in this file.
 - `MatchList.get_performance_stats` treats a zero-death match list as a perfect KDA instead of returning `0.0`.
 - `get_api_call_stats().errors` now counts 404, 401 and 403 responses, which previously vanished from the error total.
 - `Player.get_recent_performance_by_role` reports participants with an empty team position under `UNKNOWN` instead of an empty role key, and treats zero-death role records as a perfect KDA instead of `0.0`.
+- `LeagueEntry` tolerates a missing `leagueId` — the live by-puuid entries endpoint no longer returns it — defaulting `league_id` to an empty string instead of raising `KeyError`.
 
 ## [1.1.0] - 2026-05-17
 

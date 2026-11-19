@@ -243,6 +243,28 @@ class TestLeagueEntryOmittedFields:
         assert entry.division is RankDivision.EMPTY
         assert entry.league_points == 0
 
+    def test_live_by_puuid_entry_without_league_id(self) -> None:
+        """The live by-puuid entries endpoint no longer returns leagueId (verified 2026-11-18)."""
+        entry = LeagueEntry.from_api_response(
+            {
+                "freshBlood": False,
+                "hotStreak": False,
+                "inactive": False,
+                "leaguePoints": 0,
+                "losses": 20,
+                "puuid": "test-puuid",
+                "queueType": "RANKED_SOLO_5x5",
+                "rank": "IV",
+                "tier": "GOLD",
+                "veteran": False,
+                "wins": 30,
+            },
+        )
+
+        assert entry.league_id == ""
+        assert entry.tier is RankTier.GOLD
+        assert entry.league_points == 0
+
     def test_entry_with_every_omitted_integer(self) -> None:
         """Zero wins/losses/LP are all omitted from the payload."""
         entry = LeagueEntry.from_api_response(

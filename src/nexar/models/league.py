@@ -44,7 +44,8 @@ class LeagueEntry:
     """Represents a league entry for a player in a ranked queue."""
 
     league_id: str
-    """Unique identifier for the league."""
+    """Unique identifier for the league. Empty when Riot omits it (the by-puuid
+    entries endpoint no longer returns it)."""
 
     puuid: str
     """Player's universally unique identifier."""
@@ -183,7 +184,7 @@ class LeagueEntry:
             division = RankDivision.EMPTY
 
         return cls(
-            league_id=data["leagueId"],
+            league_id=data.get("leagueId") or "",
             puuid=data["puuid"],
             queue_type=queue_type,
             queue_type_raw=queue_type_str,
