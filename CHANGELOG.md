@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - `Objectives.horde` is now `Objective | None` (pre-14.1 matches have no Voidgrubs), a new optional `Objectives.atakhan` field parses the 2025-season objective, and `Team.bans`, `TeamInfo.bans` and `TeamInfo.participants` are tuples now, making `Team` hashable.
 - `LeagueEntry.division` gains a `RankDivision.EMPTY` member for apex and decayed entries, which Riot sends without a `rank`.
 - `MatchInfo.game_duration` is now documented and normalized as seconds: a payload from before patch 11.20 (reported in milliseconds) is divided by 1000 at parse time.
+- **Breaking:** `Player.get_matches` now raises `BatchError` carrying the successfully fetched matches when any match id fails, instead of discarding the whole batch with a bare `NotFoundError` (mirrors `get_players`).
 
 ### Removed
 
@@ -38,6 +39,8 @@ All notable changes to this project will be documented in this file.
 - `MatchInfo.game_duration` is normalized to seconds at parse time (pre-11.20 matches were reported in milliseconds and inflated `MatchList.get_performance_stats` averages ~60x).
 - The `get_average_stat` docstring example now guards participants with no `challenges` block (pre-2022 matches) instead of raising `AttributeError`, and a test executes the documented example so it cannot rot again.
 - `MatchList.get_performance_stats` treats a zero-death match list as a perfect KDA instead of returning `0.0`.
+- `get_api_call_stats().errors` now counts 404, 401 and 403 responses, which previously vanished from the error total.
+- `Player.get_recent_performance_by_role` reports participants with an empty team position under `UNKNOWN` instead of an empty role key, and treats zero-death role records as a perfect KDA instead of `0.0`.
 
 ## [1.1.0] - 2026-05-17
 

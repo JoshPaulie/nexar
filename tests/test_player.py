@@ -1,18 +1,30 @@
 """Tests for high-level Player functionality."""
 
+import copy
+import re
 from datetime import UTC
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from nexar import ChampionStats, PerformanceStats, Player, Queue, Region
-from nexar.enums import Region
+from nexar import (
+    BatchError,
+    ChampionStats,
+    MatchParticipantPosition,
+    NexarClient,
+    NotFoundError,
+    PerformanceStats,
+    Player,
+    Queue,
+    Region,
+    RiotAccount,
+)
+from nexar.cache import NO_CACHE_CONFIG
 from nexar.models.match_list import MatchList
 
 if TYPE_CHECKING:
     import pytest_mock
-
-    from nexar.client import NexarClient
+    from aioresponses import aioresponses
 
 
 class TestPlayer:
@@ -484,7 +496,11 @@ class TestPlayer:
         assert isinstance(tier_value, int)
         assert isinstance(lp, int)
 
-    async def test_get_solo_rank_value_unranked(self, client: "NexarClient", mocker: "pytest_mock.MockerFixture") -> None:
+    async def test_get_solo_rank_value_unranked(
+        self,
+        client: "NexarClient",
+        mocker: "pytest_mock.MockerFixture",
+    ) -> None:
         player = await client.get_player(game_name="bexli", tag_line="bex")
         mocker.patch.object(player, "get_solo_rank", return_value=None)
         result = await player.get_solo_rank_value()
@@ -580,3 +596,142 @@ class TestPlayer:
         assert len(players) == 1
         assert players[0].game_name == "bexli"
         assert players[0].tag_line == "bex"
+
+
+@pytest.fixture
+def batch_player() -> Player:
+    """Player bound to a real client, ready for inline match mocks."""
+    client = NexarClient(
+        riot_api_key="test-api-key",
+        default_region=Region.NA1,
+        cache_config=NO_CACHE_CONFIG,
+    )
+    return Player(
+        client=client,
+        game_name="bexli",
+        tag_line="bex",
+        riot_account=RiotAccount(puuid="test-puuid", game_name="bexli", tag_line="bex"),
+        region=Region.NA1,
+    )
+
+
+class TestGetMatchesBatchErrorHandling:
+    """get_matches must keep successful matches when one match id fails."""
+
+    async def test_one_missing_match_raises_batch_error_keeping_successes(
+        self,
+        batch_player: Player,
+        mock_aioresponse: "aioresponses",
+        mock_responses: dict[str, Any],
+    ) -> None:
+        """A single 404 must not discard the matches that did load."""
+        mock_aioresponse.get(
+            re.compile(r"https://americas\.api\.riotgames\.com/lol/match/v5/matches/by-puuid/test-puuid/ids.*"),
+            payload=["NA1_1", "NA1_2", "NA1_3"],
+        )
+        mock_aioresponse.get(
+            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_2",
+            status=404,
+            payload={"status": {"message": "Not Found", "status_code": 404}},
+        )
+        for match_id in ("NA1_1", "NA1_3"):
+            payload = copy.deepcopy(mock_responses["match"])
+            payload["metadata"]["matchId"] = match_id
+            mock_aioresponse.get(
+                f"https://americas.api.riotgames.com/lol/match/v5/matches/{match_id}",
+                payload=payload,
+            )
+
+        with pytest.raises(BatchError) as exc_info:
+            await batch_player.get_matches(count=3)
+
+        batch_error = exc_info.value
+        assert [label for label, _ in batch_error.errors] == ["NA1_2"]
+        assert isinstance(batch_error.errors[0][1], NotFoundError)
+        assert sorted(match.metadata.match_id for match in batch_error.successful_results) == ["NA1_1", "NA1_3"]
+        await batch_player.client.close()
+
+    async def test_all_matches_missing_raises_batch_error_with_no_successes(
+        self,
+        batch_player: Player,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """When every id fails the BatchError carries no successes."""
+        mock_aioresponse.get(
+            re.compile(r"https://americas\.api\.riotgames\.com/lol/match/v5/matches/by-puuid/test-puuid/ids.*"),
+            payload=["NA1_404"],
+        )
+        mock_aioresponse.get(
+            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_404",
+            status=404,
+            payload={"status": {"message": "Not Found", "status_code": 404}},
+        )
+
+        with pytest.raises(BatchError) as exc_info:
+            await batch_player.get_matches(count=1)
+
+        assert [label for label, _ in exc_info.value.errors] == ["NA1_404"]
+        assert exc_info.value.successful_results == []
+        await batch_player.client.close()
+
+
+class TestRoleFallback:
+    """Unresolved positions must fall back to UNKNOWN, never an empty key."""
+
+    async def test_empty_team_position_maps_to_unknown_role(
+        self,
+        batch_player: Player,
+        mock_aioresponse: "aioresponses",
+        mock_responses: dict[str, Any],
+    ) -> None:
+        """A participant with EMPTY team_position reports under UNKNOWN."""
+        payload = copy.deepcopy(mock_responses["match"])
+        payload["info"]["participants"][0]["puuid"] = "test-puuid"
+        payload["info"]["participants"][0]["teamPosition"] = MatchParticipantPosition.EMPTY.value
+
+        mock_aioresponse.get(
+            re.compile(r"https://americas\.api\.riotgames\.com/lol/match/v5/matches/by-puuid/test-puuid/ids.*"),
+            payload=["NA1_1"],
+        )
+        mock_aioresponse.get(
+            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_1",
+            payload=payload,
+        )
+
+        role_performance = await batch_player.get_recent_performance_by_role(count=1)
+
+        assert list(role_performance) == ["UNKNOWN"]
+        assert role_performance["UNKNOWN"]["games"] == 1
+        await batch_player.client.close()
+
+
+class TestRolePerformanceKda:
+    """Zero-death role records must average as a perfect KDA, not 0.0."""
+
+    async def test_zero_deaths_role_records_are_perfect_kda(
+        self,
+        batch_player: Player,
+        mock_aioresponse: "aioresponses",
+        mock_responses: dict[str, Any],
+    ) -> None:
+        """Every role bucket with zero deaths averages kills+assists, mirroring Participant.kda."""
+        payload = copy.deepcopy(mock_responses["match"])
+        target = payload["info"]["participants"][0]
+        target["puuid"] = "test-puuid"
+        target["deaths"] = 0
+
+        mock_aioresponse.get(
+            re.compile(r"https://americas\.api\.riotgames\.com/lol/match/v5/matches/by-puuid/test-puuid/ids.*"),
+            payload=["NA1_1"],
+        )
+        mock_aioresponse.get(
+            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_1",
+            payload=payload,
+        )
+
+        role_stats = await batch_player.get_recent_performance_by_role(count=1)
+
+        assert role_stats
+        for stats in role_stats.values():
+            assert stats["avg_kda"] == stats["kills"] + stats["assists"]
+        await batch_player.client.close()

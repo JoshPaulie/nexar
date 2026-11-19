@@ -2,6 +2,7 @@
 
 import asyncio
 import re
+from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
@@ -10,7 +11,7 @@ from aiohttp_client_cache.session import CachedSession
 from aioresponses import aioresponses
 
 from nexar import NexarClient
-from nexar.cache import CacheConfig
+from nexar.cache import NO_CACHE_CONFIG, CacheConfig
 from nexar.enums import Region
 from nexar.exceptions import (
     ForbiddenError,
@@ -29,6 +30,14 @@ def fresh_client() -> NexarClient:
     return NexarClient(riot_api_key="test-api-key", default_region=Region.NA1)
 
 
+@pytest.fixture
+async def stats_client() -> AsyncGenerator[NexarClient]:
+    """Uncached client whose session is always closed, even when a test fails."""
+    client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1, cache_config=NO_CACHE_CONFIG)
+    yield client
+    await client.close()
+
+
 @pytest.mark.asyncio
 async def test_client_initialization(fresh_client: NexarClient) -> None:
     assert fresh_client.default_region == Region.NA1
@@ -41,8 +50,13 @@ async def test_get_summoner_by_puuid(fresh_client: NexarClient, mock_aioresponse
     mock_aioresponse.get(
         "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/789",
         payload={
-            "id": "123", "accountId": "456", "puuid": "789",
-            "name": "TestUser", "profileIconId": 1, "revisionDate": 123456789, "summonerLevel": 30,
+            "id": "123",
+            "accountId": "456",
+            "puuid": "789",
+            "name": "TestUser",
+            "profileIconId": 1,
+            "revisionDate": 123456789,
+            "summonerLevel": 30,
         },
     )
     summoner: Summoner = await fresh_client.get_summoner_by_puuid("789")
@@ -88,6 +102,45 @@ async def test_error_handling_403(fresh_client: NexarClient, mock_aioresponse: a
 
 
 @pytest.mark.asyncio
+async def test_404_counts_as_error_in_call_stats(stats_client: NexarClient, mock_aioresponse: aioresponses) -> None:
+    """A 404 is a non-retryable error and must show up in get_api_call_stats."""
+    mock_aioresponse.get(
+        "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/UnknownUser",
+        status=404,
+        payload={"status": {"message": "Not Found", "status_code": 404}},
+    )
+
+    with pytest.raises(NotFoundError):
+        await stats_client.get_summoner_by_puuid("UnknownUser")
+
+    assert stats_client.get_api_call_stats().errors == 1
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_error"),
+    [(401, UnauthorizedError), (403, ForbiddenError)],
+)
+@pytest.mark.asyncio
+async def test_unauthorized_and_forbidden_count_as_errors(
+    stats_client: NexarClient,
+    mock_aioresponse: aioresponses,
+    status: int,
+    expected_error: type[RiotAPIError],
+) -> None:
+    """Auth failures are non-retryable errors and must be counted."""
+    mock_aioresponse.get(
+        "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/test/tag",
+        status=status,
+        payload={"status": {"message": "auth failure", "status_code": status}},
+    )
+
+    with pytest.raises(expected_error):
+        await stats_client.get_riot_account("test", "tag")
+
+    assert stats_client.get_api_call_stats().errors == 1
+
+
+@pytest.mark.asyncio
 async def test_error_handling_429(fresh_client: NexarClient, mock_aioresponse: aioresponses) -> None:
     url = "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/test/tag"
     for _ in range(6):
@@ -103,7 +156,7 @@ async def test_error_handling_429(fresh_client: NexarClient, mock_aioresponse: a
 
     with pytest.MonkeyPatch.context() as m:
         m.setattr(asyncio, "sleep", mock_sleep)
-        with pytest.raises(RateLimitError, match="Max retries .5. exceeded"):
+        with pytest.raises(RateLimitError, match=r"Max retries .5. exceeded"):
             await fresh_client.get_riot_account("test", "tag")
     await fresh_client.close()
 
@@ -127,11 +180,21 @@ async def test_cache_hit() -> None:
     response_data = {
         "metadata": {"matchId": "M_123", "dataVersion": "2", "participants": ["p1", "p2"]},
         "info": {
-            "gameCreation": 123456789, "gameDuration": 1234, "gameEndTimestamp": 1234567890,
-            "gameId": 12345, "gameMode": "CLASSIC", "gameName": "test",
-            "gameStartTimestamp": 123456789, "gameType": "MATCHED_GAME", "gameVersion": "1.0",
-            "mapId": 11, "participants": [], "platformId": "NA1", "queueId": 420,
-            "teams": [], "tournamentCode": "",
+            "gameCreation": 123456789,
+            "gameDuration": 1234,
+            "gameEndTimestamp": 1234567890,
+            "gameId": 12345,
+            "gameMode": "CLASSIC",
+            "gameName": "test",
+            "gameStartTimestamp": 123456789,
+            "gameType": "MATCHED_GAME",
+            "gameVersion": "1.0",
+            "mapId": 11,
+            "participants": [],
+            "platformId": "NA1",
+            "queueId": 420,
+            "teams": [],
+            "tournamentCode": "",
         },
     }
 
@@ -180,9 +243,13 @@ async def test_high_level_get_player(fresh_client: NexarClient, mock_aioresponse
     mock_aioresponse.get(
         "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/p1",
         payload={
-            "id": "s1", "puuid": "p1", "accountId": "a1",
-            "name": "GameName", "profileIconId": 1,
-            "revisionDate": 1, "summonerLevel": 100,
+            "id": "s1",
+            "puuid": "p1",
+            "accountId": "a1",
+            "name": "GameName",
+            "profileIconId": 1,
+            "revisionDate": 1,
+            "summonerLevel": 100,
         },
     )
     player: Player = await fresh_client.get_player(game_name="GameName", tag_line="TagLine")

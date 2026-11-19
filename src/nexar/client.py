@@ -518,6 +518,8 @@ class NexarClient:
             HTTP_TOO_MANY_REQUESTS: RateLimitError,
         }
         error_class = error_map.get(response.status, RiotAPIError)
+        if response.status != HTTP_TOO_MANY_REQUESTS:
+            self._call_stats["errors"] += 1
         raise error_class(response.status, message)
 
     def _build_match_ids_params(

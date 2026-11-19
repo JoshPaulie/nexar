@@ -82,7 +82,8 @@ async with NexarClient(riot_api_key="your_api_key") as client:
     # Clear all cached data
     await client.clear_cache()
     
-    # View API call statistics (hits, fresh calls, rate)
+    # View API call statistics (hits, fresh calls, rate, and non-retryable
+    # errors such as 404/401/403 responses)
     stats = client.get_api_call_stats()
     client.print_api_call_summary()
 ```

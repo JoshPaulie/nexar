@@ -1,6 +1,5 @@
 """Tests for client functionality."""
 
-
 import pytest
 
 from nexar import (
@@ -25,8 +24,6 @@ class TestNexarClient:
 
         assert client.riot_api_key == riot_api_key
         assert client.default_region == Region.NA1
-
-    
 
     async def test_get_riot_account_success(self, client: "NexarClient") -> None:
         """Test successful riot account retrieval."""

@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from nexar.enums import Queue
+from nexar.exceptions import BatchError
 
 from .match_list import MatchList
 
@@ -274,8 +275,24 @@ class Player:
             count=count,
         )
 
-        matches = await asyncio.gather(*(self.client.get_match(match_id, region=self.region) for match_id in match_ids))
-        return MatchList(list(matches), self.riot_account.puuid)
+        matches = await asyncio.gather(
+            *(self.client.get_match(match_id, region=self.region) for match_id in match_ids),
+            return_exceptions=True,
+        )
+
+        successful_matches: list[Match] = []
+        errors: list[tuple[str, BaseException]] = []
+
+        for match_id, result in zip(match_ids, matches, strict=False):
+            if isinstance(result, BaseException):
+                errors.append((match_id, result))
+            else:
+                successful_matches.append(result)
+
+        if errors:
+            raise BatchError(errors, successful_results=successful_matches)
+
+        return MatchList(successful_matches, self.riot_account.puuid)
 
     async def get_last_match(self) -> Match | None:
         """
@@ -398,7 +415,8 @@ class Player:
         role_stats: dict[str, dict[str, Any]] = {}
 
         for participant in matches.each_participant():
-            role = participant.team_position.value if participant.team_position else "UNKNOWN"
+            team_position = participant.team_position.value if participant.team_position is not None else ""
+            role = team_position or "UNKNOWN"
 
             if role not in role_stats:
                 role_stats[role] = {
@@ -424,7 +442,7 @@ class Player:
                 stats["avg_kills"] = stats["kills"] / games
                 stats["avg_deaths"] = stats["deaths"] / games
                 stats["avg_assists"] = stats["assists"] / games
-                stats["avg_kda"] = (stats["kills"] + stats["assists"]) / stats["deaths"] if stats["deaths"] > 0 else 0.0
+                stats["avg_kda"] = (stats["kills"] + stats["assists"]) / max(stats["deaths"], 1)
 
         return role_stats
 
