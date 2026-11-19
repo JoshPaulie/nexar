@@ -48,6 +48,7 @@ All notable changes to this project will be documented in this file.
 - `sort_players_by_rank`'s docstring example and `ValueError` message now name the real `ranked_queue_type` parameter instead of `queue_type`.
 - The test suite no longer stops at the first failure: the forced `maxfail` override (and a dead xdist `numprocesses` option) are gone from `tests/conftest.py`, so a failing run reports every failure.
 - Mocked tests no longer read or write the shared `~/.nexar` dogfood cache — every test client now uses an isolated cache, so a stale or cookie-poisoned dogfood cache can never satisfy or break a test.
+- The suite now enforces a 95% coverage floor (measured at 95.35% keyless), so coverage regressions fail the run.
 
 ## [1.1.0] - 2026-05-17
 
