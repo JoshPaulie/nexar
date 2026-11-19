@@ -20,11 +20,6 @@ from nexar.enums import Region
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s [%(name)s] %(message)s")
 
 
-def pytest_configure(config: pytest.Config) -> None:
-    config.option.maxfail = 1
-    config.option.numprocesses = 1
-
-
 @pytest.fixture(scope="session")
 def mock_responses() -> dict[str, Any]:
     mock_file = Path("tests/mock_responses.json")

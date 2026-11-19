@@ -46,6 +46,7 @@ All notable changes to this project will be documented in this file.
 - The README's test guidance now describes both paths accurately: mocked tests are the default and need no key, live tests run only with `RIOT_API_KEY` and skip silently without it; the Installation section states the Python 3.13 floor, and mkdocs builds strictly so broken includes fail the deploy.
 - `riot-key.sh.example` is now a copy-me template: the header warns to copy it to the gitignored `riot-key.sh` instead of editing the tracked file, and it prompts for the key with `read` rather than storing one inline.
 - `sort_players_by_rank`'s docstring example and `ValueError` message now name the real `ranked_queue_type` parameter instead of `queue_type`.
+- The test suite no longer stops at the first failure: the forced `maxfail` override (and a dead xdist `numprocesses` option) are gone from `tests/conftest.py`, so a failing run reports every failure.
 
 ## [1.1.0] - 2026-05-17
 
