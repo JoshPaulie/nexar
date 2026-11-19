@@ -1,4 +1,24 @@
 #!/bin/bash
 
-export RIOT_API_KEY="YOUR_API_KEY" && \
+# Copy this file, don't edit it:
+#
+#     cp riot-key.sh.example riot-key.sh
+#
+# riot-key.sh is gitignored; riot-key.sh.example is tracked. Putting a real key in
+# this file is one `git commit` away from publishing it, so keep your key out of it.
+#
+# This file is meant to be *sourced* (`. ./riot-key.sh`, `source riot-key.sh`, or via
+# run_tests.sh), so everything below must leave RIOT_API_KEY exported in the caller's
+# environment. It prompts for the key instead of storing it inline.
+
+if [ -t 0 ]; then
+    read -rsp "Riot API key: " RIOT_API_KEY
+    echo
+else
+    # Non-interactive shell: there is nowhere to prompt, so fail loudly rather than hang.
+    echo "RIOT_API_KEY is not set and there is no terminal to prompt for it." >&2
+    return 1 2>/dev/null || exit 1
+fi
+
+export RIOT_API_KEY
 echo "RIOT_API_KEY set successfully."
