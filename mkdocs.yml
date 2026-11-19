@@ -4,6 +4,9 @@ repo_url: https://github.com/joshpaulie/nexar
 repo_name: joshpaulie/nexar
 edit_uri: edit/main/docs/
 
+# Fail the build (and therefore the deploy) on any warning, e.g. a broken snippet include.
+strict: true
+
 theme:
   name: material
   palette:
