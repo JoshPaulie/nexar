@@ -4,13 +4,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from nexar.cache import NO_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import Region
 
 
 @pytest.mark.asyncio
 async def test_client_goes_through_rate_limiter() -> None:
-    client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1)
+    client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1, cache_config=NO_CACHE_CONFIG)
 
     client.rate_limiter = MagicMock()
     client.rate_limiter.acquire = AsyncMock()
@@ -34,7 +35,7 @@ async def test_client_goes_through_rate_limiter() -> None:
 
 @pytest.mark.asyncio
 async def test_client_blocks_limiter_on_429() -> None:
-    client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1)
+    client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1, cache_config=NO_CACHE_CONFIG)
 
     client.rate_limiter = MagicMock()
     client.rate_limiter.acquire = AsyncMock()
@@ -65,12 +66,12 @@ async def test_client_blocks_limiter_on_429() -> None:
 
 @pytest.mark.asyncio
 async def test_client_seeds_rate_limiter_from_fresh_responses() -> None:
-    client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1)
+    client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1, cache_config=NO_CACHE_CONFIG)
 
     client.rate_limiter = MagicMock()
     client.rate_limiter.acquire = AsyncMock()
 
-    def make_response(count_header: str | None, from_cache: bool = False) -> AsyncMock:
+    def make_response(count_header: str | None, *, from_cache: bool = False) -> AsyncMock:
         response = AsyncMock()
         response.status = 200
         response.json.return_value = {"key": "value"}

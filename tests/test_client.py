@@ -10,6 +10,7 @@ from nexar import (
     RiotAccount,
     Summoner,
 )
+from nexar.cache import NO_CACHE_CONFIG
 
 
 class TestNexarClient:
@@ -20,6 +21,7 @@ class TestNexarClient:
         client = NexarClient(
             riot_api_key=riot_api_key,
             default_region=Region.NA1,
+            cache_config=NO_CACHE_CONFIG,
         )
 
         assert client.riot_api_key == riot_api_key

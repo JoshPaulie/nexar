@@ -6,6 +6,7 @@ import pytest
 from aioresponses import aioresponses
 
 from nexar import NexarClient
+from nexar.cache import NO_CACHE_CONFIG
 from nexar.enums import Region
 
 
@@ -17,6 +18,7 @@ def simple_client() -> NexarClient:
         riot_api_key="test-api-key",
         default_region=Region.NA1,
         app_rate_limits=((20, 1),),
+        cache_config=NO_CACHE_CONFIG,
     )
 
 

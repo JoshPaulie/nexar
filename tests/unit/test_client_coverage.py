@@ -4,19 +4,23 @@ import os
 import re
 import time
 from datetime import UTC, datetime, timezone
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
 
+from nexar.cache import CacheConfig
 from nexar.client import NexarClient
 from nexar.enums import MatchType, Queue, Region
 from nexar.exceptions import RateLimitError, RiotAPIError
 
 
 @pytest.fixture
-def client() -> NexarClient:
-    return NexarClient(riot_api_key="test-key", default_region=Region.NA1)
+def client(tmp_path: Path) -> NexarClient:
+    """Client whose cache lives in tmp_path, never in the shared ~/.nexar/ store."""
+    config = CacheConfig(backend="sqlite", cache_dir=tmp_path)
+    return NexarClient(riot_api_key="test-key", default_region=Region.NA1, cache_config=config)
 
 
 @pytest.mark.asyncio
@@ -327,7 +331,7 @@ async def test_max_retries_exceeded(client: NexarClient, mock_aioresponse: Magic
     for _ in range(6):
         mock_aioresponse.get(url, status=429, headers={"Retry-After": "0.1"}, payload={"status": {"message": "Rate limit", "status_code": 429}})
     t0 = time.monotonic()
-    with pytest.raises(RateLimitError, match="Max retries .5. exceeded"):
+    with pytest.raises(RateLimitError, match=r"Max retries .5. exceeded"):
         await client.get_summoner_by_puuid("retry_fail")
     elapsed = time.monotonic() - t0
     # 5 blocked retries at 0.1s each must actually wait.

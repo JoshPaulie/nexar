@@ -3,20 +3,29 @@
 import pytest
 
 from nexar import NexarClient
+from nexar.cache import NO_CACHE_CONFIG
 from nexar.rate_limiter import PERSONAL_LIMITS, PRODUCTION_LIMITS, _validate_rate_limit
 
 
 class TestRateLimitConfiguration:
     def test_default_personal_limits(self) -> None:
-        client = NexarClient(riot_api_key="test")
+        client = NexarClient(riot_api_key="test", cache_config=NO_CACHE_CONFIG)
         assert client.rate_limiter._app_limits == PERSONAL_LIMITS
 
     def test_custom_production_limits(self) -> None:
-        client = NexarClient(riot_api_key="test", app_rate_limits=PRODUCTION_LIMITS)
+        client = NexarClient(
+            riot_api_key="test",
+            app_rate_limits=PRODUCTION_LIMITS,
+            cache_config=NO_CACHE_CONFIG,
+        )
         assert client.rate_limiter._app_limits == PRODUCTION_LIMITS
 
     def test_custom_limits(self) -> None:
-        client = NexarClient(riot_api_key="test", app_rate_limits=((100, 5), (1000, 60)))
+        client = NexarClient(
+            riot_api_key="test",
+            app_rate_limits=((100, 5), (1000, 60)),
+            cache_config=NO_CACHE_CONFIG,
+        )
         assert client.rate_limiter._app_limits == ((100, 5), (1000, 60))
 
     def test_validate_rate_limit_valid(self) -> None:
@@ -49,5 +58,5 @@ class TestRateLimitConfiguration:
             _validate_rate_limit(100, 90000)
 
     def test_no_key_type_parameter(self) -> None:
-        client = NexarClient(riot_api_key="test-key")
+        client = NexarClient(riot_api_key="test-key", cache_config=NO_CACHE_CONFIG)
         assert client.rate_limiter._app_limits == PERSONAL_LIMITS

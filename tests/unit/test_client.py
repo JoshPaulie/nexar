@@ -3,6 +3,7 @@
 import asyncio
 import re
 from collections.abc import AsyncGenerator
+from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
@@ -26,8 +27,10 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def fresh_client() -> NexarClient:
-    return NexarClient(riot_api_key="test-api-key", default_region=Region.NA1)
+def fresh_client(tmp_path: Path) -> NexarClient:
+    """Client with a sqlite cache confined to tmp_path — never ~/.nexar/."""
+    config = CacheConfig(backend="sqlite", cache_dir=tmp_path)
+    return NexarClient(riot_api_key="test-api-key", default_region=Region.NA1, cache_config=config)
 
 
 @pytest.fixture

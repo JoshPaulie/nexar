@@ -47,6 +47,7 @@ All notable changes to this project will be documented in this file.
 - `riot-key.sh.example` is now a copy-me template: the header warns to copy it to the gitignored `riot-key.sh` instead of editing the tracked file, and it prompts for the key with `read` rather than storing one inline.
 - `sort_players_by_rank`'s docstring example and `ValueError` message now name the real `ranked_queue_type` parameter instead of `queue_type`.
 - The test suite no longer stops at the first failure: the forced `maxfail` override (and a dead xdist `numprocesses` option) are gone from `tests/conftest.py`, so a failing run reports every failure.
+- Mocked tests no longer read or write the shared `~/.nexar` dogfood cache — every test client now uses an isolated cache, so a stale or cookie-poisoned dogfood cache can never satisfy or break a test.
 
 ## [1.1.0] - 2026-05-17
 
