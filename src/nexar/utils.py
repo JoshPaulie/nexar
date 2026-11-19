@@ -38,7 +38,7 @@ async def sort_players_by_rank(
         ```
         from nexar.utils import sort_players_by_rank
         # Sort by flex queue rank (lowest first)
-        sorted_players = await sort_players_by_rank(players, descending=False, queue_type=Queue.RANKED_FLEX_SR)
+        sorted_players = await sort_players_by_rank(players, descending=False, ranked_queue_type=Queue.RANKED_FLEX_SR)
         ```
 
     """
@@ -51,7 +51,7 @@ async def sort_players_by_rank(
         async def getter(p: Player) -> LeagueEntry | None:
             return await p.get_flex_rank()
     else:
-        msg = f"Invalid queue_type: {ranked_queue_type}. Must be Queue.RANKED_SOLO_5x5 or Queue.RANKED_FLEX_SR."
+        msg = f"Invalid ranked_queue_type: {ranked_queue_type}. Must be Queue.RANKED_SOLO_5x5 or Queue.RANKED_FLEX_SR."
         raise ValueError(msg)
 
     league_entries = await asyncio.gather(*(getter(p) for p in players))

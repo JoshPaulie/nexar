@@ -166,8 +166,8 @@ class TestSortPlayersByRank:
         # Other players should follow (order doesn't matter much since they're all unranked in flex)
 
     async def test_sort_players_invalid_queue_type(self, mock_players: list[Player]) -> None:
-        """Test that invalid queue type raises ValueError."""
-        with pytest.raises(ValueError, match="Invalid queue_type"):
+        """Test that invalid queue type raises ValueError naming the ranked_queue_type parameter."""
+        with pytest.raises(ValueError, match="Invalid ranked_queue_type"):
             await sort_players_by_rank(mock_players, ranked_queue_type=Queue.QUICKPLAY)
 
     async def test_sort_players_empty_list(self) -> None:

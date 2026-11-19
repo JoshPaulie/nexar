@@ -45,6 +45,7 @@ All notable changes to this project will be documented in this file.
 - `scripts/update_readme_example.py` now refuses to rewrite the README when the example run fails or prints untrustworthy output, instead of silently blanking the Example Output section; `README_example.py` uses keyword-only `get_player` and `participant.kda` (no `challenges` dependency), and the README block is regenerated from a real run.
 - The README's test guidance now describes both paths accurately: mocked tests are the default and need no key, live tests run only with `RIOT_API_KEY` and skip silently without it; the Installation section states the Python 3.13 floor, and mkdocs builds strictly so broken includes fail the deploy.
 - `riot-key.sh.example` is now a copy-me template: the header warns to copy it to the gitignored `riot-key.sh` instead of editing the tracked file, and it prompts for the key with `read` rather than storing one inline.
+- `sort_players_by_rank`'s docstring example and `ValueError` message now name the real `ranked_queue_type` parameter instead of `queue_type`.
 
 ## [1.1.0] - 2026-05-17
 
