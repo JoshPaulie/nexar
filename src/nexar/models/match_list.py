@@ -90,6 +90,10 @@ class MatchList(list["Match"]):
         """
         Get recent performance summary for the player.
 
+        Durations are averaged from ``MatchInfo.game_duration``, which is
+        normalized to seconds at parse time, so pre-11.20 matches (reported in
+        milliseconds by the API) do not inflate ``avg_game_duration_minutes``.
+
         Returns:
             PerformanceStats with comprehensive performance metrics
 
@@ -129,7 +133,7 @@ class MatchList(list["Match"]):
         avg_kills = total_kills / games_counted
         avg_deaths = total_deaths / games_counted
         avg_assists = total_assists / games_counted
-        avg_kda = (total_kills + total_assists) / total_deaths if total_deaths > 0 else 0.0
+        avg_kda = (total_kills + total_assists) / max(total_deaths, 1)
         avg_cs = total_cs / games_counted
         avg_game_duration_minutes = (total_duration / 60) / games_counted
 
@@ -162,9 +166,10 @@ class MatchList(list["Match"]):
             The average value of the statistic, or 0.0 if no matches are found.
 
         Example:
-            # Get average gold per minute (None-safe: absent fields skip a match)
+            # Average gold per minute. Pre-2022 matches carry no challenges block,
+            # so guard the access and return None to skip those matches.
             avg_gold_per_min = matches.get_average_stat(
-                lambda p: p.challenges.gold_per_minute
+                lambda p: p.challenges.gold_per_minute if p.challenges is not None else None
             )
 
         """

@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - `ChampionStats.avg_kda` now treats a zero-death record as a perfect KDA instead of returning `0.0`.
 - `Objectives.horde` is now `Objective | None` (pre-14.1 matches have no Voidgrubs), a new optional `Objectives.atakhan` field parses the 2025-season objective, and `Team.bans`, `TeamInfo.bans` and `TeamInfo.participants` are tuples now, making `Team` hashable.
 - `LeagueEntry.division` gains a `RankDivision.EMPTY` member for apex and decayed entries, which Riot sends without a `rank`.
+- `MatchInfo.game_duration` is now documented and normalized as seconds: a payload from before patch 11.20 (reported in milliseconds) is divided by 1000 at parse time.
 
 ### Removed
 
@@ -34,6 +35,9 @@ All notable changes to this project will be documented in this file.
 - Participants and perks now parse with sane defaults when Riot omits zero-valued keys (Riot includes only non-empty values), instead of raising `KeyError` — including `placement`, `summonerName`, `statPerks`, perk vars and zero-stat pings.
 - `Objectives` no longer requires `horde`: pre-14.1 matches parse with `horde=None` and the new optional `atakhan` parses when Riot sends it.
 - `LeagueEntry` now tolerates omitted `leaguePoints`/`wins`/`losses` (defaulting to 0) and empty or missing `rank` (mapped to `RankDivision.EMPTY`), so apex and decayed entries parse instead of raising.
+- `MatchInfo.game_duration` is normalized to seconds at parse time (pre-11.20 matches were reported in milliseconds and inflated `MatchList.get_performance_stats` averages ~60x).
+- The `get_average_stat` docstring example now guards participants with no `challenges` block (pre-2022 matches) instead of raising `AttributeError`, and a test executes the documented example so it cannot rot again.
+- `MatchList.get_performance_stats` treats a zero-death match list as a perfect KDA instead of returning `0.0`.
 
 ## [1.1.0] - 2026-05-17
 

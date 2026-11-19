@@ -14,6 +14,43 @@ from nexar.enums import MapId, PlatformId, Queue
 BLUE_TEAM_ID: int = 100
 RED_TEAM_ID: int = 200
 
+# Patch in which ``gameDuration`` switched from milliseconds to seconds.
+GAME_DURATION_SECONDS_SINCE: tuple[int, int] = (11, 20)
+
+
+def game_duration_in_seconds(game_duration: int, game_version: str) -> int:
+    """
+    Normalize a raw ``gameDuration`` value to seconds.
+
+    Riot reported match durations in milliseconds up to patch 11.19 and in
+    seconds from patch 11.20 onwards. The patch is read from the first two
+    ``.``-separated segments of ``gameVersion`` (``11.19.1.1`` -> 11.19) and
+    compared numerically, so ``11.9`` correctly sorts before ``11.20``.
+
+    Args:
+        game_duration: Raw ``gameDuration`` value from the API response.
+        game_version: Raw ``gameVersion`` value (e.g. ``14.23.654.12``).
+
+    Returns:
+        The duration in whole seconds. Milliseconds are divided by 1000.
+
+    Notes:
+        A ``gameVersion`` that is empty or does not begin with two integer
+        segments cannot be dated, so the raw value is returned untouched
+        instead of guessing. A payload with no ``gameVersion`` key at all
+        still raises ``KeyError`` from ``from_api_response``: the field is
+        required, and its absence is not silently defaulted.
+
+    """
+    parts = game_version.split(".")
+    try:
+        patch = (int(parts[0]), int(parts[1]))
+    except (IndexError, ValueError):
+        return game_duration
+    if patch < GAME_DURATION_SECONDS_SINCE:
+        return game_duration // 1000
+    return game_duration
+
 
 @dataclass(frozen=True)
 class MatchMetadata:
@@ -47,7 +84,12 @@ class MatchInfo:
     """Timestamp for when the game is created on the game server (i.e., the loading screen)."""
 
     game_duration: int
-    """Game length in milliseconds (pre-11.20) or seconds (post-11.20)."""
+    """Game length in seconds.
+
+    Normalized at parse time: Riot reports milliseconds before patch 11.20 and
+    seconds from 11.20 onwards, and both are converted to seconds here (see
+    :func:`game_duration_in_seconds`).
+    """
 
     game_id: int
     """Unique game identifier."""
@@ -105,7 +147,7 @@ class MatchInfo:
 
         return cls(
             game_creation=datetime.fromtimestamp(data["gameCreation"] / 1000, tz=UTC),
-            game_duration=data["gameDuration"],
+            game_duration=game_duration_in_seconds(data["gameDuration"], data["gameVersion"]),
             game_id=data["gameId"],
             game_mode=data["gameMode"],
             game_start_timestamp=datetime.fromtimestamp(
