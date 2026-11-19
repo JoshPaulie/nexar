@@ -166,16 +166,24 @@ def _make_participant(
 class TestTeamInfo:
     def _make_team_info(self) -> TeamInfo:
         p1 = _make_participant(
-            "puuid1", 100, 1,
-            kills=5, deaths=2, assists=10,
+            "puuid1",
+            100,
+            1,
+            kills=5,
+            deaths=2,
+            assists=10,
             total_damage_dealt_to_champions=20000,
             total_damage_taken=15000,
             gold_earned=13000,
             vision_score=30,
         )
         p2 = _make_participant(
-            "puuid2", 100, 2,
-            kills=3, deaths=1, assists=8,
+            "puuid2",
+            100,
+            2,
+            kills=3,
+            deaths=1,
+            assists=8,
             total_damage_dealt_to_champions=15000,
             total_damage_taken=12000,
             gold_earned=11000,
@@ -184,7 +192,7 @@ class TestTeamInfo:
         return TeamInfo(
             team_id=100,
             win=True,
-            bans=[],
+            bans=(),
             objectives=Objectives(
                 baron=Objective(first=True, kills=1),
                 champion=Objective(first=True, kills=20),
@@ -194,7 +202,7 @@ class TestTeamInfo:
                 rift_herald=Objective(first=True, kills=1),
                 tower=Objective(first=True, kills=8),
             ),
-            participants=[p1, p2],
+            participants=(p1, p2),
         )
 
     def test_total_damage(self) -> None:
@@ -229,7 +237,7 @@ class TestTeamInfo:
         info = TeamInfo(
             team_id=100,
             win=True,
-            bans=[],
+            bans=(),
             objectives=Objectives(
                 baron=Objective(first=False, kills=0),
                 champion=Objective(first=False, kills=0),
@@ -239,7 +247,7 @@ class TestTeamInfo:
                 rift_herald=Objective(first=False, kills=0),
                 tower=Objective(first=False, kills=0),
             ),
-            participants=[],
+            participants=(),
         )
         assert info.total_damage == 0
         assert info.total_kills == 0
@@ -263,7 +271,7 @@ class TestTeamInfo:
         team = Team.from_api_response(team_data)
         assert team.team_id == 100
         assert team.win is True
-        assert isinstance(team.bans, list)
+        assert isinstance(team.bans, tuple)
         assert isinstance(team.objectives, Objectives)
         assert team.objectives.baron.kills == 1
 
@@ -278,13 +286,89 @@ class TestTeamInfo:
         assert obj.kills == 3
 
 
+class TestObjectivesOptionalFields:
+    """Objectives keys that Riot omits for some game versions.
+
+    Riot's API responses include only non-empty values, so pre-14.1 matches have no
+    ``horde`` (Voidgrubs) and matches before the 2025 season have no ``atakhan``.
+    """
+
+    @staticmethod
+    def payload(**overrides: object) -> dict[str, object]:
+        data: dict[str, object] = {
+            "baron": {"first": True, "kills": 1},
+            "champion": {"first": True, "kills": 10},
+            "dragon": {"first": False, "kills": 2},
+            "inhibitor": {"first": False, "kills": 0},
+            "riftHerald": {"first": True, "kills": 1},
+            "tower": {"first": True, "kills": 5},
+        }
+        data.update(overrides)
+        return data
+
+    def test_payload_without_horde_parses_to_none(self) -> None:
+        """A pre-14.1 payload has no 'horde' key at all."""
+        objectives = Objectives.from_api_response(self.payload())
+
+        assert objectives.horde is None
+        assert objectives.baron.kills == 1
+
+    def test_payload_without_atakhan_parses_to_none(self) -> None:
+        objectives = Objectives.from_api_response(self.payload())
+
+        assert objectives.atakhan is None
+
+    def test_payload_with_horde_and_atakhan_parses_both(self) -> None:
+        """A 2025+ payload contains horde (Voidgrubs) and atakhan."""
+        objectives = Objectives.from_api_response(
+            self.payload(
+                horde={"first": False, "kills": 3},
+                atakhan={"first": True, "kills": 1},
+            ),
+        )
+
+        assert objectives.horde is not None
+        assert objectives.horde.kills == 3
+        assert objectives.atakhan is not None
+        assert objectives.atakhan.first is True
+        assert objectives.atakhan.kills == 1
+
+    def test_team_without_horde_or_atakhan(self) -> None:
+        """One old match in a paged batch must not break the whole gather."""
+        team = Team.from_api_response(
+            {"teamId": 100, "win": True, "bans": [], "objectives": self.payload()},
+        )
+
+        assert team.objectives is not None
+        assert team.objectives.horde is None
+        assert team.objectives.atakhan is None
+
+    def test_team_is_hashable(self) -> None:
+        """Frozen dataclasses with list fields cannot be hashed."""
+        team = Team.from_api_response(
+            {
+                "teamId": 100,
+                "win": True,
+                "bans": [{"championId": 1, "pickTurn": 1}],
+                "objectives": self.payload(),
+            },
+        )
+
+        assert team.bans is not None
+        assert isinstance(team.bans, tuple)
+        assert isinstance(hash(team), int)
+
+
 class TestTeamsInfo:
     def _make_teams_info(self) -> TeamsInfo:
         p1 = _make_participant("puuid1", 100, 1, kills=1, win=True)
         p2 = _make_participant("puuid2", 200, 6, kills=1, win=False)
         return TeamsInfo(
             blue=TeamInfo(
-                team_id=100, win=True, bans=[], objectives=Objectives(
+                team_id=100,
+                win=True,
+                bans=(),
+                objectives=Objectives(
                     baron=Objective(first=True, kills=1),
                     champion=Objective(first=True, kills=5),
                     dragon=Objective(first=False, kills=0),
@@ -293,10 +377,13 @@ class TestTeamsInfo:
                     rift_herald=Objective(first=False, kills=0),
                     tower=Objective(first=False, kills=0),
                 ),
-                participants=[p1],
+                participants=(p1,),
             ),
             red=TeamInfo(
-                team_id=200, win=False, bans=[], objectives=Objectives(
+                team_id=200,
+                win=False,
+                bans=(),
+                objectives=Objectives(
                     baron=Objective(first=False, kills=0),
                     champion=Objective(first=False, kills=5),
                     dragon=Objective(first=False, kills=0),
@@ -305,7 +392,7 @@ class TestTeamsInfo:
                     rift_herald=Objective(first=False, kills=0),
                     tower=Objective(first=False, kills=0),
                 ),
-                participants=[p2],
+                participants=(p2,),
             ),
         )
 

@@ -203,3 +203,84 @@ class TestLeagueModels:
         assert entry.total_games == 80
         # And verify win rate still works
         assert entry.win_rate == 0.5625  # 45/80
+
+
+class TestLeagueEntryOmittedFields:
+    """Riot omits empty values from responses, so apex/decayed entries lose fields."""
+
+    @staticmethod
+    def payload(**overrides: object) -> dict[str, object]:
+        data: dict[str, object] = {
+            "leagueId": "test-league-id",
+            "puuid": "test-puuid",
+            "queueType": "RANKED_SOLO_5x5",
+            "hotStreak": False,
+            "veteran": True,
+            "freshBlood": False,
+            "inactive": False,
+        }
+        data.update(overrides)
+        return data
+
+    def test_apex_entry_without_rank_or_league_points(self) -> None:
+        """Master+ entries have no division, and 0 LP is omitted."""
+        entry = LeagueEntry.from_api_response(
+            self.payload(tier="MASTER", wins=120, losses=90),
+        )
+
+        assert entry.division is RankDivision.EMPTY
+        assert entry.league_points == 0
+        assert entry.wins == 120
+        assert entry.losses == 90
+        assert entry.total_games == 210
+
+    def test_decayed_entry_with_empty_rank_string(self) -> None:
+        """Decayed/inactive entries can send an empty 'rank' string."""
+        entry = LeagueEntry.from_api_response(
+            self.payload(tier="MASTER", rank="", leaguePoints=0),
+        )
+
+        assert entry.division is RankDivision.EMPTY
+        assert entry.league_points == 0
+
+    def test_entry_with_every_omitted_integer(self) -> None:
+        """Zero wins/losses/LP are all omitted from the payload."""
+        entry = LeagueEntry.from_api_response(
+            self.payload(tier="CHALLENGER", rank=""),
+        )
+
+        assert entry.division is RankDivision.EMPTY
+        assert entry.league_points == 0
+        assert entry.wins == 0
+        assert entry.losses == 0
+        assert entry.win_rate == 0.0
+
+    def test_apex_rank_tuple_handles_empty_division(self) -> None:
+        """rank_tuple must not raise on an EMPTY division and must sort apex above Diamond."""
+        apex = LeagueEntry.from_api_response(
+            self.payload(tier="MASTER", wins=120, losses=90),
+        )
+        diamond = LeagueEntry.from_api_response(
+            self.payload(tier="DIAMOND", rank="I", leaguePoints=0, wins=10, losses=10),
+        )
+
+        assert apex.rank_tuple[1] == 0
+        assert apex.rank_tuple > diamond.rank_tuple
+        assert apex.is_higher_rank_than(diamond)
+
+    def test_rank_tuple_scores_unchanged_for_standard_entries(self) -> None:
+        """Adding RankDivision.EMPTY must not renumber existing rank scores."""
+        diamond = LeagueEntry.from_api_response(
+            self.payload(tier="DIAMOND", rank="I", leaguePoints=0, wins=1, losses=1),
+        )
+
+        assert diamond.rank_tuple == (33, 0)
+
+    def test_apex_entries_sort_by_league_points(self) -> None:
+        low = LeagueEntry.from_api_response(self.payload(tier="MASTER", wins=1, losses=1))
+        high = LeagueEntry.from_api_response(
+            self.payload(tier="MASTER", leaguePoints=1500, wins=1, losses=1),
+        )
+
+        assert low.rank_tuple < high.rank_tuple
+        assert sorted([high, low]) == [low, high]

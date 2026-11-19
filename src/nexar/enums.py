@@ -129,6 +129,10 @@ class RankDivision(Enum):
     THREE = "III"
     FOUR = "IV"
 
+    EMPTY = ""
+    """Apex/decayed entries: Riot omits the ``rank`` field (or sends an empty string),
+    so Master, Grandmaster and Challenger entries have no meaningful division."""
+
     def __str__(self) -> str:
         return self.value
 

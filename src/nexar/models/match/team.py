@@ -59,9 +59,6 @@ class Objectives:
     dragon: Objective
     """Dragon objective stats."""
 
-    horde: Objective
-    """TODO"""
-
     inhibitor: Objective
     """Inhibitor objective stats."""
 
@@ -71,17 +68,36 @@ class Objectives:
     tower: Objective
     """Tower objective stats."""
 
+    horde: Objective | None = None
+    """Voidgrub objective stats (Voidgrubs were added in patch 14.1).
+
+    None for matches played before patch 14.1, where Riot omits the key entirely.
+    """
+
+    atakhan: Objective | None = None
+    """Atakhan objective stats (Atakhan was added in the 2025 season).
+
+    None for matches played before the 2025 season, where Riot omits the key entirely.
+    """
+
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "Objectives":
-        """Create Objectives from API response."""
+        """Create Objectives from API response.
+
+        Riot only includes non-empty values, so ``horde`` and ``atakhan`` are optional
+        and parsed with ``.get``; either may be None for older matches.
+        """
+        horde = data.get("horde")
+        atakhan = data.get("atakhan")
         return cls(
             baron=Objective.from_api_response(data["baron"]),
             champion=Objective.from_api_response(data["champion"]),
             dragon=Objective.from_api_response(data["dragon"]),
-            horde=Objective.from_api_response(data["horde"]),
             inhibitor=Objective.from_api_response(data["inhibitor"]),
             rift_herald=Objective.from_api_response(data["riftHerald"]),
             tower=Objective.from_api_response(data["tower"]),
+            horde=Objective.from_api_response(horde) if horde else None,
+            atakhan=Objective.from_api_response(atakhan) if atakhan else None,
         )
 
 
@@ -95,8 +111,8 @@ class Team:
     win: bool
     """Whether this team won the match."""
 
-    bans: list[Ban] | None = None
-    """List of champion bans for this team. May be None for some game modes."""
+    bans: tuple[Ban, ...] | None = None
+    """Tuple of champion bans for this team. May be None for some game modes."""
 
     objectives: Objectives | None = None
     """Objectives taken by this team. May be None for some game modes."""
@@ -107,7 +123,7 @@ class Team:
         return cls(
             team_id=data["teamId"],
             win=data["win"],
-            bans=[Ban.from_api_response(ban) for ban in data.get("bans", [])],
+            bans=tuple(Ban.from_api_response(ban) for ban in data.get("bans", [])),
             objectives=Objectives.from_api_response(obj_data) if (obj_data := data.get("objectives")) else None,
         )
 
@@ -122,14 +138,14 @@ class TeamInfo:
     win: bool
     """Whether this team won the match."""
 
-    bans: list[Ban]
-    """List of champion bans for this team."""
+    bans: tuple[Ban, ...]
+    """Tuple of champion bans for this team."""
 
     objectives: Objectives
     """Objectives taken by this team."""
 
-    participants: list["Participant"]
-    """List of participants on this team."""
+    participants: tuple["Participant", ...]
+    """Tuple of participants on this team."""
 
     @property
     def total_damage(self) -> int:

@@ -102,21 +102,31 @@ class LeagueEntry:
 
     @property
     def rank_tuple(self) -> tuple[int, int]:
-        """Returns (tier_index, league_points) for easy sorting by rank."""
+        """Returns (tier_index, league_points) for easy sorting by rank.
+
+        ``RankDivision.EMPTY`` is a sentinel for apex/decayed entries that carry no
+        division: it is excluded from the division scale so existing scores keep their
+        historic numbering. Master+ entries are scored as if they sat above division I
+        (they have no divisions), and an EMPTY division in a non-apex tier is scored as
+        the lowest division rather than raising.
+        """
         all_tiers = list(RankTier)
-        all_divisions = list(RankDivision)
+        divisions = [division for division in RankDivision if division is not RankDivision.EMPTY]
         tier_index = all_tiers.index(self.tier)
 
         # For Master+ tiers, rank is always Division.I
         if self.tier in {RankTier.MASTER, RankTier.GRANDMASTER, RankTier.CHALLENGER}:
             # Master+ tiers do not have divisions, so assign a division_score higher than any division
-            division_score = len(all_divisions)  # This will be 4, higher than 0-3 for divisions
+            division_score = len(divisions)  # This will be 4, higher than 0-3 for divisions
+        elif self.division is RankDivision.EMPTY:
+            # No division to place: treat as the bottom of the tier
+            division_score = 0
         else:
             # Reverse the division index: I=0, II=1, III=2, IV=3 (I is highest)
-            division_score = len(all_divisions) - 1 - all_divisions.index(self.division)
+            division_score = len(divisions) - 1 - divisions.index(self.division)
 
         # Combine tier and division into a single rank value, then add LP
-        tier_division_score = tier_index * (len(all_divisions) + 1) + division_score
+        tier_division_score = tier_index * (len(divisions) + 1) + division_score
         return (tier_division_score, self.league_points)
 
     def is_higher_rank_than(self, other: "LeagueEntry") -> bool:
@@ -163,16 +173,25 @@ class LeagueEntry:
         else:
             queue_type = queue_type_mapping[queue_type_str]
 
+        # Riot omits empty values: apex/decayed entries have no rank, and 0 LP/wins/losses
+        # are absent rather than zero.
+        rank_str = data.get("rank") or ""
+        try:
+            division = RankDivision(rank_str)
+        except ValueError:
+            logger.warning("Unknown division '%s' in league entry. Defaulting to EMPTY.", rank_str)
+            division = RankDivision.EMPTY
+
         return cls(
             league_id=data["leagueId"],
             puuid=data["puuid"],
             queue_type=queue_type,
             queue_type_raw=queue_type_str,
             tier=RankTier(data["tier"]),
-            division=RankDivision(data["rank"]),
-            league_points=data["leaguePoints"],
-            wins=data["wins"],
-            losses=data["losses"],
+            division=division,
+            league_points=data.get("leaguePoints", 0),
+            wins=data.get("wins", 0),
+            losses=data.get("losses", 0),
             hot_streak=data["hotStreak"],
             veteran=data["veteran"],
             fresh_blood=data["freshBlood"],
