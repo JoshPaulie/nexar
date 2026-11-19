@@ -15,7 +15,7 @@ It's built for single-node, single-client projects and not intended for use at s
 - High-level API that abstracts the messy Riot API.
 - Accurate in-memory rate limiting and disk caching.
 
-Hate Riot IDs? Just `NexarClient.get_player("username", "tag", region=Region.NA1)` and explore with your IDE.
+Hate Riot IDs? Just `NexarClient.get_player(game_name="username", tag_line="tag", region=Region.NA1)` and explore with your IDE.
 
 Packed with helpful doc strings and tips.
 
@@ -37,7 +37,6 @@ uv add "git+https://github.com/joshpaulie/nexar"
 Below is a real, working example from `README_example.py`:
 
 <!-- example-block-start -->
-<!-- Use `uv run scripts/update_readme_example.py` to update this example -->
 ```python
 """Example from README showing async player information retrieval."""
 
@@ -70,7 +69,7 @@ async def main() -> None:
     async with client:
         print("Fetching player info...")
         # Get player information
-        player = await client.get_player("bexli", "bex")
+        player = await client.get_player(game_name="bexli", tag_line="bex")
 
         print()
         riot_account = player.riot_account  # Immediately available!
@@ -97,9 +96,7 @@ async def main() -> None:
 
             result = "Victory!" if participant.win else "Defeat."
             kda = participant.kda(as_str=True)
-            kda_ratio = "N/A"
-            if participant.challenges:
-                kda_ratio = f"{participant.challenges.kda:.2f}"
+            kda_ratio = f"{participant.kda():.2f}"
 
             # Calculate time ago
             game_start = match.info.game_start_timestamp
@@ -136,17 +133,17 @@ if __name__ == "__main__":
 <!-- example-output-block-start -->
 ```
 Summoner: bexli#bex
-Level: 543
+Level: 549
 Solo Queue rank: Gold IV
 
 Fetching recent matches...
 Recent Match History (5 matches):
 
-3 days ago   Victory!  Lillia     Jungle   6/5/10 (3.20)
-3 days ago   Defeat.   Jinx       Bottom   15/9/5 (2.22)
-4 days ago   Victory!  Jhin       Bottom   4/5/5 (1.80)
-4 days ago   Victory!  Jhin       Bottom   0/0/0 (0.00)
-10 days ago  Defeat.   Jhin       Bottom   5/8/7 (1.50)
+10 days ago  Defeat.   Jinx       Bottom   15/8/6 (2.62)
+10 days ago  Defeat.   Draven     Bottom   6/12/5 (0.92)
+10 days ago  Defeat.   Warwick    Jungle   15/8/9 (3.00)
+10 days ago  Victory!  Warwick    Jungle   11/2/8 (9.50)
+10 days ago  Defeat.   Shaco      Jungle   2/5/5 (1.40)
 ```
 <!-- example-output-block-end -->
 

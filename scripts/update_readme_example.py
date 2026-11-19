@@ -1,12 +1,19 @@
-"""Ensure snippet and output from examples/basic/README_example is accurate and present in the README."""
+"""Ensure snippet and output from README_example.py is accurate and present in the README."""
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 README = ROOT / "README.md"
 EXAMPLE = ROOT / "README_example.py"
+
+OUTPUT_MARKER = "Summoner:"
+
+
+class ExampleRunError(RuntimeError):
+    """Raised when the example fails or produces output that cannot be trusted."""
 
 
 def get_example_code() -> str:
@@ -17,13 +24,14 @@ def get_example_code() -> str:
     return content.rstrip()
 
 
-def get_example_output() -> str:
-    """Run example code snippet, capture output."""
-    env = os.environ.copy()
-    env_script = str(ROOT / "riot-key.sh")
-    # Source riot-key.sh and run the example
-    command = f"source {env_script} && uv run python {EXAMPLE}"
-    result = subprocess.run(  # noqa: S603
+def run_example(env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    """Run the example, sourcing riot-key.sh only when no key is already in the environment."""
+    example = str(EXAMPLE)
+    if env.get("RIOT_API_KEY"):
+        command = f"uv run python {example}"
+    else:
+        command = f"source {ROOT / 'riot-key.sh'} && uv run python {example}"
+    return subprocess.run(  # noqa: S603
         ["/bin/bash", "-c", command],
         capture_output=True,
         text=True,
@@ -31,11 +39,33 @@ def get_example_output() -> str:
         cwd=str(ROOT),
         check=False,
     )
-    output = result.stdout.strip()
-    # Remove any key set messages or blank lines at the top
-    import re
 
-    return re.sub(r"^.*?\n(?=Summoner:)", "", output, flags=re.DOTALL)
+
+def get_example_output() -> str:
+    """
+    Run the example and return its output.
+
+    A failed run, an empty run, or output without the expected ``Summoner:`` line raises
+    :class:`ExampleRunError` so the README is never blanked by a broken example.
+    """
+    result = run_example(os.environ.copy())
+
+    if result.returncode != 0:
+        details = (result.stderr or result.stdout).strip()
+        msg = f"README_example.py exited with status {result.returncode}; README was not modified.\n{details}"
+        raise ExampleRunError(msg)
+
+    output = result.stdout.strip()
+    if not output:
+        msg = "README_example.py produced no output; README was not modified."
+        raise ExampleRunError(msg)
+
+    if OUTPUT_MARKER not in output:
+        msg = f"README_example.py output has no {OUTPUT_MARKER!r} line; README was not modified.\n{output}"
+        raise ExampleRunError(msg)
+
+    # Drop any chatter printed before the report (e.g. progress lines from the example)
+    return output[output.index(OUTPUT_MARKER) :]
 
 
 def update_readme(code: str, output: str) -> None:
@@ -95,9 +125,19 @@ def update_readme(code: str, output: str) -> None:
         f.writelines(new_readme_lines)
 
 
-if __name__ == "__main__":
-    code = get_example_code()
-    output = get_example_output()
+def main() -> int:
+    """Regenerate the README example blocks, exiting non-zero when the example fails."""
+    try:
+        code = get_example_code()
+        output = get_example_output()
+        update_readme(code, output)
+    except (ExampleRunError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
 
-    update_readme(code, output)
     print("README.md updated with latest example and output.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

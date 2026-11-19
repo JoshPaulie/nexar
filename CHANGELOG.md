@@ -42,6 +42,7 @@ All notable changes to this project will be documented in this file.
 - `get_api_call_stats().errors` now counts 404, 401 and 403 responses, which previously vanished from the error total.
 - `Player.get_recent_performance_by_role` reports participants with an empty team position under `UNKNOWN` instead of an empty role key, and treats zero-death role records as a perfect KDA instead of `0.0`.
 - `LeagueEntry` tolerates a missing `leagueId` — the live by-puuid entries endpoint no longer returns it — defaulting `league_id` to an empty string instead of raising `KeyError`.
+- `scripts/update_readme_example.py` now refuses to rewrite the README when the example run fails or prints untrustworthy output, instead of silently blanking the Example Output section; `README_example.py` uses keyword-only `get_player` and `participant.kda` (no `challenges` dependency), and the README block is regenerated from a real run.
 
 ## [1.1.0] - 2026-05-17
 
