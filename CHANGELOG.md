@@ -27,6 +27,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- The champion-mastery example snippet guards its single-champion lookup against an empty mastery list, so an account with no masteries no longer raises IndexError mid-example (score still prints, as the scores endpoint works regardless).
+
 - Snippet fixes surfaced by the new gates: the two client-features snippets that fetched `RIOT_API_KEY` at module level now guard inside `main()` (module-level narrowing does not survive into function bodies, so the old pattern failed strict mypy), `match_list_stats.py` guards `participant.challenges` before reading `gold_per_minute` (the same pre-2022 `AttributeError` class the `get_average_stat` docstring guards against), and `league_comparison.py` dropped an unused `Region` import.
 
 - `get_cache_info()` now reports a real `cached_responses` row count via the cache storage's `size()` instead of a structurally-zero `hasattr` probe; the never-present `cache_size` key was dropped.

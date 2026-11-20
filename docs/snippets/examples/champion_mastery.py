@@ -22,9 +22,10 @@ async def main() -> None:
                 f"Champion {mastery.champion_id}: level {mastery.champion_level}, {mastery.champion_points:,} points",
             )
 
-        # Single-champion lookup
-        favorite = await client.get_champion_mastery(player.puuid, masteries[0].champion_id)
-        print(f"Chest earned on favorite: {favorite.chest_granted}")
+        # Single-champion lookup (skipped when the account has no masteries yet)
+        if masteries:
+            favorite = await client.get_champion_mastery(player.puuid, masteries[0].champion_id)
+            print(f"Chest earned on favorite: {favorite.chest_granted}")
 
         # Total mastery score across all champions
         score = await client.get_champion_mastery_score(player.puuid)
