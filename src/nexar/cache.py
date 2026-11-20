@@ -3,18 +3,21 @@
 from __future__ import annotations
 
 import logging
+import pickle
+import sqlite3
 from dataclasses import dataclass
 from http.cookies import CookieError
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from aiohttp_client_cache.backends.base import DictCache
+from aiohttp_client_cache.backends.base import CacheBackend
 from aiohttp_client_cache.backends.sqlite import SQLiteBackend
 
 if TYPE_CHECKING:
     from datetime import datetime
 
     from aiohttp import ClientResponse
+    from aiohttp_client_cache.cache_control import ExpirationTime
     from aiohttp_client_cache.response import CachedResponse
 
 logger = logging.getLogger("nexar.cache")
@@ -31,7 +34,7 @@ def ttl(*, minutes: int = 0, hours: int = 0, days: int = 0) -> int:
 # League entries change frequently → cached 5 minutes.
 # Match ID lists change as new matches are played → cached 1 minute.
 # Order matters: more specific patterns must come first (first match wins).
-_SMART_ENDPOINT_TTLS: dict[str, int | None] = {
+_SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/match/v5/matches/by-puuid/*/ids": ttl(minutes=1),
     "*/lol/league/v4/entries/by-puuid/*": ttl(minutes=5),
     "*/lol/match/v5/matches/*": None,
@@ -72,15 +75,15 @@ class NexarSQLiteBackend(SQLiteBackend):
         """Read a cached response, treating an unreadable row as a cache miss."""
         try:
             return await super().get_response(key)
-        except CookieError:
-            logger.warning("Dropping cached row %s: its stored cookie cannot be loaded. Refetching.", key)
+        except (CookieError, pickle.UnpicklingError, EOFError, sqlite3.Error):
+            logger.warning("Dropping cached row %s: it cannot be loaded. Refetching.", key)
             # kv-level delete: CacheBackend.delete() deserializes the row first,
-            # which would raise CookieError again.
+            # which would raise again.
             await self.responses.delete(key)
             return None
 
 
-def create_cache_backend(config: CacheConfig) -> SQLiteBackend | DictCache:
+def create_cache_backend(config: CacheConfig) -> CacheBackend:
     """Create an aiohttp-client-cache backend based on the provided configuration."""
     if config.backend == "sqlite":
         cache_dir = Path(config.cache_dir) if config.cache_dir else (Path.home() / ".nexar")
@@ -94,7 +97,10 @@ def create_cache_backend(config: CacheConfig) -> SQLiteBackend | DictCache:
         )
 
     if config.backend == "memory":
-        return DictCache(
+        # CacheBackend with its default in-memory DictCache storage. Passing a bare
+        # DictCache here does not work: it is a storage, not a backend, and CachedSession
+        # silently swaps out a falsy cache for a default one, dropping the TTL wiring.
+        return CacheBackend(
             expire_after=config.expire_after,
             urls_expire_after=_SMART_ENDPOINT_TTLS,
             allowed_codes=(200,),
@@ -120,7 +126,7 @@ class CacheConfig:
     cache_dir: str | Path | None = None
     """Directory path for cache storage (defaults to ~/.nexar/)."""
 
-    expire_after: int | None = 3600
+    expire_after: int | None = ttl(hours=1)
     """Default expiration time in seconds for endpoints not covered by smart TTLs."""
 
     timeout: int = 30
