@@ -83,17 +83,17 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"examples/*.py" = [
-    "ERA001",  # Allow commented out code in examples
-    "C901",    # Allow long main functions in examples
-    "PLR2004", # Allow magic numbers in examples
-    "INP001",  # Disable implicit namespace package error in examples
-]
-"tests/*.py" = [
-    "S101",    # Allow assert statements in tests
-    "W293",    # Blank line contains whitespace
-    "SLF001",  # Allow private member access
-    "PLR2004", # Allow magic numbers in tests
+"docs/snippets/*/*.py" = [
+    "S101",    # Allow assert statements in snippets
+    "INP001",  # Disable implicit namespace package error in snippets
+    "SLF001",  # Allow private member access in snippets
+    "PLR2004", # Allow magic numbers in snippets
+    "D1",      # Allow missing docstrings in snippets
+    "I001",    # Allow unorganized import order in snippets
+    "E402",    # Allow module level import not at top of file in snippets
+    "F841",    # Allow unused variable in snippets
+    "ERA001",  # Allow commented out code in snippets
+    "E501",    # Allow long lines in snippets
 ]
 "tests/**/*.py" = [
     "ANN001",  # Allow missing type annotations in tests
@@ -108,32 +108,6 @@ ignore = [
     "SLF001",  # Allow private member access
     "W293",    # Blank line contains whitespace
 ]
-"docs/snippets/*/*.py" = [
-    "S101",    # Allow assert statements in snippets
-    "INP001",  # Disable implicit namespace package error in snippets
-    "SLF001",  # Allow private member access
-    "PLR2004", # Allow magic numbers in snippets
-    "D1",      # Allow missing docstring in snippets
-    "I001",    # Allow unorganized import order in snippets
-    "E402",    # Allow module level import not at top of file in snippets
-    "F841",    # Allow unused variable in snippets
-    "ERA001",  # Allow commented out code in snippets
-    "E501",    # Allow long lines in snippets
-]
-"dogfood/*.py" = [
-    "S311",    # Allow non-crypto random in dogfood scripts
-    "BLE001",  # Allow blind except in dogfood scripts
-    "S110",    # Allow try-except-pass in dogfood scripts
-    "SLF001",  # Allow private member access for hydration
-    "PLR0915", # Allow long functions in dogfood scripts
-    "C901",    # Allow complex functions in dogfood scripts
-    "PLR0912", # Allow many branches in dogfood scripts
-    "PLW0603", # Allow global statements in dogfood scripts
-    "ANN001",  # Allow missing type annotations in dogfood
-    "ANN202",  # Allow missing return type annotations in dogfood
-    "ARG001",  # Allow unused arguments in dogfood
-]
-"playground*.py" = ["D1"]
 
 [tool.ruff]
 line-length = 120
