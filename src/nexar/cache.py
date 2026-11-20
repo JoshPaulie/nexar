@@ -22,6 +22,15 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("nexar.cache")
 
+__all__ = [
+    "DEFAULT_CACHE_CONFIG",
+    "NO_CACHE_CONFIG",
+    "CacheConfig",
+    "NexarSQLiteBackend",
+    "create_cache_backend",
+    "ttl",
+]
+
 
 def ttl(*, minutes: int = 0, hours: int = 0, days: int = 0) -> int:
     """Helper to convert minutes/hours to seconds for TTL values."""

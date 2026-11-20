@@ -4,6 +4,17 @@ import asyncio
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
 
+__all__ = [
+    "BatchError",
+    "ForbiddenError",
+    "NexarError",
+    "NotFoundError",
+    "RateLimitError",
+    "RiotAPIError",
+    "UnauthorizedError",
+    "gather_partitioned",
+]
+
 
 class NexarError(Exception):
     """Base exception for all Nexar SDK errors."""

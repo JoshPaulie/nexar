@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `__all__` is now declared in the six leaf modules (`client`, `cache`, `enums`, `exceptions`, `rate_limiter`, `utils`), so scoped imports autocomplete only the public API — implementation constants (`HTTP_*` status shortcuts, match-id defaults) are deliberately excluded, and the surface baseline was refreshed with `UPDATE_BASELINE=1` in the same commit.
 - `tests/test_structure.py` guardrails: a pinned public-API surface baseline (`tests/api_baseline.json`, refresh via `UPDATE_BASELINE=1` in the same commit as a surface change), file and function size budgets, and seam tests forbidding underscore access across module boundaries.
 
 ### Changed
