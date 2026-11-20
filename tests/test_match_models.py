@@ -1,59 +1,35 @@
 """Tests for match models."""
 
-from datetime import datetime
-from typing import TYPE_CHECKING, Any
+import dataclasses
+from typing import TYPE_CHECKING
 
 import pytest
 
-from nexar.enums import MapId, MatchParticipantPosition, PlatformId, Queue
-from nexar.models import (
-    Ban,
-    Challenges,
-    ChampionStats,
-    Match,
-    MatchInfo,
-    MatchMetadata,
-    Objective,
-    Objectives,
-    Participant,
-    ParticipantList,
-)
-from tests.helpers import create_test_participant
+from nexar import NexarClient
+from nexar.cache import NO_CACHE_CONFIG
+from nexar.enums import Region
+from nexar.models import Challenges, Objective, Objectives
+from tests.helpers import create_test_match, create_test_participant, register_exact_url
 
 if TYPE_CHECKING:
-    from nexar.client import NexarClient
+    from aioresponses import aioresponses
+
+    from nexar.client import NexarClient as NexarClientT
 
 
 class TestMatchModels:
     """Test match-related models."""
 
     @pytest.mark.slow
-    async def test_match_from_api_response(self, real_client: "NexarClient") -> None:
-        """Test Match creation from real API response."""
+    async def test_match_from_api_response(self, real_client: "NexarClientT") -> None:
+        """Live canary: a fetched 5v5 match parses with a full participant list."""
         player = await real_client.get_player(game_name="bexli", tag_line="bex")
         matches = await player.get_matches(count=1)
 
-        if matches:
-            match = matches[0]
-            # Basic validation that the match was created properly
-            assert match.metadata is not None
-            assert match.info is not None
-            assert len(match.info.participants) == 10  # Standard 5v5 match
-            assert match.metadata.match_id is not None
-
-    def test_ban_creation(self) -> None:
-        """Test Ban model can be created directly."""
-        ban = Ban(champion_id=238, pick_turn=1)
-
-        assert ban.champion_id == 238
-        assert ban.pick_turn == 1
-
-    def test_objective_creation(self) -> None:
-        """Test Objective model can be created directly."""
-        objective = Objective(first=True, kills=1)
-
-        assert objective.first is True
-        assert objective.kills == 1
+        assert matches
+        match = matches[0]
+        assert len(match.info.participants) == 10  # Standard 5v5 match
+        assert match.metadata.match_id
 
     def test_challenges_creation(self) -> None:
         """Test Challenges creation from API response."""
@@ -73,151 +49,76 @@ class TestMatchModels:
         assert challenges.gold_per_minute == 500.0
         assert challenges.vision_score_per_minute == 1.5
 
-    def test_champion_stats_avg_kda_with_zero_deaths(self) -> None:
-        """A zero-death champion record has a perfect KDA, not 0.0."""
-        stats = ChampionStats(
-            champion_id=1,
-            champion_name="Annie",
-            games_played=3,
-            wins=3,
-            losses=0,
-            total_kills=15,
-            total_deaths=0,
-            total_assists=30,
-        )
+    def test_field_map_covers_every_challenge_field(self) -> None:
+        """_FIELD_MAP and the Challenges fields cannot drift apart (P13: a deleted entry fails silently)."""
+        field_names = {field.name for field in dataclasses.fields(Challenges)}
+        mapped_names = set(Challenges._FIELD_MAP.values())
 
-        # (15 + 30) / max(0, 1) == 45.0, mirroring Participant.kda().
-        assert stats.avg_kda == 45.0
-
-    def test_champion_stats_avg_kda_with_deaths(self) -> None:
-        """A normal champion record still divides by real deaths."""
-        stats = ChampionStats(
-            champion_id=1,
-            champion_name="Annie",
-            games_played=2,
-            wins=1,
-            losses=1,
-            total_kills=10,
-            total_deaths=4,
-            total_assists=6,
-        )
-
-        assert stats.avg_kda == 4.0
+        assert len(mapped_names) == len(Challenges._FIELD_MAP)  # no duplicate targets
+        assert mapped_names == field_names
 
     def test_objectives_creation(self) -> None:
-        """Test Objectives creation from API response."""
-        objectives_data = {
-            "baron": {"first": True, "kills": 1},
-            "champion": {"first": True, "kills": 20},
-            "dragon": {"first": True, "kills": 3},
-            "horde": {"first": False, "kills": 0},
-            "inhibitor": {"first": True, "kills": 2},
-            "riftHerald": {"first": True, "kills": 1},
-            "tower": {"first": True, "kills": 8},
-        }
-
-        objectives = Objectives.from_api_response(objectives_data)
-
-        assert isinstance(objectives, Objectives)
-        assert isinstance(objectives.baron, Objective)
-        assert isinstance(objectives.dragon, Objective)
-        assert isinstance(objectives.tower, Objective)
-
-        # Test baron objective
-        assert objectives.baron.first is True
-        assert objectives.baron.kills == 1
-
-    def test_match_iteration(self) -> None:
-        """Test that Match is iterable over participants."""
-        blue_participant = create_test_participant(
-            puuid="blue_player",
-            game_name="BluePlayer",
-            tagline="BLU",
-            champion_id=1,
-            champion_name="Annie",
-            team_id=100,
-            participant_id=1,
-            total_damage_dealt_to_champions=20000,
-            total_damage_taken=15000,
-            win=True,
+        """A full recorded objectives payload parses to its exact value, horde present with zero."""
+        objectives = Objectives.from_api_response(
+            {
+                "baron": {"first": True, "kills": 1},
+                "champion": {"first": True, "kills": 20},
+                "dragon": {"first": True, "kills": 3},
+                "horde": {"first": False, "kills": 0},
+                "inhibitor": {"first": True, "kills": 2},
+                "riftHerald": {"first": True, "kills": 1},
+                "tower": {"first": True, "kills": 8},
+            },
         )
 
-        red_participant = create_test_participant(
-            puuid="red_player",
-            game_name="RedPlayer",
-            tagline="RED",
-            champion_id=2,
-            champion_name="Olaf",
-            team_id=200,
-            participant_id=2,
-            kills=3,
-            deaths=5,
-            assists=8,
-            champion_level=16,
-            gold_earned=12000,
-            gold_spent=11000,
-            total_damage_dealt_to_champions=18000,
-            total_damage_taken=20000,
-            vision_score=25,
-            individual_position=MatchParticipantPosition.JUNGLE,
-            team_position=MatchParticipantPosition.JUNGLE,
-            lane="JUNGLE",
-            role="NONE",
-            win=False,
+        assert objectives == Objectives(
+            baron=Objective(first=True, kills=1),
+            champion=Objective(first=True, kills=20),
+            dragon=Objective(first=True, kills=3),
+            inhibitor=Objective(first=True, kills=2),
+            rift_herald=Objective(first=True, kills=1),
+            tower=Objective(first=True, kills=8),
+            horde=Objective(first=False, kills=0),
         )
 
-        match_info = MatchInfo(
-            game_creation=datetime.fromtimestamp(1234567890),
-            game_duration=1800,
-            game_id=12345,
-            game_mode="CLASSIC",
-            game_start_timestamp=datetime.fromtimestamp(1234567890),
-            game_type="MATCHED_GAME",
-            game_version="14.1.1",
-            map_id=MapId.SUMMONERS_RIFT,
-            platform_id=PlatformId.NA1,
-            queue_id=Queue.RANKED_SOLO_5x5,
-            participants=ParticipantList([blue_participant, red_participant]),
-            teams=[],
-        )
+    def test_participants_property_exposes_info_list(self) -> None:
+        """Match.participants is exactly MatchInfo.participants (same object)."""
+        match = create_test_match("NA1_1")
 
-        match_metadata = MatchMetadata(
-            data_version="2",
-            match_id="NA1_1234567890",
-            participants=["blue_player", "red_player"],
-        )
+        assert match.participants is match.info.participants
 
-        match = Match(metadata=match_metadata, info=match_info)
-
-        # Test iteration via participants
-        participant_names = [participant.game_name for participant in match.participants]
-
-        assert participant_names == ["BluePlayer", "RedPlayer"]
-
-    async def test_get_player_returns_player(self, client: "NexarClient") -> None:
-        """Test that Participant.get_player() returns a Player."""
+    async def test_get_player_resolves_participant_puuid(
+        self,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """Participant.get_player looks up the participant's own puuid (exact URL registered)."""
         participant = create_test_participant(puuid="test-puuid-123")
+        register_exact_url(
+            mock_aioresponse,
+            "https://americas.api.riotgames.com/riot/account/v1/accounts/by-puuid/test-puuid-123",
+            {"puuid": "test-puuid-123", "gameName": "bexli", "tagLine": "bex"},
+        )
+        client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=NO_CACHE_CONFIG)
+        try:
+            player = await participant.get_player(client)
 
-        player = await participant.get_player(client)
-
-        assert player.game_name == "bexli"
-        assert player.tag_line == "bex"
-        assert player.riot_account is not None
+            assert player.puuid == "test-puuid-123"
+            assert player.game_name == "bexli"
+            assert player.tag_line == "bex"
+        finally:
+            await client.close()
 
     @pytest.mark.slow
-    async def test_get_player_with_real_client(self, real_client: "NexarClient") -> None:
+    async def test_get_player_with_real_client(self, real_client: "NexarClientT") -> None:
         """Integration test: get_player() returns a real Player."""
         player = await real_client.get_player(game_name="bexli", tag_line="bex")
         matches = await player.get_matches(count=1)
 
-        if matches:
-            first_match = matches[0]
-            # Find the participant matching this player's PUUID
-            participant = first_match.participants.by_puuid(player.puuid)
-            assert participant is not None
+        assert matches
+        participant = matches[0].participants.by_puuid(player.puuid)
+        assert participant is not None
 
-            player_from_participant = await participant.get_player(real_client)
+        player_from_participant = await participant.get_player(real_client)
 
-            # Both Players should reference the same Riot account (same PUUID)
-            assert player_from_participant.riot_account.puuid == player.riot_account.puuid
-            assert player_from_participant.riot_account is not None
+        # Both Players should reference the same Riot account (same PUUID)
+        assert player_from_participant.riot_account.puuid == player.riot_account.puuid

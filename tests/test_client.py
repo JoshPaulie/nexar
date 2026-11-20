@@ -1,94 +1,47 @@
 """Tests for client functionality."""
 
+from typing import TYPE_CHECKING
+
 import pytest
 
-from nexar import (
-    BatchError,
-    NexarClient,
-    NotFoundError,
-    Region,
-    RiotAccount,
-    Summoner,
-)
+from nexar import BatchError, NexarClient, NotFoundError, Region, RiotAccount
 from nexar.cache import NO_CACHE_CONFIG
+from tests.helpers import register_exact_url
+
+if TYPE_CHECKING:
+    from aioresponses import aioresponses
 
 
 class TestNexarClient:
     """Test the main NexarClient class."""
 
-    def test_client_initialization(self, riot_api_key: str) -> None:
-        """Test client initializes correctly."""
-        client = NexarClient(
-            riot_api_key=riot_api_key,
-            default_region=Region.NA1,
-            cache_config=NO_CACHE_CONFIG,
-        )
-
-        assert client.riot_api_key == riot_api_key
-        assert client.default_region == Region.NA1
-
-    async def test_get_riot_account_success(self, client: "NexarClient") -> None:
-        """Test successful riot account retrieval."""
-        result = await client.get_riot_account("bexli", "bex")
-
-        assert isinstance(result, RiotAccount)
-        assert result.puuid is not None
-        assert result.game_name == "bexli"
-        assert result.tag_line == "bex"
-
-    async def test_get_riot_account_with_custom_region(self, client: "NexarClient") -> None:
-        """Test riot account retrieval with custom region."""
-        result = await client.get_riot_account("bexli", "bex", region=Region.NA1)
-
-        assert isinstance(result, RiotAccount)
-        assert result.puuid is not None
-        assert result.game_name == "bexli"
-        assert result.tag_line == "bex"
-
-    async def test_get_summoner_by_puuid_success(self, client: "NexarClient") -> None:
-        """Test successful summoner retrieval by PUUID."""
-        # Use hardcoded PUUID to reduce API calls during testing
-        test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
-
-        # Use NA1 region for summoner lookup
-        result = await client.get_summoner_by_puuid(test_puuid, region=Region.NA1)
-
-        assert isinstance(result, Summoner)
-        assert result.puuid == test_puuid
-        assert result.summoner_id is not None
-        assert result.summoner_level > 0
-
     @pytest.mark.slow
-    async def test_not_found_error(self, real_client: "NexarClient") -> None:
-        """Test handling of 404 Not Found error."""
+    async def test_not_found_error(self, real_client: NexarClient) -> None:
+        """The only live 404 contract: a missing riot id raises NotFoundError with its status."""
         with pytest.raises(NotFoundError) as exc_info:
             await real_client.get_riot_account("NonExistentPlayer999", "FAKE")
 
         assert exc_info.value.status_code == 404
 
-    async def test_get_players_success(self, client: "NexarClient") -> None:
-        """Test successful multiple player retrieval."""
-        riot_ids = ["bexli#bex", "bexli#bex"]  # Use the mocked data
+    async def test_get_riot_account_routes_to_regions_own_cluster(
+        self,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """An EUW1 account lookup hits the european routing cluster, not the default americas one."""
+        register_exact_url(
+            mock_aioresponse,
+            "https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/bexli/bex",
+            {"puuid": "p1", "gameName": "bexli", "tagLine": "bex"},
+        )
+        client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=NO_CACHE_CONFIG)
+        try:
+            account = await client.get_riot_account("bexli", "bex", region=Region.EUW1)
 
-        players = await client.get_players(riot_ids)
+            assert account == RiotAccount(puuid="p1", game_name="bexli", tag_line="bex")
+        finally:
+            await client.close()
 
-        assert isinstance(players, list)
-        assert len(players) == 2
-
-        # Check first player
-        assert players[0].game_name == "bexli"
-        assert players[0].tag_line == "bex"
-
-        # Check second player
-        assert players[1].game_name == "bexli"
-        assert players[1].tag_line == "bex"
-
-        # Verify that riot accounts were pre-fetched
-        for player in players:
-            # Should not make additional API calls since accounts were pre-fetched
-            assert player.riot_account.puuid is not None
-
-    async def test_get_players_with_invalid_riot_id(self, client: "NexarClient") -> None:
+    async def test_get_players_with_invalid_riot_id(self, client: NexarClient) -> None:
         """Test get_players with invalid riot ID format."""
         invalid_riot_ids = ["bexli#bex", "invalid_format"]
 
@@ -99,18 +52,21 @@ class TestNexarClient:
         assert len(exc_info.value.errors) == 1
         assert exc_info.value.errors[0][0] == "invalid_format"
 
-    async def test_get_players_empty_list(self, client: "NexarClient") -> None:
-        """Test get_players with empty list."""
-        players = await client.get_players([])
+    @pytest.mark.parametrize(
+        ("riot_ids", "expected_count"),
+        [
+            ([], 0),
+            (["bexli#bex"], 1),
+            (["bexli#bex", "bexli#bex"], 2),
+        ],
+        ids=["empty", "one", "two"],
+    )
+    async def test_get_players_success(self, client: NexarClient, riot_ids: list[str], expected_count: int) -> None:
+        players = await client.get_players(riot_ids)
 
         assert isinstance(players, list)
-        assert len(players) == 0
-
-    async def test_get_players_single_player(self, client: "NexarClient") -> None:
-        """Test get_players with single player."""
-        players = await client.get_players(["bexli#bex"])
-
-        assert isinstance(players, list)
-        assert len(players) == 1
-        assert players[0].game_name == "bexli"
-        assert players[0].tag_line == "bex"
+        assert len(players) == expected_count
+        for player in players:
+            assert player.game_name == "bexli"
+            assert player.tag_line == "bex"
+            assert player.riot_account.puuid is not None

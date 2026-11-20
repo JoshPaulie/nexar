@@ -1,68 +1,31 @@
 """Tests for custom exceptions."""
 
-from nexar.exceptions import (
-    ForbiddenError,
-    NexarError,
-    NotFoundError,
-    RateLimitError,
-    RiotAPIError,
-    UnauthorizedError,
+import pytest
+
+from nexar.exceptions import ForbiddenError, NotFoundError, RateLimitError, RiotAPIError, UnauthorizedError
+
+
+def test_riot_api_error_creation() -> None:
+    """The user-visible message format is pinned."""
+    error = RiotAPIError(404, "Not found")
+
+    assert error.status_code == 404
+    assert error.message == "Not found"
+    assert str(error) == "HTTP 404: Not found"
+
+
+@pytest.mark.parametrize(
+    ("error_class", "status"),
+    [
+        (RateLimitError, 429),
+        (NotFoundError, 404),
+        (UnauthorizedError, 401),
+        (ForbiddenError, 403),
+    ],
 )
+def test_status_errors_extend_riot_api_error(error_class: type, status: int) -> None:
+    """Each HTTP-status subclass is a RiotAPIError carrying its status."""
+    error = error_class(status, "boom")
 
-
-class TestNexarError:
-    """Test the base NexarError exception."""
-
-    def test_nexar_error_inheritance(self) -> None:
-        """Test that NexarError inherits from Exception."""
-        error = NexarError("Test error")
-        assert isinstance(error, Exception)
-
-
-class TestRiotAPIError:
-    """Test the RiotAPIError exception."""
-
-    def test_riot_api_error_creation(self) -> None:
-        """Test RiotAPIError creation."""
-        error = RiotAPIError(404, "Not found")
-
-        assert error.status_code == 404
-        assert error.message == "Not found"
-        assert str(error) == "HTTP 404: Not found"
-
-    def test_riot_api_error_inheritance(self) -> None:
-        """Test that RiotAPIError inherits from NexarError."""
-        error = RiotAPIError(500, "Server error")
-        assert isinstance(error, NexarError)
-
-
-class TestSpecificErrors:
-    """Test specific error types."""
-
-    def test_rate_limit_error(self) -> None:
-        """Test RateLimitError."""
-        error = RateLimitError(429, "Rate limit exceeded")
-
-        assert isinstance(error, RiotAPIError)
-        assert error.status_code == 429
-
-    def test_not_found_error(self) -> None:
-        """Test NotFoundError."""
-        error = NotFoundError(404, "Resource not found")
-
-        assert isinstance(error, RiotAPIError)
-        assert error.status_code == 404
-
-    def test_unauthorized_error(self) -> None:
-        """Test UnauthorizedError."""
-        error = UnauthorizedError(401, "Invalid API key")
-
-        assert isinstance(error, RiotAPIError)
-        assert error.status_code == 401
-
-    def test_forbidden_error(self) -> None:
-        """Test ForbiddenError."""
-        error = ForbiddenError(403, "Access forbidden")
-
-        assert isinstance(error, RiotAPIError)
-        assert error.status_code == 403
+    assert isinstance(error, RiotAPIError)
+    assert error.status_code == status

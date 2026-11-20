@@ -1,7 +1,5 @@
 """Tests for NexarClient using aioresponses."""
 
-import asyncio
-import re
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -14,13 +12,8 @@ from aioresponses import aioresponses
 from nexar import NexarClient
 from nexar.cache import NO_CACHE_CONFIG, CacheConfig
 from nexar.enums import Region
-from nexar.exceptions import (
-    ForbiddenError,
-    NotFoundError,
-    RateLimitError,
-    RiotAPIError,
-    UnauthorizedError,
-)
+from nexar.exceptions import ForbiddenError, NotFoundError, RiotAPIError, UnauthorizedError
+from tests.helpers import match_response_payload
 
 if TYPE_CHECKING:
     from nexar.models import Player, Summoner
@@ -69,42 +62,6 @@ async def test_get_summoner_by_puuid(fresh_client: NexarClient, mock_aioresponse
 
 
 @pytest.mark.asyncio
-async def test_error_handling_404(fresh_client: NexarClient, mock_aioresponse: aioresponses) -> None:
-    mock_aioresponse.get(
-        "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/UnknownUser",
-        status=404,
-        payload={"status": {"message": "Not Found", "status_code": 404}},
-    )
-    with pytest.raises(NotFoundError, match="Not Found"):
-        await fresh_client.get_summoner_by_puuid("UnknownUser")
-    await fresh_client.close()
-
-
-@pytest.mark.asyncio
-async def test_error_handling_401(fresh_client: NexarClient, mock_aioresponse: aioresponses) -> None:
-    mock_aioresponse.get(
-        "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/test/tag",
-        status=401,
-        payload={"status": {"message": "Unauthorized", "status_code": 401}},
-    )
-    with pytest.raises(UnauthorizedError):
-        await fresh_client.get_riot_account("test", "tag")
-    await fresh_client.close()
-
-
-@pytest.mark.asyncio
-async def test_error_handling_403(fresh_client: NexarClient, mock_aioresponse: aioresponses) -> None:
-    mock_aioresponse.get(
-        "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/test/tag",
-        status=403,
-        payload={"status": {"message": "Forbidden", "status_code": 403}},
-    )
-    with pytest.raises(ForbiddenError):
-        await fresh_client.get_riot_account("test", "tag")
-    await fresh_client.close()
-
-
-@pytest.mark.asyncio
 async def test_404_counts_as_error_in_call_stats(stats_client: NexarClient, mock_aioresponse: aioresponses) -> None:
     """A 404 is a non-retryable error and must show up in get_api_call_stats."""
     mock_aioresponse.get(
@@ -144,118 +101,59 @@ async def test_unauthorized_and_forbidden_count_as_errors(
 
 
 @pytest.mark.asyncio
-async def test_error_handling_429(fresh_client: NexarClient, mock_aioresponse: aioresponses) -> None:
-    url = "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/test/tag"
-    for _ in range(6):
-        mock_aioresponse.get(
-            url,
-            status=429,
-            headers={"Retry-After": "0.1"},
-            payload={"status": {"message": "Rate limit exceeded", "status_code": 429}},
-        )
-
-    async def mock_sleep(_: float) -> None:
-        pass
-
-    with pytest.MonkeyPatch.context() as m:
-        m.setattr(asyncio, "sleep", mock_sleep)
-        with pytest.raises(RateLimitError, match=r"Max retries .5. exceeded"):
-            await fresh_client.get_riot_account("test", "tag")
-    await fresh_client.close()
-
-
-@pytest.mark.asyncio
 async def test_cache_info_empty(fresh_client: NexarClient) -> None:
+    """An enabled cache wires a CachedSession and reports zero rows before any call."""
     await fresh_client._ensure_session()
+    assert isinstance(fresh_client._session, CachedSession)
     info = await fresh_client.get_cache_info()
     assert info["enabled"] is True
-    assert "cached_responses" in info
+    assert info["cached_responses"] == 0
     await fresh_client.close()
 
 
 @pytest.mark.asyncio
-async def test_cache_hit() -> None:
+async def test_cache_hit_serves_stored_row_without_wire(mock_aioresponse: aioresponses) -> None:
+    """A stored 200 row is served by the manual read path, counted as a cache hit, wire untouched."""
     config = CacheConfig(enabled=True, backend="memory", expire_after=60)
     client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=config)
-
     await client._ensure_session()
+    session = client._session
+    assert isinstance(session, CachedSession)
 
-    response_data = {
-        "metadata": {"matchId": "M_123", "dataVersion": "2", "participants": ["p1", "p2"]},
-        "info": {
-            "gameCreation": 123456789,
-            "gameDuration": 1234,
-            "gameEndTimestamp": 1234567890,
-            "gameId": 12345,
-            "gameMode": "CLASSIC",
-            "gameName": "test",
-            "gameStartTimestamp": 123456789,
-            "gameType": "MATCHED_GAME",
-            "gameVersion": "1.0",
-            "mapId": 11,
-            "participants": [],
-            "platformId": "NA1",
-            "queueId": 420,
-            "teams": [],
-            "tournamentCode": "",
-        },
-    }
+    url = "https://americas.api.riotgames.com/lol/match/v5/matches/M_123"
+    mock_aioresponse.get(url, payload=match_response_payload("M_123"))
+    response = await session.get(url)
+    # aioresponses fabricates a lowercase method; fix it so the save is accepted
+    response.method = "GET"
+    await session.cache.save_response(response)
 
-    if client._session and isinstance(client._session, CachedSession):
-        mock_cached_resp = MagicMock()
-        mock_cached_resp.status = 200
-        mock_cached_resp.json = AsyncMock(return_value=response_data)
-        client._session.cache.get_response = AsyncMock(return_value=mock_cached_resp)
+    match = await client.get_match("M_123")
 
-        match = await client.get_match("M_123")
-        assert match.metadata.match_id == "M_123"
-        client._session.cache.get_response.assert_called_once()
-
+    assert match.metadata.match_id == "M_123"
+    stats = client.get_api_call_stats()
+    assert stats.cache_hits == 1
+    assert stats.fresh_calls == 0
     await client.close()
 
 
 @pytest.mark.asyncio
-async def test_clear_cache() -> None:
-    config = CacheConfig(enabled=True, backend="memory")
-    client = NexarClient(riot_api_key="key", cache_config=config)
+async def test_clear_cache_populated_to_empty(mock_aioresponse: aioresponses) -> None:
+    """clear_cache drops stored rows: one row before, zero after."""
+    config = CacheConfig(enabled=True, backend="memory", expire_after=60)
+    client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=config)
     await client._ensure_session()
+    session = client._session
+    assert isinstance(session, CachedSession)
+
+    url = "https://na1.api.riotgames.com/lol/test/clear"
+    mock_aioresponse.get(url, payload={"ok": True})
+    response = await session.get(url)
+    response.method = "GET"
+    await session.cache.save_response(response)
+
+    assert len(session.cache.responses) == 1
+
     await client.clear_cache()
-    info = await client.get_cache_info()
-    assert info.get("cached_responses", 0) == 0
+
+    assert len(session.cache.responses) == 0
     await client.close()
-
-
-@pytest.mark.asyncio
-async def test_get_match_ids_params(fresh_client: NexarClient, mock_aioresponse: aioresponses) -> None:
-    mock_aioresponse.get(
-        re.compile(r"https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/puuid/ids\?.*"),
-        payload=["NA1_1", "NA1_2"],
-    )
-    ids = await fresh_client.get_match_ids_by_puuid("puuid", start=10, count=5, queue=420, match_type="ranked")
-    assert len(ids) == 2
-    assert ids[0] == "NA1_1"
-    await fresh_client.close()
-
-
-@pytest.mark.asyncio
-async def test_high_level_get_player(fresh_client: NexarClient, mock_aioresponse: aioresponses) -> None:
-    mock_aioresponse.get(
-        "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/GameName/TagLine",
-        payload={"gameName": "GameName", "tagLine": "TagLine", "puuid": "p1"},
-    )
-    mock_aioresponse.get(
-        "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/p1",
-        payload={
-            "id": "s1",
-            "puuid": "p1",
-            "accountId": "a1",
-            "name": "GameName",
-            "profileIconId": 1,
-            "revisionDate": 1,
-            "summonerLevel": 100,
-        },
-    )
-    player: Player = await fresh_client.get_player(game_name="GameName", tag_line="TagLine")
-    assert player.game_name == "GameName"
-    assert player.puuid == "p1"
-    await fresh_client.close()

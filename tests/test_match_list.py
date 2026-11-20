@@ -2,16 +2,11 @@
 
 import textwrap
 from collections.abc import Callable
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from nexar.enums import MapId, MatchParticipantPosition, PlatformId, Queue
 from nexar.models.match.challenges import Challenges
-from nexar.models.match.match import Match, MatchInfo, MatchMetadata
-from nexar.models.match.participant import Participant
-from nexar.models.match.participant_list import ParticipantList
 from nexar.models.match_list import MatchList
 from tests.helpers import create_test_match, create_test_participant
 
@@ -69,75 +64,78 @@ class TestMatchList:
         avg_stat_empty = empty_matches.get_average_stat(lambda p: p.kills)
         assert avg_stat_empty == 0.0
 
-    def test_filter(self) -> None:
-        m1 = create_test_match("NA1_1", puuid="p1", game_id=1, game_duration=1000)
-        m2 = create_test_match("NA1_2", puuid="p1", game_id=2, game_duration=2000)
-        m3 = create_test_match("NA1_3", puuid="p1", game_id=3, game_duration=3000)
-        ml = MatchList([m1, m2, m3], "p1")
+    @pytest.mark.parametrize(
+        ("durations", "threshold", "expected_ids"),
+        [
+            ([1000, 2000, 3000], 1500, ["NA1_2", "NA1_3"]),
+            ([1000], 9999, []),
+        ],
+        ids=["two-above-threshold", "none-above-threshold"],
+    )
+    def test_filter(self, durations: list[int], threshold: int, expected_ids: list[str]) -> None:
+        matches = MatchList(
+            [
+                create_test_match(f"NA1_{index}", puuid="p1", game_id=index, game_duration=duration)
+                for index, duration in enumerate(durations, start=1)
+            ],
+            "p1",
+        )
 
-        filtered = ml.filter(lambda m: m.info.game_duration > 1500)
-        assert len(filtered) == 2
+        filtered = matches.filter(lambda m: m.info.game_duration > threshold)
+
+        assert [m.metadata.match_id for m in filtered] == expected_ids
+        assert isinstance(filtered, MatchList)
         assert filtered.puuid == "p1"
-        assert isinstance(filtered, MatchList)
 
-    def test_filter_empty_result(self) -> None:
-        m1 = create_test_match("NA1_1", puuid="p1", game_id=1)
-        ml = MatchList([m1], "p1")
-        filtered = ml.filter(lambda m: m.info.game_duration > 9999)
-        assert len(filtered) == 0
-        assert isinstance(filtered, MatchList)
+    @pytest.mark.parametrize(
+        ("reverse", "expected"),
+        [(False, [1000, 2000, 3000]), (True, [3000, 2000, 1000])],
+        ids=["ascending", "descending"],
+    )
+    def test_sort_by(self, *, reverse: bool, expected: list[int]) -> None:
+        matches = MatchList(
+            [
+                create_test_match("NA1_1", puuid="p1", game_id=1, game_duration=3000),
+                create_test_match("NA1_2", puuid="p1", game_id=2, game_duration=1000),
+                create_test_match("NA1_3", puuid="p1", game_id=3, game_duration=2000),
+            ],
+            "p1",
+        )
 
-    def test_sort_by_ascending(self) -> None:
-        m1 = create_test_match("NA1_1", puuid="p1", game_id=1, game_duration=3000)
-        m2 = create_test_match("NA1_2", puuid="p1", game_id=2, game_duration=1000)
-        m3 = create_test_match("NA1_3", puuid="p1", game_id=3, game_duration=2000)
-        ml = MatchList([m1, m2, m3], "p1")
+        sorted_ml = matches.sort_by(lambda m: m.info.game_duration, reverse=reverse)
 
-        sorted_ml = ml.sort_by(lambda m: m.info.game_duration)
-        assert [m.info.game_duration for m in sorted_ml] == [1000, 2000, 3000]
+        assert [m.info.game_duration for m in sorted_ml] == expected
         assert sorted_ml.puuid == "p1"
 
-    def test_sort_by_descending(self) -> None:
-        m1 = create_test_match("NA1_1", puuid="p1", game_id=1, game_duration=1000)
-        m2 = create_test_match("NA1_2", puuid="p1", game_id=2, game_duration=3000)
-        ml = MatchList([m1, m2], "p1")
+    @pytest.mark.parametrize(
+        ("index", "expected_ids"),
+        [
+            (0, ["NA1_1"]),
+            (1, ["NA1_2"]),
+            (-1, ["NA1_3"]),
+            (slice(1, 3), ["NA1_2", "NA1_3"]),
+            (slice(None), ["NA1_1", "NA1_2", "NA1_3"]),
+        ],
+        ids=["first", "second", "negative", "slice", "full-slice"],
+    )
+    def test_getitem(self, index: object, expected_ids: list[str]) -> None:
+        matches = MatchList(
+            [
+                create_test_match("NA1_1", puuid="p1", game_id=1),
+                create_test_match("NA1_2", puuid="p1", game_id=2),
+                create_test_match("NA1_3", puuid="p1", game_id=3),
+            ],
+            "p1",
+        )
 
-        sorted_ml = ml.sort_by(lambda m: m.info.game_duration, reverse=True)
-        assert [m.info.game_duration for m in sorted_ml] == [3000, 1000]
+        result = matches[index]
 
-    def test_getitem_int(self) -> None:
-        m1 = create_test_match("NA1_1", puuid="p1", game_id=1)
-        m2 = create_test_match("NA1_2", puuid="p1", game_id=2)
-        ml = MatchList([m1, m2], "p1")
-
-        assert ml[0].metadata.match_id == "NA1_1"
-        assert ml[1].metadata.match_id == "NA1_2"
-
-    def test_getitem_slice(self) -> None:
-        m1 = create_test_match("NA1_1", puuid="p1", game_id=1)
-        m2 = create_test_match("NA1_2", puuid="p1", game_id=2)
-        m3 = create_test_match("NA1_3", puuid="p1", game_id=3)
-        ml = MatchList([m1, m2, m3], "p1")
-
-        sliced = ml[1:3]
-        assert isinstance(sliced, MatchList)
-        assert len(sliced) == 2
-        assert sliced.puuid == "p1"
-        assert sliced[0].metadata.match_id == "NA1_2"
-        assert sliced[1].metadata.match_id == "NA1_3"
-
-    def test_getitem_slice_full(self) -> None:
-        m1 = create_test_match("NA1_1", puuid="p1", game_id=1)
-        ml = MatchList([m1], "p1")
-        sliced = ml[:]
-        assert isinstance(sliced, MatchList)
-        assert len(sliced) == 1
-
-    def test_getitem_negative_index(self) -> None:
-        m1 = create_test_match("NA1_1", puuid="p1", game_id=1)
-        m2 = create_test_match("NA1_2", puuid="p1", game_id=2)
-        ml = MatchList([m1, m2], "p1")
-        assert ml[-1].metadata.match_id == "NA1_2"
+        if isinstance(index, slice):
+            assert isinstance(result, MatchList)
+            assert result.puuid == "p1"
+            assert [m.metadata.match_id for m in result] == expected_ids
+        else:
+            assert [result.metadata.match_id] == expected_ids
 
 
 class TestGetAverageStatWithoutChallenges:
@@ -186,8 +184,49 @@ class TestGetAverageStatWithoutChallenges:
         assert average == pytest.approx(500.0)
 
 
-class TestPerformanceStatsZeroDeaths:
-    """Zero-death match lists must average as a perfect KDA, not 0.0."""
+class TestPerformanceStats:
+    """get_performance_stats aggregates (probe #4: win_rate→1.0 left 12 rows green)."""
+
+    def test_performance_stats_exact_values(self) -> None:
+        """The documented aggregates come out exactly for a two-match list."""
+        wins = create_test_participant(
+            puuid="p1",
+            kills=10,
+            deaths=4,
+            assists=10,
+            win=True,
+            total_minions_killed=100,
+            neutral_minions_killed=20,
+        )
+        losses = create_test_participant(
+            puuid="p1",
+            kills=2,
+            deaths=6,
+            assists=8,
+            win=False,
+            total_minions_killed=200,
+            neutral_minions_killed=40,
+        )
+        matches = MatchList(
+            [
+                create_test_match("NA1_1", puuid="p1", game_id=1, participant=wins, game_duration=1800),
+                create_test_match("NA1_2", puuid="p1", game_id=2, participant=losses, game_duration=1200),
+            ],
+            "p1",
+        )
+
+        stats = matches.get_performance_stats()
+
+        assert stats.total_games == 2
+        assert stats.wins == 1
+        assert stats.losses == 1
+        assert stats.win_rate == 0.5
+        assert stats.avg_kills == 6.0
+        assert stats.avg_deaths == 5.0
+        assert stats.avg_assists == 9.0
+        assert stats.avg_kda == 3.0
+        assert stats.avg_cs == 180.0
+        assert stats.avg_game_duration_minutes == 25.0
 
     def test_performance_stats_zero_deaths_is_perfect_kda(self) -> None:
         """A match list with zero total deaths averages kills+assists, mirroring Participant.kda."""

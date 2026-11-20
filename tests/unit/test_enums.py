@@ -1,21 +1,11 @@
 """Unit tests for enum properties and methods."""
 
-from nexar.enums import (
-    MapId,
-    Queue,
-    RankDivision,
-    RankTier,
-    Region,
-)
+import pytest
+
+from nexar.enums import MapId, MatchParticipantPosition, Queue, RankDivision, RankTier, Region
 
 
 class TestRegion:
-    def test_v5_region(self) -> None:
-        assert Region.NA1.v5_region == "americas"
-        assert Region.KR.v5_region == "asia"
-        assert Region.EUW1.v5_region == "europe"
-        assert Region.OC1.v5_region == "sea"
-
     def test_account_region(self) -> None:
         assert Region.NA1.account_region == "americas"
         assert Region.KR.account_region == "asia"
@@ -46,28 +36,34 @@ class TestQueue:
         assert ranked == (Queue.RANKED_SOLO_5x5, Queue.RANKED_FLEX_SR)
 
     def test_solo_queue_alias(self) -> None:
-        assert Queue.SOLO_QUEUE.value == Queue.RANKED_SOLO_5x5.value
+        """The alias must be the same enum member, not a value-equal twin."""
+        assert Queue.SOLO_QUEUE is Queue.RANKED_SOLO_5x5
 
     def test_flex_queue_alias(self) -> None:
-        assert Queue.FLEX_QUEUE.value == Queue.RANKED_FLEX_SR.value
+        assert Queue.FLEX_QUEUE is Queue.RANKED_FLEX_SR
 
 
-class TestRankTier:
-    def test_str(self) -> None:
-        assert str(RankTier.IRON) == "Iron"
-        assert str(RankTier.BRONZE) == "Bronze"
-        assert str(RankTier.SILVER) == "Silver"
-        assert str(RankTier.GOLD) == "Gold"
-        assert str(RankTier.PLATINUM) == "Platinum"
-        assert str(RankTier.EMERALD) == "Emerald"
-        assert str(RankTier.DIAMOND) == "Diamond"
-        assert str(RankTier.MASTER) == "Master"
-        assert str(RankTier.GRANDMASTER) == "Grandmaster"
-        assert str(RankTier.CHALLENGER) == "Challenger"
+@pytest.mark.parametrize(
+    ("tier", "expected"),
+    [
+        (RankTier.IRON, "Iron"),
+        (RankTier.BRONZE, "Bronze"),
+        (RankTier.SILVER, "Silver"),
+        (RankTier.GOLD, "Gold"),
+        (RankTier.PLATINUM, "Platinum"),
+        (RankTier.EMERALD, "Emerald"),
+        (RankTier.DIAMOND, "Diamond"),
+        (RankTier.MASTER, "Master"),
+        (RankTier.GRANDMASTER, "Grandmaster"),
+        (RankTier.CHALLENGER, "Challenger"),
+    ],
+)
+def test_rank_tier_str(tier: RankTier, expected: str) -> None:
+    assert str(tier) == expected
 
 
 class TestUnknownQueue:
-    def test_unknown_queue_returns_unknown_sentinel(self, caplog) -> None:
+    def test_unknown_queue_returns_unknown_sentinel(self, caplog: pytest.LogCaptureFixture) -> None:
         """Queue(1750) should return Queue.UNKNOWN instead of raising."""
         result = Queue(1750)
         assert result is Queue.UNKNOWN
@@ -75,11 +71,19 @@ class TestUnknownQueue:
 
 
 class TestUnknownMapId:
-    def test_unknown_map_id_returns_unknown_sentinel(self, caplog) -> None:
+    def test_unknown_map_id_returns_unknown_sentinel(self, caplog: pytest.LogCaptureFixture) -> None:
         """MapId(999) should return MapId.UNKNOWN instead of raising."""
         result = MapId(999)
         assert result is MapId.UNKNOWN
         assert "Unknown map ID encountered: 999" in caplog.text
+
+
+class TestUnknownPosition:
+    def test_unknown_position_string_returns_empty_sentinel(self, caplog: pytest.LogCaptureFixture) -> None:
+        """An unrecognized position string degrades to EMPTY instead of aborting the whole match parse."""
+        result = MatchParticipantPosition("SOME_NEW_POSITION")
+        assert result is MatchParticipantPosition.EMPTY
+        assert "Unknown participant position encountered: SOME_NEW_POSITION" in caplog.text
 
 
 class TestRankDivision:

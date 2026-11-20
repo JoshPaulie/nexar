@@ -2,6 +2,8 @@
 
 from typing import TYPE_CHECKING
 
+import pytest
+
 from nexar import LeagueEntry, MiniSeries
 from nexar.enums import Queue, RankDivision, RankTier
 
@@ -9,48 +11,52 @@ if TYPE_CHECKING:
     from nexar.client import NexarClient
 
 
+def payload(**overrides: object) -> dict[str, object]:
+    """A recorded-shape league entry payload (Riot omits empty values)."""
+    data: dict[str, object] = {
+        "leagueId": "test-league-id",
+        "puuid": "test-puuid",
+        "queueType": "RANKED_SOLO_5x5",
+        "hotStreak": False,
+        "veteran": True,
+        "freshBlood": False,
+        "inactive": False,
+    }
+    data.update(overrides)
+    return data
+
+
 class TestLeagueEntries:
     """Test league entry functionality."""
 
-    async def test_get_league_entries_by_puuid_success(self, client: "NexarClient") -> None:
-        """Test successful league entries retrieval by PUUID."""
-        # Use hardcoded PUUID to reduce API calls during testing
+    async def test_get_league_entries_by_puuid_returns_recorded_entry(self, client: "NexarClient") -> None:
+        """The recorded by-puuid entries payload parses to its exact entry."""
         test_puuid = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 
-        # Get league entries for the account
         result = await client.get_league_entries_by_puuid(test_puuid, None)
 
-        # Should return a list of league entries
-        assert isinstance(result, list)
-
-        # If the account has ranked entries, validate the structure
-        if result:
-            for entry in result:
-                assert isinstance(entry, LeagueEntry)
-                assert entry.puuid == test_puuid
-                assert entry.league_id is not None
-                assert entry.queue_type is not None
-                assert entry.tier is not None
-                assert entry.division is not None
-                assert isinstance(entry.league_points, int)
-                assert isinstance(entry.wins, int)
-                assert isinstance(entry.losses, int)
-                assert isinstance(entry.hot_streak, bool)
-                assert isinstance(entry.veteran, bool)
-                assert isinstance(entry.fresh_blood, bool)
-                assert isinstance(entry.inactive, bool)
-
-                # Mini series may or may not be present
-                if entry.mini_series:
-                    assert isinstance(entry.mini_series, MiniSeries)
-                    assert isinstance(entry.mini_series.losses, int)
-                    assert isinstance(entry.mini_series.progress, str)
-                    assert isinstance(entry.mini_series.target, int)
-                    assert isinstance(entry.mini_series.wins, int)
+        assert result == [
+            LeagueEntry(
+                league_id="73c68388-3721-3944-b054-d92e5959954d",
+                puuid=test_puuid,
+                queue_type=Queue.RANKED_SOLO_5x5,
+                queue_type_raw="RANKED_SOLO_5x5",
+                tier=RankTier.SILVER,
+                division=RankDivision.FOUR,
+                league_points=54,
+                wins=53,
+                losses=46,
+                hot_streak=False,
+                veteran=False,
+                fresh_blood=False,
+                inactive=False,
+                mini_series=None,
+            ),
+        ]
 
 
 class TestLeagueModels:
-    """Test league model creation."""
+    """Test league model parsing."""
 
     def test_mini_series_creation(self) -> None:
         """Test MiniSeries model creation from API response."""
@@ -63,169 +69,118 @@ class TestLeagueModels:
         assert mini_series.target == 3
         assert mini_series.wins == 2
 
-    def test_league_entry_creation_without_mini_series(self) -> None:
-        """Test LeagueEntry model creation without mini series."""
-        api_data = {
-            "leagueId": "test-league-id",
-            "puuid": "test-puuid",
-            "queueType": "RANKED_SOLO_5x5",
-            "tier": "GOLD",
-            "rank": "III",
-            "leaguePoints": 75,
-            "wins": 50,
-            "losses": 30,
-            "hotStreak": False,
-            "veteran": True,
-            "freshBlood": False,
-            "inactive": False,
-        }
+    @pytest.mark.parametrize(
+        ("overrides", "expected"),
+        [
+            (
+                {"tier": "GOLD", "rank": "III", "leaguePoints": 75, "wins": 50, "losses": 30},
+                LeagueEntry(
+                    league_id="test-league-id",
+                    puuid="test-puuid",
+                    queue_type=Queue.RANKED_SOLO_5x5,
+                    queue_type_raw="RANKED_SOLO_5x5",
+                    tier=RankTier.GOLD,
+                    division=RankDivision.THREE,
+                    league_points=75,
+                    wins=50,
+                    losses=30,
+                    hot_streak=False,
+                    veteran=True,
+                    fresh_blood=False,
+                    inactive=False,
+                ),
+            ),
+            (
+                {
+                    "tier": "SILVER",
+                    "rank": "I",
+                    "leaguePoints": 85,
+                    "wins": 25,
+                    "losses": 20,
+                    "hotStreak": True,
+                    "veteran": False,
+                    "freshBlood": True,
+                    "miniSeries": {"losses": 0, "progress": "WW", "target": 3, "wins": 2},
+                },
+                LeagueEntry(
+                    league_id="test-league-id",
+                    puuid="test-puuid",
+                    queue_type=Queue.RANKED_SOLO_5x5,
+                    queue_type_raw="RANKED_SOLO_5x5",
+                    tier=RankTier.SILVER,
+                    division=RankDivision.ONE,
+                    league_points=85,
+                    wins=25,
+                    losses=20,
+                    hot_streak=True,
+                    veteran=False,
+                    fresh_blood=True,
+                    inactive=False,
+                    mini_series=MiniSeries(losses=0, progress="WW", target=3, wins=2),
+                ),
+            ),
+        ],
+        ids=["without-mini-series", "with-mini-series"],
+    )
+    def test_league_entry_from_payload(self, overrides: dict, expected: LeagueEntry) -> None:
+        assert LeagueEntry.from_api_response(payload(**overrides)) == expected
 
-        entry = LeagueEntry.from_api_response(api_data)
+    def test_unknown_queue_type_maps_to_unknown(self) -> None:
+        """A queueType string Riot added maps to the UNKNOWN sentinel, raw string preserved."""
+        entry = LeagueEntry.from_api_response(
+            payload(queueType="RANKED_NEW_THING", tier="GOLD", rank="III"),
+        )
 
-        assert entry.league_id == "test-league-id"
-        assert entry.puuid == "test-puuid"
-        assert entry.queue_type == Queue.RANKED_SOLO_5x5
-        assert entry.tier == RankTier.GOLD
-        assert entry.division == RankDivision.THREE
-        assert entry.league_points == 75
-        assert entry.wins == 50
-        assert entry.losses == 30
-        assert entry.hot_streak is False
-        assert entry.veteran is True
-        assert entry.fresh_blood is False
-        assert entry.inactive is False
-        assert entry.mini_series is None
+        assert entry.queue_type is Queue.UNKNOWN
+        assert entry.queue_type_raw == "RANKED_NEW_THING"
 
-    def test_league_entry_creation_with_mini_series(self) -> None:
-        """Test LeagueEntry model creation with mini series."""
-        api_data = {
-            "leagueId": "test-league-id",
-            "puuid": "test-puuid",
-            "queueType": "RANKED_SOLO_5x5",
-            "tier": "SILVER",
-            "rank": "I",
-            "leaguePoints": 85,
-            "wins": 25,
-            "losses": 20,
-            "hotStreak": True,
-            "veteran": False,
-            "freshBlood": True,
-            "inactive": False,
-            "miniSeries": {"losses": 0, "progress": "WW", "target": 3, "wins": 2},
-        }
-
-        entry = LeagueEntry.from_api_response(api_data)
-
-        assert entry.league_id == "test-league-id"
-        assert entry.puuid == "test-puuid"
-        assert entry.queue_type == Queue.RANKED_SOLO_5x5
-        assert entry.tier == RankTier.SILVER
-        assert entry.division == RankDivision.ONE
-        assert entry.league_points == 85
-        assert entry.wins == 25
-        assert entry.losses == 20
-        assert entry.hot_streak is True
-        assert entry.veteran is False
-        assert entry.fresh_blood is True
-        assert entry.inactive is False
-
-        # Check mini series
-        assert entry.mini_series is not None
-        assert entry.mini_series.losses == 0
-        assert entry.mini_series.progress == "WW"
-        assert entry.mini_series.target == 3
-        assert entry.mini_series.wins == 2
-
-    def test_league_entry_win_rate_calculation(self) -> None:
-        """Test LeagueEntry win rate calculation."""
-        api_data = {
-            "leagueId": "test-league-id",
-            "puuid": "test-puuid",
-            "queueType": "RANKED_SOLO_5x5",
-            "tier": "GOLD",
-            "rank": "II",
-            "leaguePoints": 50,
-            "wins": 60,
-            "losses": 40,
-            "hotStreak": False,
-            "veteran": False,
-            "freshBlood": False,
-            "inactive": False,
-        }
-
-        entry = LeagueEntry.from_api_response(api_data)
-
-        # 60 wins out of 100 total games = 0.6 win rate
-        assert entry.win_rate == 0.6
-
-    def test_league_entry_win_rate_no_games(self) -> None:
-        """Test LeagueEntry win rate with no games played."""
-        api_data = {
-            "leagueId": "test-league-id",
-            "puuid": "test-puuid",
-            "queueType": "RANKED_SOLO_5x5",
-            "tier": "IRON",
-            "rank": "IV",
-            "leaguePoints": 0,
-            "wins": 0,
-            "losses": 0,
-            "hotStreak": False,
-            "veteran": False,
-            "freshBlood": False,
-            "inactive": False,
-        }
-
-        entry = LeagueEntry.from_api_response(api_data)
-
-        # No games played should return 0.0 win rate
-        assert entry.win_rate == 0.0
-
-    def test_league_entry_total_games(self) -> None:
-        """Test LeagueEntry total games calculation."""
-        api_data = {
-            "leagueId": "test-league-id",
-            "puuid": "test-puuid",
-            "queueType": "RANKED_SOLO_5x5",
-            "tier": "PLATINUM",
-            "rank": "I",
-            "leaguePoints": 75,
-            "wins": 45,
-            "losses": 35,
-            "hotStreak": True,
-            "veteran": False,
-            "freshBlood": False,
-            "inactive": False,
-        }
-
-        entry = LeagueEntry.from_api_response(api_data)
-
-        # 45 wins + 35 losses = 80 total games
-        assert entry.total_games == 80
-        # And verify win rate still works
-        assert entry.win_rate == 0.5625  # 45/80
+    @pytest.mark.parametrize(
+        ("overrides", "expected_win_rate", "expected_total_games"),
+        [
+            (
+                {"tier": "GOLD", "rank": "II", "leaguePoints": 50, "wins": 60, "losses": 40, "veteran": False},
+                0.6,
+                100,
+            ),
+            (
+                {"tier": "IRON", "rank": "IV", "leaguePoints": 0, "wins": 0, "losses": 0, "veteran": False},
+                0.0,
+                0,
+            ),
+            (
+                {
+                    "tier": "PLATINUM",
+                    "rank": "I",
+                    "leaguePoints": 75,
+                    "wins": 45,
+                    "losses": 35,
+                    "hotStreak": True,
+                    "veteran": False,
+                },
+                0.5625,
+                80,
+            ),
+        ],
+        ids=["gold-ii-60-percent", "no-games", "platinum-i"],
+    )
+    def test_league_entry_derived_values(
+        self,
+        overrides: dict,
+        expected_win_rate: float,
+        expected_total_games: int,
+    ) -> None:
+        entry = LeagueEntry.from_api_response(payload(**overrides))
+        assert entry.win_rate == expected_win_rate
+        assert entry.total_games == expected_total_games
 
 
 class TestLeagueEntryOmittedFields:
     """Riot omits empty values from responses, so apex/decayed entries lose fields."""
 
-    @staticmethod
-    def payload(**overrides: object) -> dict[str, object]:
-        data: dict[str, object] = {
-            "leagueId": "test-league-id",
-            "puuid": "test-puuid",
-            "queueType": "RANKED_SOLO_5x5",
-            "hotStreak": False,
-            "veteran": True,
-            "freshBlood": False,
-            "inactive": False,
-        }
-        data.update(overrides)
-        return data
-
     def test_apex_entry_without_rank_or_league_points(self) -> None:
         """Master+ entries have no division, and 0 LP is omitted."""
         entry = LeagueEntry.from_api_response(
-            self.payload(tier="MASTER", wins=120, losses=90),
+            payload(tier="MASTER", wins=120, losses=90),
         )
 
         assert entry.division is RankDivision.EMPTY
@@ -237,7 +192,7 @@ class TestLeagueEntryOmittedFields:
     def test_decayed_entry_with_empty_rank_string(self) -> None:
         """Decayed/inactive entries can send an empty 'rank' string."""
         entry = LeagueEntry.from_api_response(
-            self.payload(tier="MASTER", rank="", leaguePoints=0),
+            payload(tier="MASTER", rank="", leaguePoints=0),
         )
 
         assert entry.division is RankDivision.EMPTY
@@ -268,7 +223,7 @@ class TestLeagueEntryOmittedFields:
     def test_entry_with_every_omitted_integer(self) -> None:
         """Zero wins/losses/LP are all omitted from the payload."""
         entry = LeagueEntry.from_api_response(
-            self.payload(tier="CHALLENGER", rank=""),
+            payload(tier="CHALLENGER", rank=""),
         )
 
         assert entry.division is RankDivision.EMPTY
@@ -280,10 +235,10 @@ class TestLeagueEntryOmittedFields:
     def test_apex_rank_tuple_handles_empty_division(self) -> None:
         """rank_tuple must not raise on an EMPTY division and must sort apex above Diamond."""
         apex = LeagueEntry.from_api_response(
-            self.payload(tier="MASTER", wins=120, losses=90),
+            payload(tier="MASTER", wins=120, losses=90),
         )
         diamond = LeagueEntry.from_api_response(
-            self.payload(tier="DIAMOND", rank="I", leaguePoints=0, wins=10, losses=10),
+            payload(tier="DIAMOND", rank="I", leaguePoints=0, wins=10, losses=10),
         )
 
         assert apex.rank_tuple[1] == 0
@@ -293,15 +248,15 @@ class TestLeagueEntryOmittedFields:
     def test_rank_tuple_scores_unchanged_for_standard_entries(self) -> None:
         """Adding RankDivision.EMPTY must not renumber existing rank scores."""
         diamond = LeagueEntry.from_api_response(
-            self.payload(tier="DIAMOND", rank="I", leaguePoints=0, wins=1, losses=1),
+            payload(tier="DIAMOND", rank="I", leaguePoints=0, wins=1, losses=1),
         )
 
         assert diamond.rank_tuple == (33, 0)
 
     def test_apex_entries_sort_by_league_points(self) -> None:
-        low = LeagueEntry.from_api_response(self.payload(tier="MASTER", wins=1, losses=1))
+        low = LeagueEntry.from_api_response(payload(tier="MASTER", wins=1, losses=1))
         high = LeagueEntry.from_api_response(
-            self.payload(tier="MASTER", leaguePoints=1500, wins=1, losses=1),
+            payload(tier="MASTER", leaguePoints=1500, wins=1, losses=1),
         )
 
         assert low.rank_tuple < high.rank_tuple

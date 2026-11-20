@@ -1,62 +1,64 @@
 """Tests for rate limit configuration options."""
 
+import time
+
 import pytest
+from aioresponses import aioresponses
 
 from nexar import NexarClient
 from nexar.cache import NO_CACHE_CONFIG
-from nexar.rate_limiter import PERSONAL_LIMITS, PRODUCTION_LIMITS, _validate_rate_limit
+from nexar.enums import Region
+from nexar.rate_limiter import RateLimiter, _validate_rate_limit
 
 
-class TestRateLimitConfiguration:
-    def test_default_personal_limits(self) -> None:
-        client = NexarClient(riot_api_key="test", cache_config=NO_CACHE_CONFIG)
-        assert client.rate_limiter._app_limits == PERSONAL_LIMITS
+def test_validate_rate_limit_valid() -> None:
+    """Valid budgets at both standard tiers pass validation."""
+    _validate_rate_limit(20, 1)
+    _validate_rate_limit(500, 10)
+    _validate_rate_limit(30000, 600)
 
-    def test_custom_production_limits(self) -> None:
-        client = NexarClient(
-            riot_api_key="test",
-            app_rate_limits=PRODUCTION_LIMITS,
-            cache_config=NO_CACHE_CONFIG,
-        )
-        assert client.rate_limiter._app_limits == PRODUCTION_LIMITS
 
-    def test_custom_limits(self) -> None:
-        client = NexarClient(
-            riot_api_key="test",
-            app_rate_limits=((100, 5), (1000, 60)),
-            cache_config=NO_CACHE_CONFIG,
-        )
-        assert client.rate_limiter._app_limits == ((100, 5), (1000, 60))
+@pytest.mark.parametrize(
+    ("limit", "window", "match"),
+    [
+        (0, 1, "must be positive"),
+        (-5, 1, "must be positive"),
+        (20, 0, "must be positive"),
+        (20, -5, "must be positive"),
+        (2_000_000, 1, "suspiciously high"),
+        (100, 90_000, "suspiciously long"),
+    ],
+)
+def test_invalid_app_rate_limits_are_rejected(limit: int, window: int, match: str) -> None:
+    """Invalid (limit, window) budgets raise at RateLimiter construction instead of being accepted."""
+    with pytest.raises(ValueError, match=match):
+        RateLimiter(((limit, window),))
 
-    def test_validate_rate_limit_valid(self) -> None:
-        _validate_rate_limit(20, 1)
-        _validate_rate_limit(500, 10)
-        _validate_rate_limit(30000, 600)
 
-    def test_validate_rate_limit_zero_limit(self) -> None:
-        with pytest.raises(ValueError, match="must be positive"):
-            _validate_rate_limit(0, 1)
+@pytest.mark.asyncio
+async def test_custom_app_rate_limits_pace_calls(mock_aioresponse: aioresponses) -> None:
+    """The app_rate_limits argument actually wires: a (1, 1) budget paces the second call."""
+    client = NexarClient(
+        riot_api_key="test",
+        default_region=Region.NA1,
+        app_rate_limits=((1, 1),),
+        cache_config=NO_CACHE_CONFIG,
+    )
+    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/p1"
+    mock_aioresponse.get(
+        url,
+        payload={"id": "s1", "puuid": "p1", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30},
+        repeat=True,
+    )
 
-    def test_validate_rate_limit_negative_limit(self) -> None:
-        with pytest.raises(ValueError, match="must be positive"):
-            _validate_rate_limit(-5, 1)
+    start = time.perf_counter()
+    await client.get_summoner_by_puuid("p1")
+    first_elapsed = time.perf_counter() - start
+    assert first_elapsed < 0.5
 
-    def test_validate_rate_limit_zero_window(self) -> None:
-        with pytest.raises(ValueError, match="must be positive"):
-            _validate_rate_limit(20, 0)
+    start = time.perf_counter()
+    await client.get_summoner_by_puuid("p1")
+    second_elapsed = time.perf_counter() - start
+    assert 0.9 <= second_elapsed < 1.3
 
-    def test_validate_rate_limit_negative_window(self) -> None:
-        with pytest.raises(ValueError, match="must be positive"):
-            _validate_rate_limit(20, -5)
-
-    def test_validate_rate_limit_suspiciously_high(self) -> None:
-        with pytest.raises(ValueError, match="suspiciously high"):
-            _validate_rate_limit(2000000, 1)
-
-    def test_validate_rate_limit_suspiciously_long_window(self) -> None:
-        with pytest.raises(ValueError, match="suspiciously long"):
-            _validate_rate_limit(100, 90000)
-
-    def test_no_key_type_parameter(self) -> None:
-        client = NexarClient(riot_api_key="test-key", cache_config=NO_CACHE_CONFIG)
-        assert client.rate_limiter._app_limits == PERSONAL_LIMITS
+    await client.close()

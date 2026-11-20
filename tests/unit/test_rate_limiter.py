@@ -11,7 +11,7 @@ from nexar.rate_limiter import PERSONAL_LIMITS, RateLimiter
 def _assert_windows_hold(admissions: list[float], limits: tuple[tuple[int, int], ...]) -> None:
     """No sliding window may ever contain more than its limit."""
     for limit, window in limits:
-        for i, t in enumerate(admissions):
+        for t in admissions:
             n = sum(1 for s in admissions if t <= s < t + window)
             assert n <= limit, f"{n} admissions in a {window}s window (limit {limit}) at t={t:.3f}"
 
@@ -25,7 +25,7 @@ async def test_full_burst_admitted_immediately() -> None:
     elapsed = time.monotonic() - t0
 
     assert len(limiter._admitted["na1"]) == 12
-    assert elapsed < 2.0, f"burst throttled below the documented limit: {elapsed:.2f}s"
+    assert elapsed < 0.5, f"burst throttled below the documented limit: {elapsed:.2f}s"
 
 
 @pytest.mark.asyncio
@@ -63,9 +63,10 @@ async def test_long_window_gates_burst() -> None:
     admissions = sorted(t - t0 for t in times)
 
     _assert_windows_hold(admissions, limits)
-    # 6 fit in the first 2s window; the last 2 must wait for the oldest to exit
+    # 6 fit in the first 2s window; the last 2 pace out both windows (~3s total)
     assert admissions[-1] >= 1.5, f"long window did not gate the burst: {elapsed:.2f}s"
-    assert elapsed < 5
+    # a stacked second wait would blow the 1.3x bound
+    assert elapsed < 3.9
 
 
 @pytest.mark.asyncio
@@ -78,7 +79,7 @@ async def test_block_waits_then_clears() -> None:
     t0 = time.monotonic()
     await limiter.acquire("na1")
     waited = time.monotonic() - t0
-    assert 0.2 <= waited <= 0.6, f"expected ~0.25s block, waited {waited:.2f}s"
+    assert 0.2 <= waited <= 0.33, f"expected ~0.25s block, waited {waited:.2f}s"
 
     # After the block expires, admissions resume instantly
     t0 = time.monotonic()

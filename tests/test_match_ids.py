@@ -1,97 +1,65 @@
-"""Test the new get_match_ids_by_puuid method."""
+"""Exact-URL tests for get_match_ids_by_puuid query construction.
+
+Every registration is a literal URL: the request only succeeds when the client
+builds the exact query string the case names, so a dropped or mangled parameter
+fails the call instead of silently matching a catch-all regex (probe P7).
+"""
 
 from typing import TYPE_CHECKING
 
 import pytest
 
-from nexar import MatchType, Queue
+from nexar import MatchType, NexarClient, Queue
+from nexar.cache import NO_CACHE_CONFIG
+from nexar.enums import Region
+from tests.helpers import register_exact_url
 
 if TYPE_CHECKING:
-    from nexar.client import NexarClient
+    from aioresponses import aioresponses
+
+_IDS_URL = "https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/test-puuid/ids"
 
 
-class TestGetMatchIdsByPuuid:
-    """Test the get_match_ids_by_puuid method."""
+@pytest.mark.parametrize(
+    ("kwargs", "query"),
+    [
+        ({}, ""),
+        ({"count": 5}, "?count=5"),
+        ({"queue": Queue.ARAM}, "?queue=450"),
+        ({"queue": 450}, "?queue=450"),
+        ({"match_type": MatchType.NORMAL}, "?type=normal"),
+        ({"match_type": "normal"}, "?type=normal"),
+        ({"start": 10}, "?start=10"),
+        (
+            {"count": 5, "queue": Queue.ARAM, "match_type": MatchType.NORMAL, "start": 10},
+            "?count=5&queue=450&start=10&type=normal",
+        ),
+    ],
+    ids=[
+        "no-params",
+        "count",
+        "queue-enum",
+        "queue-raw-int",
+        "match-type-enum",
+        "match-type-raw-str",
+        "start",
+        "all-params",
+    ],
+)
+async def test_get_match_ids_builds_exact_query(
+    mock_aioresponse: "aioresponses",
+    kwargs: dict,
+    query: str,
+) -> None:
+    """Only the exact URL answers, so every parameter must survive the builder."""
+    client = NexarClient(
+        riot_api_key="test-api-key",
+        default_region=Region.NA1,
+        cache_config=NO_CACHE_CONFIG,
+    )
+    register_exact_url(mock_aioresponse, _IDS_URL + query, ["NA1_1"])
 
-    @pytest.fixture
-    def test_puuid(self) -> str:
-        """Get PUUID for test account - using hardcoded value to reduce API calls."""
-        return "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
+    ids = await client.get_match_ids_by_puuid("test-puuid", **kwargs)
 
-    async def test_get_match_ids_by_puuid_basic(self, client: "NexarClient", test_puuid: str) -> None:
-        """Test basic functionality of get_match_ids_by_puuid."""
-        result = await client.get_match_ids_by_puuid(test_puuid)
-
-        # Should return a list of match IDs
-        assert isinstance(result, list)
-        # Each match ID should be a string
-        for match_id in result:
-            assert isinstance(match_id, str)
-            # Match IDs should follow the format REGION_MATCHID
-            assert "_" in match_id
-
-    async def test_get_match_ids_by_puuid_with_count(self, client: "NexarClient", test_puuid: str) -> None:
-        """Test get_match_ids_by_puuid with count parameter."""
-        result = await client.get_match_ids_by_puuid(test_puuid, count=5)
-
-        # Should return at most 5 match IDs
-        assert isinstance(result, list)
-        assert len(result) <= 5
-
-    async def test_get_match_ids_by_puuid_with_queue_filter(self, client: "NexarClient", test_puuid: str) -> None:
-        """Test get_match_ids_by_puuid with queue filter."""
-        # Test with ARAM queue
-        result = await client.get_match_ids_by_puuid(test_puuid, queue=Queue.ARAM, count=5)
-
-        assert isinstance(result, list)
-        # Each match ID should be a string
-        for match_id in result:
-            assert isinstance(match_id, str)
-
-    async def test_get_match_ids_by_puuid_with_raw_queue_id(self, client: "NexarClient", test_puuid: str) -> None:
-        """Test get_match_ids_by_puuid with raw queue ID instead of enum."""
-        # Test with ARAM queue ID (450)
-        result = await client.get_match_ids_by_puuid(test_puuid, queue=450, count=5)
-
-        assert isinstance(result, list)
-
-    async def test_get_match_ids_by_puuid_with_match_type(self, client: "NexarClient", test_puuid: str) -> None:
-        """Test get_match_ids_by_puuid with match type filter."""
-        result = await client.get_match_ids_by_puuid(
-            test_puuid,
-            match_type=MatchType.NORMAL,
-            count=5,
-        )
-
-        assert isinstance(result, list)
-
-    async def test_get_match_ids_by_puuid_with_raw_match_type(self, client: "NexarClient", test_puuid: str) -> None:
-        """Test get_match_ids_by_puuid with raw match type string."""
-        result = await client.get_match_ids_by_puuid(test_puuid, match_type="normal", count=5)
-
-        assert isinstance(result, list)
-
-    async def test_get_match_ids_by_puuid_count_validation(self, client: "NexarClient", test_puuid: str) -> None:
-        """Test that count parameter is validated."""
-        # Test invalid count > 100
-        with pytest.raises(ValueError, match="count must be between 0 and 100"):
-            await client.get_match_ids_by_puuid(test_puuid, count=101)
-
-        # Test invalid count < 0
-        with pytest.raises(ValueError, match="count must be between 0 and 100"):
-            await client.get_match_ids_by_puuid(test_puuid, count=-1)
-
-    async def test_get_match_ids_by_puuid_pagination(self, client: "NexarClient", test_puuid: str) -> None:
-        """Test pagination with start parameter."""
-        # Get first 5 matches
-        first_batch = await client.get_match_ids_by_puuid(test_puuid, start=0, count=5)
-
-        # Get next 5 matches
-        second_batch = await client.get_match_ids_by_puuid(test_puuid, start=5, count=5)
-
-        assert isinstance(first_batch, list)
-        assert isinstance(second_batch, list)
-
-        # The batches should be different (assuming the account has enough matches)
-        if len(first_batch) == 5 and len(second_batch) > 0:
-            assert first_batch != second_batch
+    assert ids == ["NA1_1"]
+    await client.close()

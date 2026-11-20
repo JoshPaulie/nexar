@@ -33,61 +33,38 @@ def info_payload(**overrides: object) -> dict[str, Any]:
     return payload
 
 
-class TestGameDurationNormalization:
-    """MatchInfo.game_duration is always expressed in seconds."""
+@pytest.mark.parametrize(
+    ("game_version", "raw_duration", "expected"),
+    [
+        ("11.19.1.1", 1_800_000, 1800),
+        ("11.9.1.1", 1_500_000, 1500),
+        ("10.10", 1_200_000, 1200),
+        ("11.20.1.1", 1800, 1800),
+        ("15.1.615.9282", 2200, 2200),
+        ("unknown", 1800, 1800),
+        ("", 1800, 1800),
+    ],
+    ids=[
+        "pre-11-20-milliseconds",
+        "pre-11-20-sub-minor-numeric",
+        "pre-11-20-two-part-version",
+        "11-20-boundary-seconds",
+        "modern-seconds",
+        "unparseable-version",
+        "empty-version",
+    ],
+)
+def test_game_duration_normalized_to_seconds(game_version: str, raw_duration: int, expected: int) -> None:
+    """MatchInfo.game_duration is always expressed in seconds, per the version era."""
+    info = MatchInfo.from_api_response(
+        info_payload(gameVersion=game_version, gameDuration=raw_duration),
+    )
+    assert info.game_duration == expected
 
-    def test_pre_11_20_milliseconds_are_converted_to_seconds(self) -> None:
-        """A 30-minute pre-11.20 match stored in milliseconds parses to 1800 seconds."""
-        info = MatchInfo.from_api_response(
-            info_payload(gameVersion="11.19.1.1", gameDuration=1_800_000),
-        )
-        assert info.game_duration == 1800
 
-    def test_pre_11_20_sub_minor_versions_are_not_string_compared(self) -> None:
-        """11.9 predates 11.20 numerically even though '11.9' > '11.20' as a string."""
-        info = MatchInfo.from_api_response(
-            info_payload(gameVersion="11.9.1.1", gameDuration=1_500_000),
-        )
-        assert info.game_duration == 1500
-
-    def test_pre_11_20_two_part_version_is_normalized(self) -> None:
-        """Versions without the build segments (e.g. '10.10') still normalize."""
-        info = MatchInfo.from_api_response(
-            info_payload(gameVersion="10.10", gameDuration=1_200_000),
-        )
-        assert info.game_duration == 1200
-
-    def test_11_20_boundary_is_already_seconds(self) -> None:
-        """11.20 is the first patch reporting seconds, so the value is untouched."""
-        info = MatchInfo.from_api_response(
-            info_payload(gameVersion="11.20.1.1", gameDuration=1800),
-        )
-        assert info.game_duration == 1800
-
-    def test_modern_seconds_are_left_unchanged(self) -> None:
-        """Post-11.20 matches keep the raw seconds value."""
-        info = MatchInfo.from_api_response(
-            info_payload(gameVersion="15.1.615.9282", gameDuration=2200),
-        )
-        assert info.game_duration == 2200
-
-    def test_unparseable_game_version_leaves_duration_untouched(self) -> None:
-        """An unrecognized version is treated as unknown: raw value preserved."""
-        info = MatchInfo.from_api_response(
-            info_payload(gameVersion="unknown", gameDuration=1800),
-        )
-        assert info.game_duration == 1800
-
-    def test_empty_game_version_leaves_duration_untouched(self) -> None:
-        """An empty version string is treated as unknown: raw value preserved."""
-        info = MatchInfo.from_api_response(
-            info_payload(gameVersion="", gameDuration=1800),
-        )
-        assert info.game_duration == 1800
-
-    def test_missing_game_version_still_raises_key_error(self) -> None:
-        """The ``gameVersion`` field stays required; its absence is not silently defaulted."""
-        payload = info_payload()
-        del payload["gameVersion"]
-        with pytest.raises(KeyError):
-            MatchInfo.from_api_response(payload)
+def test_missing_game_version_still_raises_key_error() -> None:
+    """The ``gameVersion`` field stays required; its absence is not silently defaulted."""
+    payload = info_payload()
+    del payload["gameVersion"]
+    with pytest.raises(KeyError):
+        MatchInfo.from_api_response(payload)

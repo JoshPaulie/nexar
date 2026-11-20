@@ -6,8 +6,9 @@ from http.cookies import Morsel, SimpleCookie
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import aiohttp
 import pytest
-from aiohttp_client_cache.backends import DictCache  # type: ignore[attr-defined]
+from aiohttp_client_cache.backends import CacheBackend
 from aiohttp_client_cache.backends.sqlite import SQLiteBackend
 from aiohttp_client_cache.session import CachedSession
 
@@ -17,6 +18,8 @@ from nexar.cache import (
     CacheConfig,
     create_cache_backend,
 )
+from nexar.client import NexarClient
+from nexar.enums import Region
 
 if TYPE_CHECKING:
     from aioresponses import aioresponses
@@ -38,16 +41,27 @@ def _poisoned_cookie() -> SimpleCookie:
 
 
 class TestCreateCacheBackend:
-    def test_sqlite_backend(self, tmp_path: Path) -> None:
-        config = CacheConfig(backend="sqlite", cache_name="test", cache_dir=str(tmp_path))
+    @pytest.mark.parametrize("backend_name", ["sqlite", "memory"])
+    def test_backend_wiring(self, tmp_path: Path, backend_name: str) -> None:
+        """Both backends carry the smart endpoint TTLs (preceding the default) and cache 200s only."""
+        config = CacheConfig(
+            backend=backend_name,
+            cache_name="test",
+            cache_dir=str(tmp_path),
+            expire_after=60,
+        )
         backend = create_cache_backend(config)
-        assert isinstance(backend, SQLiteBackend)
-        assert backend.expire_after == 3600
 
-    def test_memory_backend(self) -> None:
-        config = CacheConfig(backend="memory")
-        backend = create_cache_backend(config)
-        assert isinstance(backend, DictCache)
+        assert isinstance(backend, CacheBackend)
+        if backend_name == "sqlite":
+            assert isinstance(backend, SQLiteBackend)  # the cookie-hardened subclass
+        assert backend.expire_after == 60
+        assert backend.urls_expire_after is not None
+        # Per-endpoint TTLs take precedence over the 60s default expire_after.
+        assert backend.urls_expire_after["*/lol/match/v5/matches/*"] is None  # immutable: cached forever
+        assert backend.urls_expire_after["*/lol/league/v4/entries/by-puuid/*"] == 300  # 5 minutes
+        assert backend.urls_expire_after["*/riot/account/v1/accounts/by-riot-id/*"] == 86400  # 1 day
+        assert backend.allowed_codes == (200,)
 
     def test_invalid_backend_raises(self) -> None:
         config = CacheConfig(backend="invalid")  # type: ignore[arg-type]
@@ -55,12 +69,23 @@ class TestCreateCacheBackend:
             create_cache_backend(config)
 
 
-class TestCacheConfigDefaults:
-    def test_default_config_is_enabled(self) -> None:
-        assert DEFAULT_CACHE_CONFIG.enabled is True
-
-    def test_no_cache_config_is_disabled(self) -> None:
-        assert NO_CACHE_CONFIG.enabled is False
+class TestCacheSessionWiring:
+    @pytest.mark.parametrize(
+        ("config", "expected_type"),
+        [
+            (DEFAULT_CACHE_CONFIG, CachedSession),
+            (NO_CACHE_CONFIG, aiohttp.ClientSession),
+        ],
+        ids=["default-caches", "no-cache-plain-session"],
+    )
+    async def test_config_wires_session_type(self, config: CacheConfig, expected_type: type) -> None:
+        """The two shipped configs build the documented session types."""
+        client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=config)
+        await client._ensure_session()
+        try:
+            assert isinstance(client._session, expected_type)
+        finally:
+            await client.close()
 
 
 class TestSQLiteCookieHygiene:

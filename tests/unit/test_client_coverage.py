@@ -1,19 +1,30 @@
-"""Coverage-filling tests for NexarClient."""
+"""NexarClient behavior tests, grouped by contract.
+
+Sections: parameter wiring (match-ids), batch fetches, session and cache
+lifecycle, error mapping, 429 retry pacing, debug output.
+"""
 
 import os
 import re
 import time
-from datetime import UTC, datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 import pytest
+from aiohttp_client_cache.session import CachedSession
 
-from nexar.cache import CacheConfig
+from nexar.cache import NO_CACHE_CONFIG, CacheConfig
 from nexar.client import NexarClient
 from nexar.enums import MatchType, Queue, Region
 from nexar.exceptions import RateLimitError, RiotAPIError
+from tests.helpers import match_response_payload
+
+if TYPE_CHECKING:
+    from aioresponses import aioresponses
 
 
 @pytest.fixture
@@ -23,14 +34,81 @@ def client(tmp_path: Path) -> NexarClient:
     return NexarClient(riot_api_key="test-key", default_region=Region.NA1, cache_config=config)
 
 
+# ---------------------------------------------------------------------------
+# Parameter wiring
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
-async def test_context_manager(client: NexarClient) -> None:
-    async with client as c:
-        assert c is client
-        assert c._session is not None
-        assert not c._session.closed
-    assert client._session is not None
-    assert client._session.closed
+async def test_get_match_ids_all_params(client: NexarClient, mock_aioresponse: MagicMock) -> None:
+    """The exact-URL pin: every documented parameter lands in the query string."""
+    mock_aioresponse.get(
+        "https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/test-puuid/ids"
+        "?count=5&endTime=1600000000&queue=420&start=10&startTime=1500000000&type=ranked",
+        payload=["NA1_1"],
+    )
+    match_ids = await client.get_match_ids_by_puuid(
+        "test-puuid",
+        start_time=1500000000,
+        end_time=1600000000,
+        queue=Queue.RANKED_SOLO_5x5,
+        match_type=MatchType.RANKED,
+        start=10,
+        count=5,
+    )
+    assert match_ids == ["NA1_1"]
+    await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("start_time", "end_time"),
+    [
+        (1500000000, 1600000000),
+        (datetime.fromtimestamp(1500000000, tz=UTC), datetime.fromtimestamp(1600000000, tz=UTC)),
+        (
+            datetime.fromtimestamp(1500000000, tz=UTC).replace(tzinfo=None),
+            datetime.fromtimestamp(1600000000, tz=UTC).replace(tzinfo=None),
+        ),
+    ],
+    ids=["int-epochs", "aware-datetimes", "naive-datetimes"],
+)
+async def test_get_match_ids_times_encode_as_epoch_query(
+    client: NexarClient,
+    mock_aioresponse: MagicMock,
+    start_time: int | datetime,
+    end_time: int | datetime,
+) -> None:
+    """Int epochs and datetimes (aware or naive) all encode as the same epoch query."""
+    mock_aioresponse.get(
+        "https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/test-puuid/ids"
+        "?endTime=1600000000&startTime=1500000000",
+        payload=["NA1_1", "NA1_2"],
+    )
+    match_ids = await client.get_match_ids_by_puuid("test-puuid", start_time=start_time, end_time=end_time)
+    assert match_ids == ["NA1_1", "NA1_2"]
+    await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"count": 101}, "count must be between 0 and 100"),
+        ({"count": -1}, "count must be between 0 and 100"),
+        ({"start": -1}, "start must be non-negative"),
+    ],
+    ids=["count-too-high", "count-negative", "start-negative"],
+)
+async def test_get_match_ids_validation_error(client: NexarClient, kwargs: dict, match: str) -> None:
+    with pytest.raises(ValueError, match=match):
+        await client.get_match_ids_by_puuid("test-puuid", **kwargs)
+    await client.close()
+
+
+# ---------------------------------------------------------------------------
+# Batch fetches and single-resource parsing
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -65,38 +143,8 @@ async def test_get_league_entries_by_puuid(client: NexarClient, mock_aioresponse
 
 
 @pytest.mark.asyncio
-async def test_get_match_ids_validation_error(client: NexarClient) -> None:
-    with pytest.raises(ValueError, match="count must be between 0 and 100"):
-        await client.get_match_ids_by_puuid("test-puuid", count=101)
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_get_match_ids_int_times(client: NexarClient, mock_aioresponse: MagicMock) -> None:
-    mock_aioresponse.get(
-        "https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/test-puuid/ids?endTime=1600000000&startTime=1500000000",
-        payload=["NA1_1", "NA1_2"],
-    )
-    match_ids = await client.get_match_ids_by_puuid("test-puuid", start_time=1500000000, end_time=1600000000)
-    assert len(match_ids) == 2
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_get_match_ids_datetime_times(client: NexarClient, mock_aioresponse: MagicMock) -> None:
-    start = datetime.fromtimestamp(1500000000, tz=UTC)
-    end = datetime.fromtimestamp(1600000000, tz=UTC)
-    mock_aioresponse.get(
-        "https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/test-puuid/ids?endTime=1600000000&startTime=1500000000",
-        payload=["NA1_1", "NA1_2"],
-    )
-    match_ids = await client.get_match_ids_by_puuid("test-puuid", start_time=start, end_time=end)
-    assert len(match_ids) == 2
-    await client.close()
-
-
-@pytest.mark.asyncio
 async def test_get_players(client: NexarClient, mock_aioresponse: MagicMock) -> None:
+    """The strongest get_players row: distinct ids resolve to distinct payloads."""
     mock_aioresponse.get(
         "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/Player1/TAG",
         payload={"puuid": "p1", "gameName": "Player1", "tagLine": "TAG"},
@@ -105,18 +153,47 @@ async def test_get_players(client: NexarClient, mock_aioresponse: MagicMock) -> 
         "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/Player2/TAG",
         payload={"puuid": "p2", "gameName": "Player2", "tagLine": "TAG"},
     )
-    mock_aioresponse.get(
-        "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/p1",
-        payload={"id": "s1", "puuid": "p1", "accountId": "a1", "name": "Player1", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30},
-    )
-    mock_aioresponse.get(
-        "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/p2",
-        payload={"id": "s2", "puuid": "p2", "accountId": "a2", "name": "Player2", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30},
-    )
     players = await client.get_players(["Player1#TAG", "Player2#TAG"])
     assert len(players) == 2
     assert players[0].game_name == "Player1"
     assert players[1].game_name == "Player2"
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_get_match(client: NexarClient, mock_aioresponse: MagicMock) -> None:
+    response_data = match_response_payload("NA1_12345")
+    mock_aioresponse.get(
+        "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_12345",
+        payload=response_data,
+    )
+    match = await client.get_match("NA1_12345")
+    assert match.metadata.match_id == "NA1_12345"
+    await client.close()
+
+
+# ---------------------------------------------------------------------------
+# Session and cache lifecycle
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_context_manager(client: NexarClient) -> None:
+    async with client as c:
+        assert c is client
+        assert c._session is not None
+        assert not c._session.closed
+    assert client._session is not None
+    assert client._session.closed
+
+
+@pytest.mark.asyncio
+async def test_ensure_session_no_cache() -> None:
+    config = CacheConfig(enabled=False)
+    client = NexarClient(riot_api_key="key", cache_config=config, default_region=Region.NA1)
+    await client._ensure_session()
+    assert not isinstance(client._session, CachedSession)
+    assert isinstance(client._session, aiohttp.ClientSession)
     await client.close()
 
 
@@ -136,28 +213,21 @@ async def test_get_cache_info_details(client: NexarClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_stats_and_logging(client: NexarClient) -> None:
+async def test_cache_info_exception(client: NexarClient) -> None:
     await client._ensure_session()
-    from nexar.client import CallStats
-
-    stats = client.get_api_call_stats()
-    assert isinstance(stats, CallStats)
-    client.print_api_call_summary()
+    mock_cache = MagicMock()
+    mock_cache.__len__.side_effect = TypeError("Fail")
+    mock_cache._close_if_enabled = AsyncMock()
+    assert client._session is not None
+    client._session.cache = mock_cache
+    info = await client.get_cache_info()
+    assert info["cached_responses"] == 0
     await client.close()
 
 
-@pytest.mark.asyncio
-async def test_ensure_session_no_cache() -> None:
-    import aiohttp_client_cache.session
-
-    from nexar.cache import CacheConfig
-
-    config = CacheConfig(enabled=False)
-    client = NexarClient(riot_api_key="key", cache_config=config, default_region=Region.NA1)
-    await client._ensure_session()
-    assert not isinstance(client._session, aiohttp_client_cache.session.CachedSession)
-    assert isinstance(client._session, aiohttp.ClientSession)
-    await client.close()
+# ---------------------------------------------------------------------------
+# Error mapping
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -184,136 +254,6 @@ async def test_malformed_error_response(client: NexarClient, mock_aioresponse: M
 
 
 @pytest.mark.asyncio
-async def test_resolve_region_error(client: NexarClient) -> None:
-    client.default_region = None
-    with pytest.raises(ValueError, match="A region must be provided"):
-        await client.get_summoner_by_puuid("test")
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_debug_print_response(client: NexarClient, mock_aioresponse: MagicMock, capsys: pytest.CaptureFixture) -> None:
-    with patch.dict(os.environ, {"NEXAR_DEBUG_RESPONSES": "1"}):
-        mock_aioresponse.get(
-            "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/test",
-            payload={"id": "test", "puuid": "test-puuid", "profileIconId": 1, "revisionDate": 123456789, "summonerLevel": 100},
-        )
-        await client.get_summoner_by_puuid("test")
-        captured = capsys.readouterr()
-        assert "DEBUG: API Response" in captured.out
-        assert "Response Data:" in captured.out
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_get_match_ids_all_params(client: NexarClient, mock_aioresponse: MagicMock) -> None:
-    mock_aioresponse.get(
-        "https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/test-puuid/ids?count=5&endTime=1600000000&queue=420&start=10&startTime=1500000000&type=ranked",
-        payload=["NA1_1"],
-    )
-    match_ids = await client.get_match_ids_by_puuid(
-        "test-puuid",
-        start_time=1500000000,
-        end_time=1600000000,
-        queue=Queue.RANKED_SOLO_5x5,
-        match_type=MatchType.RANKED,
-        start=10,
-        count=5,
-    )
-    assert len(match_ids) == 1
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_get_match(client: NexarClient, mock_aioresponse: MagicMock) -> None:
-    response_data = {
-        "metadata": {"matchId": "NA1_12345", "dataVersion": "2", "participants": ["p1", "p2"]},
-        "info": {
-            "gameCreation": 123456789,
-            "gameDuration": 1234,
-            "gameEndTimestamp": 1234567890,
-            "gameId": 12345,
-            "gameMode": "CLASSIC",
-            "gameName": "test",
-            "gameStartTimestamp": 123456789,
-            "gameType": "MATCHED_GAME",
-            "gameVersion": "1.0",
-            "mapId": 11,
-            "participants": [],
-            "platformId": "NA1",
-            "queueId": 420,
-            "teams": [],
-            "tournamentCode": "",
-        },
-    }
-    mock_aioresponse.get(
-        "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_12345",
-        payload=response_data,
-    )
-    match = await client.get_match("NA1_12345")
-    assert match.metadata.match_id == "NA1_12345"
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_get_player_convenience(client: NexarClient, mock_aioresponse: MagicMock) -> None:
-    mock_aioresponse.get(
-        "https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/Game/Tag",
-        payload={"puuid": "p1", "gameName": "Game", "tagLine": "Tag"},
-    )
-    mock_aioresponse.get(
-        "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/p1",
-        payload={"id": "s1", "puuid": "p1", "accountId": "a1", "name": "Game", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30},
-    )
-    player = await client.get_player(game_name="Game", tag_line="Tag")
-    assert player.game_name == "Game"
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_clear_cache_real(client: NexarClient) -> None:
-    await client._ensure_session()
-    await client.clear_cache()
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_cache_info_exception(client: NexarClient) -> None:
-    await client._ensure_session()
-    mock_cache = MagicMock()
-    mock_cache.__len__.side_effect = TypeError("Fail")
-    mock_cache._close_if_enabled = AsyncMock()
-    assert client._session is not None
-    client._session.cache = mock_cache
-    info = await client.get_cache_info()
-    assert info["cached_responses"] == 0
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_retry_logic_429(client: NexarClient, mock_aioresponse: MagicMock) -> None:
-    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/retry"
-    mock_aioresponse.get(url, status=429, headers={"Retry-After": "0.1"}, payload={"status": {"message": "Rate limit", "status_code": 429}})
-    mock_aioresponse.get(url, status=200, payload={"id": "retry", "puuid": "retry", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30})
-    t0 = time.monotonic()
-    summoner = await client.get_summoner_by_puuid("retry")
-    elapsed = time.monotonic() - t0
-    assert summoner.puuid == "retry"
-    # The Retry-After block must be honored once, in real time.
-    assert 0.05 <= elapsed <= 1.0, f"expected ~0.1s wait, got {elapsed:.2f}s"
-    await client.close()
-
-
-@pytest.mark.asyncio
-async def test_session_not_initialized_error(client: NexarClient) -> None:
-    with patch.object(client, "_ensure_session"):
-        client._session = None
-        with pytest.raises(RuntimeError, match="Client session not initialized"):
-            await client.get_summoner_by_puuid("test")
-    client._session = None
-
-
-@pytest.mark.asyncio
 async def test_unknown_error_message(client: NexarClient, mock_aioresponse: MagicMock) -> None:
     mock_aioresponse.get(
         "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/fail",
@@ -326,12 +266,56 @@ async def test_unknown_error_message(client: NexarClient, mock_aioresponse: Magi
 
 
 @pytest.mark.asyncio
+async def test_resolve_region_error() -> None:
+    """A client with no default region refuses to guess on a regionless call."""
+    client = NexarClient(riot_api_key="key", cache_config=NO_CACHE_CONFIG)
+    try:
+        with pytest.raises(ValueError, match="A region must be provided"):
+            await client.get_summoner_by_puuid("test")
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# 429 retry pacing
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_retry_logic_429(client: NexarClient, mock_aioresponse: MagicMock) -> None:
+    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/retry"
+    mock_aioresponse.get(
+        url,
+        status=429,
+        headers={"Retry-After": "0.1"},
+        payload={"status": {"message": "Rate limit", "status_code": 429}},
+    )
+    mock_aioresponse.get(
+        url,
+        status=200,
+        payload={"id": "retry", "puuid": "retry", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30},
+    )
+    t0 = time.monotonic()
+    summoner = await client.get_summoner_by_puuid("retry")
+    elapsed = time.monotonic() - t0
+    assert summoner.puuid == "retry"
+    # The Retry-After block must be honored once, in real time.
+    assert 0.05 <= elapsed <= 1.0, f"expected ~0.1s wait, got {elapsed:.2f}s"
+    await client.close()
+
+
+@pytest.mark.asyncio
 async def test_max_retries_exceeded(client: NexarClient, mock_aioresponse: MagicMock) -> None:
     url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/retry_fail"
     for _ in range(6):
-        mock_aioresponse.get(url, status=429, headers={"Retry-After": "0.1"}, payload={"status": {"message": "Rate limit", "status_code": 429}})
+        mock_aioresponse.get(
+            url,
+            status=429,
+            headers={"Retry-After": "0.1"},
+            payload={"status": {"message": "Rate limit", "status_code": 429}},
+        )
     t0 = time.monotonic()
-    with pytest.raises(RateLimitError, match=r"Max retries .5. exceeded"):
+    with pytest.raises(RateLimitError, match=r"Max attempts .5. exceeded"):
         await client.get_summoner_by_puuid("retry_fail")
     elapsed = time.monotonic() - t0
     # 5 blocked retries at 0.1s each must actually wait.
@@ -339,14 +323,45 @@ async def test_max_retries_exceeded(client: NexarClient, mock_aioresponse: Magic
     await client.close()
 
 
+# ---------------------------------------------------------------------------
+# Debug output
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
-async def test_debug_print_response_with_params(client: NexarClient, mock_aioresponse: MagicMock, capsys: pytest.CaptureFixture) -> None:
+@pytest.mark.parametrize(
+    ("make_request", "expected_snippet"),
+    [
+        (lambda c: c.get_summoner_by_puuid("test"), "DEBUG: API Response"),
+        (lambda c: c.get_match_ids_by_puuid("test", start=10, count=5), "Params:"),
+    ],
+    ids=["no-params", "with-params"],
+)
+async def test_debug_print_response(
+    client: NexarClient,
+    mock_aioresponse: "aioresponses",
+    capsys: pytest.CaptureFixture,
+    make_request: Callable[[NexarClient], object],
+    expected_snippet: str,
+) -> None:
+    """NEXAR_DEBUG_RESPONSES=1 prints the response block, and the params line when a call has them."""
     with patch.dict(os.environ, {"NEXAR_DEBUG_RESPONSES": "1"}):
+        mock_aioresponse.get(
+            "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/test",
+            payload={
+                "id": "test",
+                "puuid": "test-puuid",
+                "profileIconId": 1,
+                "revisionDate": 123456789,
+                "summonerLevel": 100,
+            },
+        )
         mock_aioresponse.get(
             re.compile(r"^https://americas\.api\.riotgames\.com/lol/match/v5/matches/by-puuid/test/ids.*$"),
             payload=[],
         )
-        await client.get_match_ids_by_puuid("test", start=10, count=5)
+        result = await make_request(client)
+        assert result is not None
         captured = capsys.readouterr()
-        assert "Params:" in captured.out
+        assert expected_snippet in captured.out
     await client.close()
