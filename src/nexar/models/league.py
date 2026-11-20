@@ -9,6 +9,14 @@ from nexar.enums import Queue, RankDivision, RankTier
 logger = logging.getLogger("nexar")
 
 
+# Map string queue types from the API to Queue enums; unknown strings degrade
+# to Queue.UNKNOWN rather than conflating new ranked queues with CUSTOM games.
+_QUEUE_TYPE_MAP = {
+    "RANKED_SOLO_5x5": Queue.RANKED_SOLO_5x5,
+    "RANKED_FLEX_SR": Queue.RANKED_FLEX_SR,
+}
+
+
 @dataclass(frozen=True)
 class MiniSeries:
     """Represents mini series progress, colloquially known as 'promos'."""
@@ -161,18 +169,12 @@ class LeagueEntry:
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "LeagueEntry":
         """Create LeagueEntry from API response."""
-        # Map string queue types from API to Queue enums
-        queue_type_mapping = {
-            "RANKED_SOLO_5x5": Queue.RANKED_SOLO_5x5,
-            "RANKED_FLEX_SR": Queue.RANKED_FLEX_SR,
-        }
-
         queue_type_str = data["queueType"]
-        if queue_type_str not in queue_type_mapping:
-            logger.warning("Unknown queue type '%s' in league entry. Defaulting to CUSTOM.", queue_type_str)
-            queue_type = Queue.CUSTOM
+        if queue_type_str not in _QUEUE_TYPE_MAP:
+            logger.warning("Unknown queue type '%s' in league entry. Defaulting to UNKNOWN.", queue_type_str)
+            queue_type = Queue.UNKNOWN
         else:
-            queue_type = queue_type_mapping[queue_type_str]
+            queue_type = _QUEUE_TYPE_MAP[queue_type_str]
 
         # Riot omits empty values: apex/decayed entries have no rank, and 0 LP/wins/losses
         # are absent rather than zero.
@@ -193,9 +195,9 @@ class LeagueEntry:
             league_points=data.get("leaguePoints", 0),
             wins=data.get("wins", 0),
             losses=data.get("losses", 0),
-            hot_streak=data["hotStreak"],
-            veteran=data["veteran"],
-            fresh_blood=data["freshBlood"],
-            inactive=data["inactive"],
+            hot_streak=data.get("hotStreak", False),
+            veteran=data.get("veteran", False),
+            fresh_blood=data.get("freshBlood", False),
+            inactive=data.get("inactive", False),
             mini_series=MiniSeries.from_api_response(data["miniSeries"]) if data.get("miniSeries") else None,
         )

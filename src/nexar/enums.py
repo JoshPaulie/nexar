@@ -375,7 +375,7 @@ class Queue(Enum):
     @property
     def is_ranked(self) -> bool:
         """Check if this queue is a ranked queue."""
-        return self.value in {420, 440}
+        return self in Queue.get_ranked_queues()
 
     @classmethod
     def get_ranked_queues(cls) -> tuple[Queue, Queue]:
@@ -483,3 +483,14 @@ class MatchParticipantPosition(Enum):
 
     EMPTY = ""
     """Empty position (legacy data or edge cases)"""
+
+    @classmethod
+    def _missing_(cls, value: object) -> MatchParticipantPosition:
+        """Handle unrecognized position strings by returning EMPTY instead of raising.
+
+        A ValueError here would abort the entire match parse (one unknown
+        position takes the whole match down), so it degrades to EMPTY and the
+        match still loads.
+        """
+        logger.warning("Unknown participant position encountered: %s", value)
+        return cls.EMPTY

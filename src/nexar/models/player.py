@@ -23,6 +23,21 @@ if TYPE_CHECKING:
     from .stats import ChampionStats
 
 
+def _parse_riot_id(riot_id: str) -> tuple[str, str]:
+    """Split ``gameName#tagLine`` into its parts, raising ValueError on malformed input."""
+    riot_id = riot_id.strip()
+    if "#" not in riot_id:
+        msg = f"Invalid Riot ID format: '{riot_id}'. Expected 'gameName#tagLine'"
+        raise ValueError(msg)
+    game_name, tag_line = riot_id.split("#", 1)
+    game_name = game_name.strip()
+    tag_line = tag_line.strip()
+    if not game_name or not tag_line:
+        msg = f"Invalid Riot ID format: '{riot_id}'. Both name and tagline must be non-empty"
+        raise ValueError(msg)
+    return game_name, tag_line
+
+
 @dataclass
 class Player:
     """
@@ -67,7 +82,12 @@ class Player:
         """
         Create a Player instance and fetch the riot account data immediately.
 
-        Exactly one identification pattern must be provided (all keyword-only):
+        At least one identification pattern must be provided (all keyword-only).
+        When several are supplied, the first one wins, in this order:
+
+        1. ``game_name`` + ``tag_line``
+        2. ``puuid``
+        3. ``riot_id``
 
         Args:
             client: The client instance to use for API calls.
@@ -81,7 +101,7 @@ class Player:
             Player instance with riot account data pre-fetched.
 
         Raises:
-            ValueError: If none or an ambiguous combination of identifiers is provided.
+            ValueError: If no identification is provided.
 
         """
         if game_name is not None and tag_line is not None:
@@ -112,16 +132,7 @@ class Player:
             )
 
         if riot_id is not None:
-            riot_id = riot_id.strip()
-            if "#" not in riot_id:
-                msg = f"Invalid Riot ID format: '{riot_id}'. Expected 'gameName#tagLine'"
-                raise ValueError(msg)
-            parsed_name, parsed_tag = riot_id.split("#", 1)
-            parsed_name = parsed_name.strip()
-            parsed_tag = parsed_tag.strip()
-            if not parsed_name or not parsed_tag:
-                msg = f"Invalid Riot ID format: '{riot_id}'. Both name and tagline must be non-empty"
-                raise ValueError(msg)
+            parsed_name, parsed_tag = _parse_riot_id(riot_id)
             return await cls.create(
                 client=client,
                 game_name=parsed_name,
@@ -141,11 +152,11 @@ class Player:
         region: Region | None = None,
     ) -> Player:
         """
-        Create a Player instance from a Riot ID in "username#tagline" format.
+        Create a Player instance from a Riot ID in "gameName#tagLine" format.
 
         Args:
             client: The client instance to use for API calls
-            riot_id: Riot ID in "username#tagline" format (e.g., "bexli#bex")
+            riot_id: Riot ID in "gameName#tagLine" format (e.g., "bexli#bex")
             region: The player's region (defaults to client default)
 
         Returns:
@@ -155,19 +166,7 @@ class Player:
             ValueError: If riot_id is not in the correct format
 
         """
-        riot_id = riot_id.strip()
-        if "#" not in riot_id:
-            msg = f"Invalid Riot ID format: '{riot_id}'. Expected 'username#tagline'"
-            raise ValueError(msg)
-
-        game_name, tag_line = riot_id.split("#", 1)
-        game_name = game_name.strip()
-        tag_line = tag_line.strip()
-
-        if not game_name or not tag_line:
-            msg = f"Invalid Riot ID format: '{riot_id}'. Both username and tagline must be non-empty"
-            raise ValueError(msg)
-
+        game_name, tag_line = _parse_riot_id(riot_id)
         return await cls.create(
             client=client,
             game_name=game_name,
@@ -391,8 +390,8 @@ class Player:
             match_type=match_type,
             count=count,
         )
-        champion_stats = matches.get_champion_stats()
-        return sorted(champion_stats, key=lambda x: x.games_played, reverse=True)[:top_n]
+        # get_champion_stats already sorts by games played (descending).
+        return matches.get_champion_stats()[:top_n]
 
     async def get_recent_performance_by_role(
         self,
@@ -415,8 +414,9 @@ class Player:
         role_stats: dict[str, dict[str, Any]] = {}
 
         for participant in matches.each_participant():
-            team_position = participant.team_position.value if participant.team_position is not None else ""
-            role = team_position or "UNKNOWN"
+            # team_position is never None (EMPTY is the sentinel), so no guard:
+            # an empty value falls through to the UNKNOWN bucket.
+            role = participant.team_position.value or "UNKNOWN"
 
             if role not in role_stats:
                 role_stats[role] = {
