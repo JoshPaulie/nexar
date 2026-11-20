@@ -26,7 +26,10 @@ async def main() -> None:
         avg_vision = matches.get_average_stat(lambda p: p.vision_score)
         print(f"Avg Vision Score: {avg_vision:.1f}")
 
-        avg_gold_per_min = matches.get_average_stat(lambda p: p.challenges.gold_per_minute)
+        # Guard challenges: pre-2022 matches carry no challenges block
+        avg_gold_per_min = matches.get_average_stat(
+            lambda p: p.challenges.gold_per_minute if p.challenges is not None else 0.0,
+        )
         print(f"Avg Gold/min: {avg_gold_per_min:.1f}")
 
 

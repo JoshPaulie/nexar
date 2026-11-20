@@ -33,7 +33,11 @@ async def main() -> None:
         print(f"  Vision/min:         {challenges.vision_score_per_minute:.2f}")
 
         # Niche but interesting stats
-        print(f"  Team Damage %:      {challenges.team_damage_percentage:.2%}" if challenges.team_damage_percentage else "")
+        print(
+            f"  Team Damage %:      {challenges.team_damage_percentage:.2%}"
+            if challenges.team_damage_percentage
+            else "",
+        )
         print(f"  Skillshots Dodged:  {challenges.skillshots_dodged}")
         print(f"  Skillshots Hit:     {challenges.skillshots_hit}")
         print(f"  Epic Monster Steals:{challenges.epic_monster_steals}")

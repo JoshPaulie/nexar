@@ -114,7 +114,7 @@ ignore = [
 line-length = 120
 
 [tool.mypy]
-files = "src"
+files = ["src", "docs/snippets"]
 strict = true
 python_version = "3.13"
 mypy_path = "src"

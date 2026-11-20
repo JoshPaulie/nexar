@@ -26,7 +26,9 @@ async def main() -> None:
             print(f"{role}:")
             print(f"  Games:  {stats['games']}")
             print(f"  Winrate:{stats['win_rate']:.0%}")
-            print(f"  KDA:    {stats['avg_kills']:.1f}/{stats['avg_deaths']:.1f}/{stats['avg_assists']:.1f} ({kda:.2f})")
+            print(
+                f"  KDA:    {stats['avg_kills']:.1f}/{stats['avg_deaths']:.1f}/{stats['avg_assists']:.1f} ({kda:.2f})",
+            )
             print()
 
 

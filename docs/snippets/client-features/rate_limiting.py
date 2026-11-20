@@ -5,18 +5,18 @@ import sys
 from nexar.client import NexarClient
 from nexar.enums import Region
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if api_key is None:
-    sys.exit("Please set RIOT_API_KEY environment variable")
-
-client = NexarClient(
-    riot_api_key=api_key,
-    default_region=Region.NA1,
-)
-
 
 async def main() -> None:
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
+
+    client = NexarClient(
+        riot_api_key=api_key,
+        default_region=Region.NA1,
+    )
+
     async with client:
         # --8<-- [start:basic-usage]
         # Rate limiting is automatically applied to all API calls

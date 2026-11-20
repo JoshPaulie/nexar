@@ -6,10 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Docs snippets are now gated like source: ruff (lint and format) runs on `docs/` in the local gates and CI, mypy covers `docs/snippets` via the `files` array in `pyproject.toml`, and a parametrized test imports all 23 snippet modules offline with a dummy key — a snippet referencing removed or misused API fails the suite instead of shipping in the docs.
+
 - `__all__` is now declared in the six leaf modules (`client`, `cache`, `enums`, `exceptions`, `rate_limiter`, `utils`), so scoped imports autocomplete only the public API — implementation constants (`HTTP_*` status shortcuts, match-id defaults) are deliberately excluded, and the surface baseline was refreshed with `UPDATE_BASELINE=1` in the same commit.
 - `tests/test_structure.py` guardrails: a pinned public-API surface baseline (`tests/api_baseline.json`, refresh via `UPDATE_BASELINE=1` in the same commit as a surface change), file and function size budgets, and seam tests forbidding underscore access across module boundaries.
 
 ### Changed
+
+- The logging snippet is renamed `client-features/log_config.py`: a snippet named `logging.py` resolves `import logging` to itself under mypy's basename module naming, and is a `sys.modules` shadow hazard for anything that imports it unqualified (the four `--8<--` markers in `docs/client-features/logging.md` follow the rename).
 
 - Internal: client call counters are now keyed from the `CallStats` field definitions instead of a hand-maintained dict, and the redundant in-method `Player` imports were removed.
 
@@ -18,6 +22,8 @@ All notable changes to this project will be documented in this file.
 - Internal: the batch partition behind `get_players` and `Player.get_matches` is now one helper, `nexar.exceptions.gather_partitioned`, which routes captured `BaseException` results to the error side (the `get_players` variant previously checked the narrower `Exception`).
 
 ### Fixed
+
+- Snippet fixes surfaced by the new gates: the two client-features snippets that fetched `RIOT_API_KEY` at module level now guard inside `main()` (module-level narrowing does not survive into function bodies, so the old pattern failed strict mypy), `match_list_stats.py` guards `participant.challenges` before reading `gold_per_minute` (the same pre-2022 `AttributeError` class the `get_average_stat` docstring guards against), and `league_comparison.py` dropped an unused `Region` import.
 
 - `get_cache_info()` now reports a real `cached_responses` row count via the cache storage's `size()` instead of a structurally-zero `hasattr` probe; the never-present `cache_size` key was dropped.
 

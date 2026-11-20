@@ -3,7 +3,6 @@ import os
 
 from nexar.cache import DEFAULT_CACHE_CONFIG
 from nexar.client import NexarClient
-from nexar.enums import Region
 
 client = NexarClient(
     riot_api_key=os.getenv("RIOT_API_KEY", ""),

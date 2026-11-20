@@ -36,5 +36,3 @@ memory_config = CacheConfig(
     expire_after=900,  # 15 minutes
 )
 # --8<-- [end:cache-config]
-
-

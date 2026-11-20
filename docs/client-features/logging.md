@@ -7,7 +7,7 @@ Nexar uses Python's standard `logging` module under the `"nexar"` logger name. A
 Enable INFO-level logging to see API calls and statistics:
 
 ```python
---8<-- "client-features/logging.py:basic-logging"
+--8<-- "client-features/log_config.py:basic-logging"
 ```
 
 ### Example Output
@@ -22,7 +22,7 @@ API Call #1: /riot/account/v1/accounts/by-riot-id/bexli/bex (region: na1)
 Enable DEBUG-level logging for detailed output including rate limiter decisions and cache hits:
 
 ```python
---8<-- "client-features/logging.py:verbose-logging"
+--8<-- "client-features/log_config.py:verbose-logging"
 ```
 
 ### Example Output
@@ -37,7 +37,7 @@ Enable DEBUG-level logging for detailed output including rate limiter decisions 
 To silence nexar logging entirely:
 
 ```python
---8<-- "client-features/logging.py:suppress-logging"
+--8<-- "client-features/log_config.py:suppress-logging"
 ```
 
 ## Custom Log Handler
@@ -45,7 +45,7 @@ To silence nexar logging entirely:
 Route nexar logs to a file or integrate with your application's logging setup:
 
 ```python
---8<-- "client-features/logging.py:custom-handler"
+--8<-- "client-features/log_config.py:custom-handler"
 ```
 
 ## Log Levels

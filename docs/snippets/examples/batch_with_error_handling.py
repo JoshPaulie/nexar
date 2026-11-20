@@ -15,9 +15,9 @@ async def main() -> None:
     async with client:
         riot_ids = [
             "bexli#bex",
-            "nonexistent#user",       # Will fail with NotFoundError
+            "nonexistent#user",  # Will fail with NotFoundError
             "mltsimpleton#na1",
-            "alsobad#user",           # Will fail with NotFoundError
+            "alsobad#user",  # Will fail with NotFoundError
         ]
 
         try:

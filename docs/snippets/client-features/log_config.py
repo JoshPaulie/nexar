@@ -6,13 +6,13 @@ import sys
 from nexar.client import NexarClient
 from nexar.enums import Region
 
-# Get API key from environment
-api_key = os.getenv("RIOT_API_KEY")
-if api_key is None:
-    sys.exit("Please set RIOT_API_KEY environment variable")
-
 
 async def main() -> None:
+    # Get API key from environment
+    api_key = os.getenv("RIOT_API_KEY")
+    if not api_key:
+        sys.exit("Please set RIOT_API_KEY environment variable")
+
     # --8<-- [start:basic-logging]
     # Enable logging for nexar
     logging.basicConfig(level=logging.INFO)
