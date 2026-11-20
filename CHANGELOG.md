@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Changed
+
+- Internal: client call counters are now keyed from the `CallStats` field definitions instead of a hand-maintained dict, and the redundant in-method `Player` imports were removed.
+
 ## [2.0.0] - 2026-11-19
 
 ### Changed

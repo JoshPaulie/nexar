@@ -5,7 +5,7 @@ import json
 import logging
 import math
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from datetime import UTC, datetime
 from types import TracebackType
 from typing import Any, Self, cast
@@ -91,12 +91,9 @@ class NexarClient:
         self.rate_limiter = RateLimiter(app_rate_limits)
 
         self._api_call_count = 0
-        self._call_stats: dict[str, int] = {
-            "cache_hits": 0,
-            "fresh_calls": 0,
-            "retries": 0,
-            "errors": 0,
-        }
+        # Mutable tally over the CallStats field names; CallStats(**self._call_stats)
+        # and this dict share one key source, the dataclass definition.
+        self._call_stats: dict[str, int] = dict.fromkeys((f.name for f in fields(CallStats)), 0)
         self._session: CachedSession | aiohttp.ClientSession | None = None
 
     async def __aenter__(self) -> Self:
@@ -234,8 +231,6 @@ class NexarClient:
             ValueError: If no identification is provided.
 
         """
-        from .models.player import Player
-
         resolved_region = self._resolve_region(region)
 
         if game_name is not None and tag_line is not None:
@@ -265,8 +260,6 @@ class NexarClient:
         riot_ids: list[str],
         region: Region | None = None,
     ) -> list["Player"]:
-        from .models.player import Player
-
         resolved_region = self._resolve_region(region)
 
         async def create_player(riot_id: str) -> Player:
@@ -326,12 +319,7 @@ class NexarClient:
         return info
 
     def get_api_call_stats(self) -> CallStats:
-        return CallStats(
-            cache_hits=self._call_stats["cache_hits"],
-            fresh_calls=self._call_stats["fresh_calls"],
-            retries=self._call_stats["retries"],
-            errors=self._call_stats["errors"],
-        )
+        return CallStats(**self._call_stats)
 
     def print_api_call_summary(self) -> None:
         stats = self.get_api_call_stats()
