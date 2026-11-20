@@ -16,6 +16,161 @@ if TYPE_CHECKING:
     from .challenges import Challenges, Missions
     from .perks import Perks
 
+# (api_name, python_name, default) for every field Riot may omit from a participant.
+# Riot includes only non-empty values, so every stat field carries an explicit
+# default here. Identity fields (puuid, championId, championName, teamId,
+# participantId, win) stay direct reads in ``from_api_response`` — a payload
+# missing one of those is not a participant at all.
+_DEFAULTED_FIELDS: tuple[tuple[str, str, Any], ...] = (
+    # Deprecated name
+    ("summonerName", "_summoner_name", None),
+    # Basic stats
+    ("kills", "kills", 0),
+    ("deaths", "deaths", 0),
+    ("assists", "assists", 0),
+    ("champLevel", "champion_level", 0),
+    ("goldEarned", "gold_earned", 0),
+    ("goldSpent", "gold_spent", 0),
+    ("visionScore", "vision_score", 0),
+    # Items
+    ("item0", "item_0", 0),
+    ("item1", "item_1", 0),
+    ("item2", "item_2", 0),
+    ("item3", "item_3", 0),
+    ("item4", "item_4", 0),
+    ("item5", "item_5", 0),
+    ("item6", "item_6", 0),
+    # Position and role
+    ("lane", "lane", ""),
+    ("role", "role", ""),
+    # Ping stats
+    ("allInPings", "all_in_pings", 0),
+    ("assistMePings", "assist_me_pings", 0),
+    ("commandPings", "command_pings", 0),
+    ("enemyMissingPings", "enemy_missing_pings", 0),
+    ("enemyVisionPings", "enemy_vision_pings", 0),
+    ("getBackPings", "get_back_pings", 0),
+    ("holdPings", "hold_pings", 0),
+    ("needVisionPings", "need_vision_pings", 0),
+    ("onMyWayPings", "on_my_way_pings", 0),
+    ("pushPings", "push_pings", 0),
+    ("visionClearedPings", "vision_cleared_pings", 0),
+    # Kill stats
+    ("baronKills", "baron_kills", 0),
+    ("doubleKills", "double_kills", 0),
+    ("dragonKills", "dragon_kills", 0),
+    ("inhibitorKills", "inhibitor_kills", 0),
+    ("killingSprees", "killing_sprees", 0),
+    ("largestKillingSpree", "largest_killing_spree", 0),
+    ("largestMultiKill", "largest_multi_kill", 0),
+    ("nexusKills", "nexus_kills", 0),
+    ("pentaKills", "penta_kills", 0),
+    ("quadraKills", "quadra_kills", 0),
+    ("tripleKills", "triple_kills", 0),
+    ("turretKills", "turret_kills", 0),
+    ("unrealKills", "unreal_kills", 0),
+    # Damage stats
+    ("damageDealtToBuildings", "damage_dealt_to_buildings", 0),
+    ("damageDealtToObjectives", "damage_dealt_to_objectives", 0),
+    ("damageDealtToTurrets", "damage_dealt_to_turrets", 0),
+    ("damageSelfMitigated", "damage_self_mitigated", 0),
+    ("largestCriticalStrike", "largest_critical_strike", 0),
+    ("magicDamageDealt", "magic_damage_dealt", 0),
+    ("magicDamageDealtToChampions", "magic_damage_dealt_to_champions", 0),
+    ("magicDamageTaken", "magic_damage_taken", 0),
+    ("physicalDamageDealt", "physical_damage_dealt", 0),
+    ("physicalDamageDealtToChampions", "physical_damage_dealt_to_champions", 0),
+    ("physicalDamageTaken", "physical_damage_taken", 0),
+    ("totalDamageDealt", "total_damage_dealt", 0),
+    ("totalDamageDealtToChampions", "total_damage_dealt_to_champions", 0),
+    ("totalDamageShieldedOnTeammates", "total_damage_shielded_on_teammates", 0),
+    ("totalDamageTaken", "total_damage_taken", 0),
+    ("trueDamageDealt", "true_damage_dealt", 0),
+    ("trueDamageDealtToChampions", "true_damage_dealt_to_champions", 0),
+    ("trueDamageTaken", "true_damage_taken", 0),
+    # Minion and jungle stats
+    ("neutralMinionsKilled", "neutral_minions_killed", 0),
+    ("totalAllyJungleMinionsKilled", "total_ally_jungle_minions_killed", 0),
+    ("totalEnemyJungleMinionsKilled", "total_enemy_jungle_minions_killed", 0),
+    ("totalMinionsKilled", "total_minions_killed", 0),
+    # Healing and support stats
+    ("totalHeal", "total_heal", 0),
+    ("totalHealsOnTeammates", "total_heals_on_teammates", 0),
+    ("totalUnitsHealed", "total_units_healed", 0),
+    # Time stats
+    ("longestTimeSpentLiving", "longest_time_spent_living", 0),
+    ("timeCCingOthers", "time_ccing_others", 0),
+    ("timePlayed", "time_played", 0),
+    ("totalTimeCCDealt", "total_time_cc_dealt", 0),
+    ("totalTimeSpentDead", "total_time_spent_dead", 0),
+    # Ward and vision stats
+    ("detectorWardsPlaced", "detector_wards_placed", 0),
+    ("sightWardsBoughtInGame", "sight_wards_bought_in_game", 0),
+    ("visionWardsBoughtInGame", "vision_wards_bought_in_game", 0),
+    ("wardsKilled", "wards_killed", 0),
+    ("wardsPlaced", "wards_placed", 0),
+    # Spell casts
+    ("spell1Casts", "spell_1_casts", 0),
+    ("spell2Casts", "spell_2_casts", 0),
+    ("spell3Casts", "spell_3_casts", 0),
+    ("spell4Casts", "spell_4_casts", 0),
+    ("summoner1Casts", "summoner_1_casts", 0),
+    ("summoner1Id", "summoner_1_id", 0),
+    ("summoner2Casts", "summoner_2_casts", 0),
+    ("summoner2Id", "summoner_2_id", 0),
+    # Structure stats
+    ("inhibitorTakedowns", "inhibitor_takedowns", 0),
+    ("inhibitorsLost", "inhibitors_lost", 0),
+    ("nexusTakedowns", "nexus_takedowns", 0),
+    ("nexusLost", "nexus_lost", 0),
+    ("turretTakedowns", "turret_takedowns", 0),
+    ("turretsLost", "turrets_lost", 0),
+    # Objectives
+    ("objectivesStolen", "objectives_stolen", 0),
+    ("objectivesStolenAssists", "objectives_stolen_assists", 0),
+    # Game state
+    ("bountyLevel", "bounty_level", None),
+    ("champExperience", "champ_experience", 0),
+    ("championTransform", "champion_transform", 0),
+    ("consumablesPurchased", "consumables_purchased", 0),
+    ("eligibleForProgression", "eligible_for_progression", False),
+    ("firstBloodAssist", "first_blood_assist", False),
+    ("firstBloodKill", "first_blood_kill", False),
+    ("firstTowerAssist", "first_tower_assist", False),
+    ("firstTowerKill", "first_tower_kill", False),
+    ("gameEndedInEarlySurrender", "game_ended_in_early_surrender", False),
+    ("gameEndedInSurrender", "game_ended_in_surrender", False),
+    ("itemsPurchased", "items_purchased", 0),
+    ("placement", "placement", None),
+    ("profileIcon", "profile_icon", 0),
+    ("summonerId", "summoner_id", ""),
+    ("summonerLevel", "summoner_level", 0),
+    ("teamEarlySurrendered", "team_early_surrendered", False),
+    # Riot ID
+    ("riotIdGameName", "game_name", None),
+    ("riotIdTagline", "tagline", None),
+    # Player scores (top-level copies; the missions block is canonical)
+    ("playerScore0", "player_score_0", None),
+    ("playerScore1", "player_score_1", None),
+    ("playerScore2", "player_score_2", None),
+    ("playerScore3", "player_score_3", None),
+    ("playerScore4", "player_score_4", None),
+    ("playerScore5", "player_score_5", None),
+    ("playerScore6", "player_score_6", None),
+    ("playerScore7", "player_score_7", None),
+    ("playerScore8", "player_score_8", None),
+    ("playerScore9", "player_score_9", None),
+    ("playerScore10", "player_score_10", None),
+    ("playerScore11", "player_score_11", None),
+    # Player augments (mode-specific)
+    ("playerAugment1", "player_augment_1", None),
+    ("playerAugment2", "player_augment_2", None),
+    ("playerAugment3", "player_augment_3", None),
+    ("playerAugment4", "player_augment_4", None),
+    ("playerSubteamId", "player_subteam_id", None),
+    ("subteamPlacement", "subteam_placement", None),
+)
+
 
 @dataclass(frozen=True)
 class Participant:
@@ -82,7 +237,9 @@ class Participant:
         return self._summoner_name
 
     participant_id: int
-    """Participant's position in the match (1-10)."""
+    """This participant's index in the match's participant list (1-10).
+
+    Not a map position — see ``team_position`` for the played role."""
 
     # Basic stats
     kills: int
@@ -130,6 +287,8 @@ class Participant:
             A Player instance for this participant.
 
         """
+        # local import: nexar.models.player imports the match modules, so importing
+        # Player here at module level would be circular.
         from nexar.models.player import Player
 
         return await Player.create(client=client, puuid=self.puuid, region=region)
@@ -519,14 +678,7 @@ class Participant:
     """Whether the participant got first tower kill."""
 
     game_ended_in_early_surrender: bool
-    """
-    Whether the game ended in an early surrender.
-
-    Riot docs:
-    > This is an offshoot of the OneStone challenge. The code checks if a spell with the same
-    instance ID does the final point of damage to at least 2 Champions. It doesn't matter if
-    they're enemies, but you cannot hurt your friends.
-    """
+    """Whether the game ended in an early surrender (before the 15-minute remake window closed)."""
 
     game_ended_in_surrender: bool
     """Whether the game ended in a surrender."""
@@ -538,14 +690,15 @@ class Participant:
     """
     Final placement in the match (TFT and other mode-specific queues only).
 
-    None for standard Summoner's Rift games, and when Riot omits the field.
+    None when Riot omits the field. Standard Summoner's Rift games report a
+    placement of 0 (the recorded fixture does) rather than omitting it.
     """
 
     profile_icon: int
     """Profile icon ID used by the participant."""
 
     summoner_id: str
-    """Summoner ID of the participant."""
+    """Summoner ID of the participant. Empty string when Riot omits the field."""
 
     summoner_level: int
     """Summoner level at the time of the match."""
@@ -576,40 +729,40 @@ class Participant:
 
     # Player scores (from missions)
     player_score_0: int | None = None
-    """Mission score 0, if applicable."""
+    """Mission score 0, if applicable. The ``missions`` block is canonical (``Missions.player_score_0``)."""
 
     player_score_1: int | None = None
-    """Mission score 1, if applicable."""
+    """Mission score 1, if applicable. The ``missions`` block is canonical (``Missions.player_score_1``)."""
 
     player_score_2: int | None = None
-    """Mission score 2, if applicable."""
+    """Mission score 2, if applicable. The ``missions`` block is canonical (``Missions.player_score_2``)."""
 
     player_score_3: int | None = None
-    """Mission score 3, if applicable."""
+    """Mission score 3, if applicable. The ``missions`` block is canonical (``Missions.player_score_3``)."""
 
     player_score_4: int | None = None
-    """Mission score 4, if applicable."""
+    """Mission score 4, if applicable. The ``missions`` block is canonical (``Missions.player_score_4``)."""
 
     player_score_5: int | None = None
-    """Mission score 5, if applicable."""
+    """Mission score 5, if applicable. The ``missions`` block is canonical (``Missions.player_score_5``)."""
 
     player_score_6: int | None = None
-    """Mission score 6, if applicable."""
+    """Mission score 6, if applicable. The ``missions`` block is canonical (``Missions.player_score_6``)."""
 
     player_score_7: int | None = None
-    """Mission score 7, if applicable."""
+    """Mission score 7, if applicable. The ``missions`` block is canonical (``Missions.player_score_7``)."""
 
     player_score_8: int | None = None
-    """Mission score 8, if applicable."""
+    """Mission score 8, if applicable. The ``missions`` block is canonical (``Missions.player_score_8``)."""
 
     player_score_9: int | None = None
-    """Mission score 9, if applicable."""
+    """Mission score 9, if applicable. The ``missions`` block is canonical (``Missions.player_score_9``)."""
 
     player_score_10: int | None = None
-    """Mission score 10, if applicable."""
+    """Mission score 10, if applicable. The ``missions`` block is canonical (``Missions.player_score_10``)."""
 
     player_score_11: int | None = None
-    """Mission score 11, if applicable."""
+    """Mission score 11, if applicable. The ``missions`` block is canonical (``Missions.player_score_11``)."""
 
     # Player augments (for specific game modes)
     player_augment_1: int | None = None
@@ -633,169 +786,31 @@ class Participant:
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "Participant":
         """Create Participant from API response."""
+        # local imports: these siblings import .match, so module-level imports
+        # here would be circular.
         from .challenges import Challenges, Missions
         from .perks import Perks
 
+        kwargs: dict[str, Any] = {
+            py_name: data.get(api_name, default) for api_name, py_name, default in _DEFAULTED_FIELDS
+        }
         return cls(
-            # Core participant data
+            # Identity fields are direct reads: always present, and a missing one
+            # means the payload is not a participant at all.
             puuid=data["puuid"],
-            _summoner_name=data.get("summonerName"),
             champion_id=data["championId"],
             champion_name=data["championName"],
             team_id=data["teamId"],
             participant_id=data["participantId"],
-            # Basic stats
-            kills=data.get("kills", 0),
-            deaths=data.get("deaths", 0),
-            assists=data.get("assists", 0),
-            champion_level=data.get("champLevel", 0),
-            gold_earned=data.get("goldEarned", 0),
-            gold_spent=data.get("goldSpent", 0),
-            vision_score=data.get("visionScore", 0),
             win=data["win"],
-            # Items
-            item_0=data.get("item0", 0),
-            item_1=data.get("item1", 0),
-            item_2=data.get("item2", 0),
-            item_3=data.get("item3", 0),
-            item_4=data.get("item4", 0),
-            item_5=data.get("item5", 0),
-            item_6=data.get("item6", 0),
-            # Position and role
+            # Position enums degrade to INVALID when Riot omits the field.
             individual_position=MatchParticipantPosition(
                 data.get("individualPosition", MatchParticipantPosition.INVALID),
             ),
             team_position=MatchParticipantPosition(data.get("teamPosition", MatchParticipantPosition.INVALID)),
-            lane=data.get("lane", ""),
-            role=data.get("role", ""),
-            # Ping stats
-            all_in_pings=data.get("allInPings", 0),
-            assist_me_pings=data.get("assistMePings", 0),
-            command_pings=data.get("commandPings", 0),
-            enemy_missing_pings=data.get("enemyMissingPings", 0),
-            enemy_vision_pings=data.get("enemyVisionPings", 0),
-            get_back_pings=data.get("getBackPings", 0),
-            hold_pings=data.get("holdPings", 0),
-            need_vision_pings=data.get("needVisionPings", 0),
-            on_my_way_pings=data.get("onMyWayPings", 0),
-            push_pings=data.get("pushPings", 0),
-            vision_cleared_pings=data.get("visionClearedPings", 0),
-            # Kill stats
-            baron_kills=data.get("baronKills", 0),
-            double_kills=data.get("doubleKills", 0),
-            dragon_kills=data.get("dragonKills", 0),
-            inhibitor_kills=data.get("inhibitorKills", 0),
-            killing_sprees=data.get("killingSprees", 0),
-            largest_killing_spree=data.get("largestKillingSpree", 0),
-            largest_multi_kill=data.get("largestMultiKill", 0),
-            nexus_kills=data.get("nexusKills", 0),
-            penta_kills=data.get("pentaKills", 0),
-            quadra_kills=data.get("quadraKills", 0),
-            triple_kills=data.get("tripleKills", 0),
-            turret_kills=data.get("turretKills", 0),
-            unreal_kills=data.get("unrealKills", 0),
-            # Damage stats
-            damage_dealt_to_buildings=data.get("damageDealtToBuildings", 0),
-            damage_dealt_to_objectives=data.get("damageDealtToObjectives", 0),
-            damage_dealt_to_turrets=data.get("damageDealtToTurrets", 0),
-            damage_self_mitigated=data.get("damageSelfMitigated", 0),
-            largest_critical_strike=data.get("largestCriticalStrike", 0),
-            magic_damage_dealt=data.get("magicDamageDealt", 0),
-            magic_damage_dealt_to_champions=data.get("magicDamageDealtToChampions", 0),
-            magic_damage_taken=data.get("magicDamageTaken", 0),
-            physical_damage_dealt=data.get("physicalDamageDealt", 0),
-            physical_damage_dealt_to_champions=data.get("physicalDamageDealtToChampions", 0),
-            physical_damage_taken=data.get("physicalDamageTaken", 0),
-            total_damage_dealt=data.get("totalDamageDealt", 0),
-            total_damage_dealt_to_champions=data.get("totalDamageDealtToChampions", 0),
-            total_damage_shielded_on_teammates=data.get("totalDamageShieldedOnTeammates", 0),
-            total_damage_taken=data.get("totalDamageTaken", 0),
-            true_damage_dealt=data.get("trueDamageDealt", 0),
-            true_damage_dealt_to_champions=data.get("trueDamageDealtToChampions", 0),
-            true_damage_taken=data.get("trueDamageTaken", 0),
-            # Minion and jungle stats
-            neutral_minions_killed=data.get("neutralMinionsKilled", 0),
-            total_ally_jungle_minions_killed=data.get("totalAllyJungleMinionsKilled", 0),
-            total_enemy_jungle_minions_killed=data.get("totalEnemyJungleMinionsKilled", 0),
-            total_minions_killed=data.get("totalMinionsKilled", 0),
-            # Healing and support stats
-            total_heal=data.get("totalHeal", 0),
-            total_heals_on_teammates=data.get("totalHealsOnTeammates", 0),
-            total_units_healed=data.get("totalUnitsHealed", 0),
-            # Time stats
-            longest_time_spent_living=data.get("longestTimeSpentLiving", 0),
-            time_ccing_others=data.get("timeCCingOthers", 0),
-            time_played=data.get("timePlayed", 0),
-            total_time_cc_dealt=data.get("totalTimeCCDealt", 0),
-            total_time_spent_dead=data.get("totalTimeSpentDead", 0),
-            # Ward and vision stats
-            detector_wards_placed=data.get("detectorWardsPlaced", 0),
-            sight_wards_bought_in_game=data.get("sightWardsBoughtInGame", 0),
-            vision_wards_bought_in_game=data.get("visionWardsBoughtInGame", 0),
-            wards_killed=data.get("wardsKilled", 0),
-            wards_placed=data.get("wardsPlaced", 0),
-            # Spell casts
-            spell_1_casts=data.get("spell1Casts", 0),
-            spell_2_casts=data.get("spell2Casts", 0),
-            spell_3_casts=data.get("spell3Casts", 0),
-            spell_4_casts=data.get("spell4Casts", 0),
-            summoner_1_casts=data.get("summoner1Casts", 0),
-            summoner_1_id=data.get("summoner1Id", 0),
-            summoner_2_casts=data.get("summoner2Casts", 0),
-            summoner_2_id=data.get("summoner2Id", 0),
-            # Structure stats
-            inhibitor_takedowns=data.get("inhibitorTakedowns", 0),
-            inhibitors_lost=data.get("inhibitorsLost", 0),
-            nexus_takedowns=data.get("nexusTakedowns", 0),
-            nexus_lost=data.get("nexusLost", 0),
-            turret_takedowns=data.get("turretTakedowns", 0),
-            turrets_lost=data.get("turretsLost", 0),
-            # Objectives
-            objectives_stolen=data.get("objectivesStolen", 0),
-            objectives_stolen_assists=data.get("objectivesStolenAssists", 0),
-            # Game state
-            bounty_level=data.get("bountyLevel"),
-            champ_experience=data.get("champExperience", 0),
-            champion_transform=data.get("championTransform", 0),
-            consumables_purchased=data.get("consumablesPurchased", 0),
-            eligible_for_progression=data.get("eligibleForProgression", False),
-            first_blood_assist=data.get("firstBloodAssist", False),
-            first_blood_kill=data.get("firstBloodKill", False),
-            first_tower_assist=data.get("firstTowerAssist", False),
-            first_tower_kill=data.get("firstTowerKill", False),
-            game_ended_in_early_surrender=data.get("gameEndedInEarlySurrender", False),
-            game_ended_in_surrender=data.get("gameEndedInSurrender", False),
-            items_purchased=data.get("itemsPurchased", 0),
-            placement=data.get("placement"),
-            profile_icon=data.get("profileIcon", 0),
-            summoner_id=data.get("summonerId", ""),
-            summoner_level=data.get("summonerLevel", 0),
-            team_early_surrendered=data.get("teamEarlySurrendered", False),
-            # Complex nested objects (optionally included by Riot)
+            # Complex nested objects, each optional in the payload.
             perks=Perks.from_api_response(p_data) if (p_data := data.get("perks")) else None,
             challenges=Challenges.from_api_response(c_data) if (c_data := data.get("challenges")) else None,
             missions=Missions.from_api_response(m_data) if (m_data := data.get("missions")) else None,
-            # Riot ID (optional fields)
-            game_name=data.get("riotIdGameName"),
-            tagline=data.get("riotIdTagline"),
-            # Player scores (optional fields from missions)
-            player_score_0=data.get("playerScore0"),
-            player_score_1=data.get("playerScore1"),
-            player_score_2=data.get("playerScore2"),
-            player_score_3=data.get("playerScore3"),
-            player_score_4=data.get("playerScore4"),
-            player_score_5=data.get("playerScore5"),
-            player_score_6=data.get("playerScore6"),
-            player_score_7=data.get("playerScore7"),
-            player_score_8=data.get("playerScore8"),
-            player_score_9=data.get("playerScore9"),
-            player_score_10=data.get("playerScore10"),
-            player_score_11=data.get("playerScore11"),
-            # Player augments (optional fields for specific game modes)
-            player_augment_1=data.get("playerAugment1"),
-            player_augment_2=data.get("playerAugment2"),
-            player_augment_3=data.get("playerAugment3"),
-            player_augment_4=data.get("playerAugment4"),
-            player_subteam_id=data.get("playerSubteamId"),
-            subteam_placement=data.get("subteamPlacement"),
+            **kwargs,
         )

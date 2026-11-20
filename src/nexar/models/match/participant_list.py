@@ -1,7 +1,7 @@
 """Specialized list class for working with match participants."""
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, SupportsIndex, cast, overload
+from typing import TYPE_CHECKING, Any, SupportsIndex, overload
 
 if TYPE_CHECKING:
     from .participant import Participant
@@ -214,20 +214,6 @@ class ParticipantList(list["Participant"]):
     def __getitem__(self, key: slice) -> "ParticipantList": ...
 
     def __getitem__(self, key: SupportsIndex | slice) -> "Participant | ParticipantList":
-        result = super().__getitem__(key)
         if isinstance(key, slice):
-            msg = "Slicing a ParticipantList did not return a list as expected."
-            if not isinstance(result, list):
-                raise TypeError(msg)
-            return ParticipantList(result)
-        # Defensive: ensure only a Participant is returned for int
-        if not isinstance(result, self._participant_type()):
-            msg = "Indexing a ParticipantList did not return a Participant as expected."
-            raise TypeError(msg)
-        return cast("Participant", result)
-
-    @staticmethod
-    def _participant_type() -> type:
-        from .participant import Participant
-
-        return Participant
+            return ParticipantList(super().__getitem__(key))
+        return super().__getitem__(key)

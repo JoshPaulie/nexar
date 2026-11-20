@@ -1,7 +1,7 @@
 """Specialized list class for working with a player's matches."""
 
 from collections.abc import Callable, Iterator
-from typing import TYPE_CHECKING, Any, SupportsIndex, cast, overload
+from typing import TYPE_CHECKING, Any, SupportsIndex, overload
 
 from nexar.models.stats import ChampionStats, PerformanceStats
 
@@ -226,20 +226,6 @@ class MatchList(list["Match"]):
     def __getitem__(self, key: slice) -> "MatchList": ...
 
     def __getitem__(self, key: SupportsIndex | slice) -> "Match | MatchList":
-        result = super().__getitem__(key)
         if isinstance(key, slice):
-            msg = "Slicing a MatchList did not return a list as expected."
-            if not isinstance(result, list):
-                raise TypeError(msg)
-            return MatchList(result, self.puuid)
-        # Defensive: ensure only a Match is returned for int
-        if not isinstance(result, self._match_type()):
-            msg = "Indexing a MatchList did not return a Match as expected."
-            raise TypeError(msg)
-        return cast("Match", result)
-
-    @staticmethod
-    def _match_type() -> type:
-        from nexar.models.match.match import Match
-
-        return Match
+            return MatchList(super().__getitem__(key), self.puuid)
+        return super().__getitem__(key)
