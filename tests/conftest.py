@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import re
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 from typing import Any, cast
@@ -45,8 +46,6 @@ async def client(
     mock_aioresponse: aioresponses,
     mock_responses: dict[str, Any],
 ) -> AsyncGenerator[NexarClient]:
-    import re
-
     mock_aioresponse.get(
         re.compile(r"https://.*\.api\.riotgames\.com/riot/account/v1/accounts/by-riot-id/.*"),
         payload=mock_responses["riot_account"],
@@ -64,11 +63,6 @@ async def client(
         payload=mock_responses["summoner"],
         repeat=True,
     )
-    mock_aioresponse.get(
-        re.compile(r"https://.*\.api\.riotgames\.com/lol/summoner/v4/summoners/by-name/.*"),
-        payload=mock_responses["summoner"],
-        repeat=True,
-    )
 
     mock_aioresponse.get(
         re.compile(r"https://.*\.api\.riotgames\.com/lol/match/v5/matches/by-puuid/.*/ids.*"),
@@ -82,11 +76,6 @@ async def client(
         repeat=True,
     )
 
-    mock_aioresponse.get(
-        re.compile(r"https://.*\.api\.riotgames\.com/lol/league/v4/entries/by-summoner/.*"),
-        payload=mock_responses["league_entries"],
-        repeat=True,
-    )
     mock_aioresponse.get(
         re.compile(r"https://.*\.api\.riotgames\.com/lol/league/v4/entries/by-puuid/.*"),
         payload=mock_responses["league_entries"],

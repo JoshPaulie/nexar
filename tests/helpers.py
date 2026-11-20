@@ -3,12 +3,55 @@
 from datetime import datetime
 from typing import Any
 
+from aioresponses import aioresponses
+
 from nexar.enums import MapId, MatchParticipantPosition, PlatformId, Queue
 from nexar.models.match.challenges import Challenges, Missions
 from nexar.models.match.match import Match, MatchInfo, MatchMetadata
 from nexar.models.match.participant import Participant
 from nexar.models.match.participant_list import ParticipantList
 from nexar.models.match.perks import Perks, PerkStats
+
+
+def register_exact_url(
+    mock: aioresponses,
+    url: str,
+    payload: object,
+    *,
+    repeat: bool = False,
+    status: int = 200,
+) -> None:
+    """Register a payload for one exact URL — the registration style for parameter-sensitive tests.
+
+    A literal URL makes aioresponses match the full query string, so a dropped or
+    mangled request parameter fails the request instead of silently serving the
+    canned payload to any matching URL.
+    """
+    mock.get(url, payload=payload, status=status, repeat=repeat)
+
+
+def match_response_payload(match_id: str = "NA1_12345") -> dict[str, Any]:
+    """Match payload in the recorded API shape, shared by the client get_match/cache tests."""
+    return {
+        "metadata": {"matchId": match_id, "dataVersion": "2", "participants": ["p1", "p2"]},
+        "info": {
+            "gameCreation": 123456789,
+            "gameDuration": 1234,
+            "gameEndTimestamp": 1234567890,
+            "gameId": 12345,
+            "gameMode": "CLASSIC",
+            "gameName": "test",
+            "gameStartTimestamp": 123456789,
+            "gameType": "MATCHED_GAME",
+            "gameVersion": "1.0",
+            "mapId": 11,
+            "participants": [],
+            "platformId": "NA1",
+            "queueId": 420,
+            "teams": [],
+            "tournamentCode": "",
+        },
+    }
 
 
 def create_test_participant(**overrides: object) -> Participant:
@@ -136,8 +179,6 @@ def create_test_participant(**overrides: object) -> Participant:
         "perks": Perks(stat_perks=PerkStats(defense=0, flex=0, offense=0), styles=[]),
         "challenges": Challenges(),
         "missions": Missions(),
-        "game_name": "TestPlayer",
-        "tagline": "TST",
     }
     defaults.update(overrides)
     return Participant(**defaults)
