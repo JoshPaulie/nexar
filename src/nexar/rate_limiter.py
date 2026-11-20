@@ -61,6 +61,8 @@ class RateLimiter:
         for limit, window in app_limits:
             _validate_rate_limit(limit, window)
         self._app_limits = app_limits
+        # The longest window bounds how far back an admission can still matter.
+        self._longest_window = max(w for _, w in app_limits)
         # region -> admission timestamps (monotonic)
         self._admitted: dict[str, deque[float]] = {}
         # region -> unblock timestamp (monotonic), set by 429 Retry-After
@@ -70,7 +72,7 @@ class RateLimiter:
 
     async def acquire(self, region: str) -> None:
         """Acquire permission to make one request. Blocks until every window has a slot."""
-        longest = max(w for _, w in self._app_limits)
+        longest = self._longest_window
         while True:
             now = time.monotonic()
             blocked_until = self._blocked_until.get(region, 0.0)
@@ -135,8 +137,12 @@ class RateLimiter:
             bands.append((now - prev_window, max(count - prev_count, 0)))
             prev_window, prev_count = window, count
         # append oldest-first, then restore chronological order (the real
-        # current entry was appended before the seed)
+        # current entry was appended before the seed). Mutate the deque in
+        # place so any concurrent acquire holding a reference to it sees the
+        # same log — a rebind could orphan a parked admission mid-check.
         for placed_at, n in reversed(bands):
             dq.extend([placed_at] * n)
-        self._admitted[region] = deque(sorted(dq))
+        ordered = sorted(dq)
+        dq.clear()
+        dq.extend(ordered)
         logger.info("Oriented %s rate limits from server counts: %s", region, counts)
