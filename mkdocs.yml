@@ -66,10 +66,15 @@ nav:
   - Reference:
       - Architecture: architecture.md
       - Client: reference/client.md
+      - Enums: reference/enums.md
+      - Exceptions: reference/exceptions.md
+      - Cache: reference/cache.md
+      - Rate limiting: reference/rate-limiting.md
       - Models:
           - Account: reference/models/account.md
           - League: reference/models/league.md
           - Match: reference/models/match.md
+          - MatchList: reference/models/match-list.md
           - Participant: reference/models/participant.md
           - ParticipantList: reference/models/participant-list.md
           - Player: reference/models/player.md
