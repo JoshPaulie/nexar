@@ -6,6 +6,7 @@ lifecycle, error mapping, 429 retry pacing, debug output.
 
 import os
 import re
+import sqlite3
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -199,24 +200,27 @@ async def test_ensure_session_no_cache() -> None:
 
 @pytest.mark.asyncio
 async def test_get_cache_info_details(client: NexarClient) -> None:
+    """The row count reads the storage's size(); cache_size was never a real key."""
     await client._ensure_session()
-    mock_cache = MagicMock()
-    mock_cache.__len__ = MagicMock(return_value=5)
-    mock_cache.size = 1024
-    mock_cache._close_if_enabled = AsyncMock()
-    assert client._session is not None
-    client._session.cache = mock_cache
+    session = client._session
+    assert isinstance(session, CachedSession)
+    # sqlite tables exist only after the first awaited op (documented in SKILL).
+    await session.cache.get_response("warmup")
+    await session.cache.responses.write("row-1", "v1")
+    await session.cache.responses.write("row-2", "v2")
     info = await client.get_cache_info()
-    assert info["cached_responses"] == 5
-    assert info["cache_size"] == 1024
+    assert info["cached_responses"] == 2
+    assert info["backend"] == "sqlite"
+    assert "cache_size" not in info
     await client.close()
 
 
 @pytest.mark.asyncio
 async def test_cache_info_exception(client: NexarClient) -> None:
+    """An uncountable storage reports 0 instead of raising."""
     await client._ensure_session()
     mock_cache = MagicMock()
-    mock_cache.__len__.side_effect = TypeError("Fail")
+    mock_cache.responses.size = AsyncMock(side_effect=sqlite3.OperationalError("database is locked"))
     mock_cache._close_if_enabled = AsyncMock()
     assert client._session is not None
     client._session.cache = mock_cache

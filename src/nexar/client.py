@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import os
+import sqlite3
 from dataclasses import dataclass, fields
 from datetime import UTC, datetime
 from types import TracebackType
@@ -298,6 +299,11 @@ class NexarClient:
             logger.info("Cache cleared")
 
     async def get_cache_info(self) -> dict[str, Any]:
+        """Report the cache configuration and the number of stored rows.
+
+        ``cached_responses`` is a best-effort count: a storage that cannot be
+        counted (e.g. a locked sqlite file) reports 0 rather than raising.
+        """
         info: dict[str, Any] = {
             "enabled": self.cache_config.enabled,
             "backend": self.cache_config.backend,
@@ -306,15 +312,15 @@ class NexarClient:
             "cached_responses": 0,
         }
 
-        if isinstance(self._session, CachedSession) and self._session.cache:
+        session = self._session
+        if isinstance(session, CachedSession) and session.cache:
             try:
-                cache = self._session.cache
-                if hasattr(cache, "__len__"):
-                    info["cached_responses"] = len(cache)
-                if hasattr(cache, "size"):
-                    info["cache_size"] = cache.size
-            except (AttributeError, KeyError, TypeError) as exc:
-                logger.debug("Cache info check failed: %s", exc)
+                # Row count via the storage's size(): every BaseCache implements
+                # it, while CacheBackend itself defines no __len__ in this
+                # aiohttp-client-cache version.
+                info["cached_responses"] = await session.cache.responses.size()
+            except (OSError, sqlite3.Error) as exc:
+                logger.debug("Cache row count failed: %s", exc)
 
         return info
 

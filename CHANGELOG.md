@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - Internal: client call counters are now keyed from the `CallStats` field definitions instead of a hand-maintained dict, and the redundant in-method `Player` imports were removed.
 
+### Fixed
+
+- `get_cache_info()` now reports a real `cached_responses` row count via the cache storage's `size()` instead of a structurally-zero `hasattr` probe; the never-present `cache_size` key was dropped.
+
 ## [2.0.0] - 2026-11-19
 
 ### Changed
