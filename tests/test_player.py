@@ -79,6 +79,8 @@ class TestPlayer:
             client=client,
             game_name="bexli",
             tag_line="bex",
+            puuid=None,
+            riot_id=None,
             region=Region.EUW1,
         )
 

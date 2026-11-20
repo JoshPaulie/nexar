@@ -154,6 +154,9 @@ class Player:
         """
         Create a Player instance from a Riot ID in "gameName#tagLine" format.
 
+        Forwards to ``Player.create``, which owns the identification dispatch
+        and the riot-id parsing.
+
         Args:
             client: The client instance to use for API calls
             riot_id: Riot ID in "gameName#tagLine" format (e.g., "bexli#bex")
@@ -166,13 +169,7 @@ class Player:
             ValueError: If riot_id is not in the correct format
 
         """
-        game_name, tag_line = _parse_riot_id(riot_id)
-        return await cls.create(
-            client=client,
-            game_name=game_name,
-            tag_line=tag_line,
-            region=region,
-        )
+        return await cls.create(client=client, riot_id=riot_id, region=region)
 
     async def get_summoner(self) -> Summoner:
         """

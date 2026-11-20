@@ -211,12 +211,11 @@ class NexarClient:
         """
         Get a Player by game name + tag line, PUUID, or Riot ID string.
 
-        At least one identification pattern must be provided (all keyword-only).
-        When several are supplied, the first one wins, in this order:
-
-        1. ``game_name`` + ``tag_line``
-        2. ``puuid``
-        3. ``riot_id``
+        The identification precedence lives on ``Player.create``, which this
+        forwards to: ``game_name`` + ``tag_line``, then ``puuid``, then
+        ``riot_id`` — the first complete pattern wins. The region is resolved
+        against the client default here, so the returned ``Player.region`` is
+        always concrete.
 
         Args:
             game_name: Player's game name (without #). Must be paired with tag_line.
@@ -233,28 +232,14 @@ class NexarClient:
 
         """
         resolved_region = self._resolve_region(region)
-
-        if game_name is not None and tag_line is not None:
-            return await Player.create(
-                client=self,
-                game_name=game_name,
-                tag_line=tag_line,
-                region=resolved_region,
-            )
-        if puuid is not None:
-            return await Player.create(
-                client=self,
-                puuid=puuid,
-                region=resolved_region,
-            )
-        if riot_id is not None:
-            return await Player.create(
-                client=self,
-                riot_id=riot_id,
-                region=resolved_region,
-            )
-        msg = "Either game_name + tag_line, puuid, or riot_id must be provided."
-        raise ValueError(msg)
+        return await Player.create(
+            client=self,
+            game_name=game_name,
+            tag_line=tag_line,
+            puuid=puuid,
+            riot_id=riot_id,
+            region=resolved_region,
+        )
 
     async def get_players(
         self,
