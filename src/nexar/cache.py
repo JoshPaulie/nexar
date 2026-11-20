@@ -41,11 +41,14 @@ def ttl(*, minutes: int = 0, hours: int = 0, days: int = 0) -> int:
 # Match detail is immutable once finished → cached forever.
 # Account/summoner lookup data rarely changes → cached 24 hours.
 # League entries change frequently → cached 5 minutes.
+# Champion mastery changes only through play → cached 30 minutes.
 # Match ID lists change as new matches are played → cached 1 minute.
 # Order matters: more specific patterns must come first (first match wins).
 _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/match/v5/matches/by-puuid/*/ids": ttl(minutes=1),
     "*/lol/league/v4/entries/by-puuid/*": ttl(minutes=5),
+    "*/lol/champion-mastery/v4/champion-masteries/by-puuid/*": ttl(minutes=30),
+    "*/lol/champion-mastery/v4/scores/by-puuid/*": ttl(minutes=30),
     "*/lol/match/v5/matches/*": None,
     "*/riot/account/v1/accounts/by-riot-id/*": ttl(days=1),
     "*/lol/summoner/v4/summoners/by-puuid/*": ttl(days=1),

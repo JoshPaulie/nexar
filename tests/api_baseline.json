@@ -12,6 +12,9 @@
    "close",
    "get_api_call_stats",
    "get_cache_info",
+   "get_champion_masteries",
+   "get_champion_mastery",
+   "get_champion_mastery_score",
    "get_league_entries_by_puuid",
    "get_match",
    "get_match_ids_by_puuid",
@@ -20,6 +23,7 @@
    "get_riot_account",
    "get_riot_account_by_puuid",
    "get_summoner_by_puuid",
+   "get_top_champion_masteries",
    "print_api_call_summary"
   ],
   "nexar.models.match.participant.Participant": [
@@ -219,12 +223,14 @@
    "sort_by"
   ],
   "nexar.models.player.Player": [
+   "_champion_masteries",
    "_league_entries",
    "_summoner",
    "by_riot_id",
    "client",
    "create",
    "game_name",
+   "get_champion_masteries",
    "get_flex_rank",
    "get_last_match",
    "get_league_entries",
@@ -249,6 +255,7 @@
     "BatchError",
     "CacheConfig",
     "CallStats",
+    "ChampionMastery",
     "ChampionStats",
     "DEFAULT_CACHE_CONFIG",
     "ForbiddenError",
@@ -363,6 +370,7 @@
    "all": [
     "Ban",
     "Challenges",
+    "ChampionMastery",
     "ChampionStats",
     "LeagueEntry",
     "Match",
@@ -370,6 +378,7 @@
     "MatchMetadata",
     "MiniSeries",
     "Missions",
+    "NextSeasonMilestone",
     "Objective",
     "Objectives",
     "Participant",
@@ -380,6 +389,7 @@
     "PerkStyleSelection",
     "Perks",
     "Player",
+    "RewardConfig",
     "RiotAccount",
     "Summoner",
     "Team"

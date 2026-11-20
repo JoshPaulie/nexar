@@ -82,6 +82,18 @@ async def client(
         repeat=True,
     )
 
+    mock_aioresponse.get(
+        re.compile(r"https://.*\.api\.riotgames\.com/lol/champion-mastery/v4/champion-masteries/by-puuid/.*"),
+        payload=mock_responses["champion_masteries"],
+        repeat=True,
+    )
+
+    mock_aioresponse.get(
+        re.compile(r"https://.*\.api\.riotgames\.com/lol/champion-mastery/v4/scores/by-puuid/.*"),
+        payload=mock_responses["champion_mastery_score"],
+        repeat=True,
+    )
+
     nexar_client = NexarClient(
         riot_api_key="test-api-key",
         default_region=Region.NA1,

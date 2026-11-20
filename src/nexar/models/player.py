@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from nexar.enums import MatchType, Region
 
     from .account import RiotAccount, Summoner
+    from .champion_mastery import ChampionMastery
     from .league import LeagueEntry
     from .match.match import Match
     from .stats import ChampionStats
@@ -66,6 +67,7 @@ class Player:
     # Cached data (set after first fetch, not constructor parameters)
     _summoner: Summoner | None = field(default=None, init=False, repr=False)
     _league_entries: list[LeagueEntry] | None = field(default=None, init=False, repr=False)
+    _champion_masteries: list[ChampionMastery] | None = field(default=None, init=False, repr=False)
 
     @classmethod
     async def create(
@@ -199,6 +201,21 @@ class Player:
                 region=self.region,
             )
         return self._league_entries
+
+    async def get_champion_masteries(self) -> list[ChampionMastery]:
+        """
+        Get the player's champion masteries.
+
+        Returns:
+            List of ChampionMastery entries, highest mastery points first.
+
+        """
+        if self._champion_masteries is None:
+            self._champion_masteries = await self.client.get_champion_masteries(
+                self.riot_account.puuid,
+                region=self.region,
+            )
+        return self._champion_masteries
 
     async def get_match_ids(
         self,
@@ -459,6 +476,7 @@ class Player:
         """Clear all cached data to force fresh API calls."""
         self._summoner = None
         self._league_entries = None
+        self._champion_masteries = None
 
     def __str__(self) -> str:
         """Return string representation of the player."""

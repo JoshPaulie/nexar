@@ -60,6 +60,9 @@ class TestCreateCacheBackend:
         # Per-endpoint TTLs take precedence over the 60s default expire_after.
         assert backend.urls_expire_after["*/lol/match/v5/matches/*"] is None  # immutable: cached forever
         assert backend.urls_expire_after["*/lol/league/v4/entries/by-puuid/*"] == 300  # 5 minutes
+        assert (
+            backend.urls_expire_after["*/lol/champion-mastery/v4/champion-masteries/by-puuid/*"] == 1800
+        )  # 30 minutes
         assert backend.urls_expire_after["*/riot/account/v1/accounts/by-riot-id/*"] == 86400  # 1 day
         assert backend.allowed_codes == (200,)
 

@@ -22,6 +22,7 @@ from .exceptions import (
     UnauthorizedError,
 )
 from .models import (
+    ChampionMastery,
     ChampionStats,
     LeagueEntry,
     Match,
@@ -43,6 +44,7 @@ __all__ = [
     "BatchError",
     "CacheConfig",
     "CallStats",
+    "ChampionMastery",
     "ChampionStats",
     "ForbiddenError",
     "LeagueEntry",

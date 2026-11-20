@@ -26,7 +26,7 @@ from .exceptions import (
     UnauthorizedError,
     gather_partitioned,
 )
-from .models import LeagueEntry, Match, Player, RiotAccount, Summoner
+from .models import ChampionMastery, LeagueEntry, Match, Player, RiotAccount, Summoner
 from .rate_limiter import PERSONAL_LIMITS, RateLimiter
 
 logger = logging.getLogger("nexar")
@@ -168,6 +168,50 @@ class NexarClient:
         data = await self._make_api_call(endpoint, resolved_region.value)
         entries_list = cast("list[dict[str, Any]]", data)
         return [LeagueEntry.from_api_response(entry) for entry in entries_list]
+
+    # Champion Mastery API
+    async def get_champion_masteries(
+        self,
+        puuid: str,
+        region: Region | None = None,
+    ) -> list[ChampionMastery]:
+        """Get a player's champion masteries, highest points first."""
+        resolved_region = self._resolve_region(region)
+        endpoint = f"/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}"
+        data = await self._make_api_call(endpoint, resolved_region.value)
+        entries_list = cast("list[dict[str, Any]]", data)
+        return [ChampionMastery.from_api_response(entry) for entry in entries_list]
+
+    async def get_champion_mastery(
+        self,
+        puuid: str,
+        champion_id: int,
+        region: Region | None = None,
+    ) -> ChampionMastery:
+        """Get a player's mastery for a single champion."""
+        resolved_region = self._resolve_region(region)
+        endpoint = f"/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}/by-champion/{champion_id}"
+        data = await self._make_api_call(endpoint, resolved_region.value)
+        return ChampionMastery.from_api_response(data)
+
+    async def get_top_champion_masteries(
+        self,
+        puuid: str,
+        region: Region | None = None,
+    ) -> list[ChampionMastery]:
+        """Get a player's top champion masteries."""
+        resolved_region = self._resolve_region(region)
+        endpoint = f"/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}/top"
+        data = await self._make_api_call(endpoint, resolved_region.value)
+        entries_list = cast("list[dict[str, Any]]", data)
+        return [ChampionMastery.from_api_response(entry) for entry in entries_list]
+
+    async def get_champion_mastery_score(self, puuid: str, region: Region | None = None) -> int:
+        """Get a player's total mastery score across all champions."""
+        resolved_region = self._resolve_region(region)
+        endpoint = f"/lol/champion-mastery/v4/scores/by-puuid/{puuid}"
+        data = await self._make_api_call(endpoint, resolved_region.value)
+        return cast("int", data)
 
     # Match API
     async def get_match(self, match_id: str, region: Region | None = None) -> Match:

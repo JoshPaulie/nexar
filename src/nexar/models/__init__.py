@@ -1,6 +1,7 @@
 """Domain models for Riot API responses."""
 
 from .account import RiotAccount, Summoner
+from .champion_mastery import ChampionMastery, NextSeasonMilestone, RewardConfig
 from .league import LeagueEntry, MiniSeries
 from .match import (
     Ban,
@@ -25,6 +26,7 @@ from .stats import ChampionStats, PerformanceStats
 __all__ = [
     "Ban",
     "Challenges",
+    "ChampionMastery",
     "ChampionStats",
     "LeagueEntry",
     "Match",
@@ -32,6 +34,7 @@ __all__ = [
     "MatchMetadata",
     "MiniSeries",
     "Missions",
+    "NextSeasonMilestone",
     "Objective",
     "Objectives",
     "Participant",
@@ -42,6 +45,7 @@ __all__ = [
     "PerkStyleSelection",
     "Perks",
     "Player",
+    "RewardConfig",
     "RiotAccount",
     "Summoner",
     "Team",

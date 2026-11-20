@@ -59,6 +59,7 @@ nav:
           - Objectives Analysis: examples/objectives_analysis.md
           - ParticipantList Methods: examples/participant_list_methods.md
       - Deeper data:
+          - Champion Mastery: examples/champion_mastery.md
           - Challenge Stats: examples/challenge_stats.md
           - Runes and Perks: examples/runes_and_perks.md
       - Infrastructure:
@@ -72,6 +73,7 @@ nav:
       - Rate limiting: reference/rate-limiting.md
       - Models:
           - Account: reference/models/account.md
+          - Champion Mastery: reference/models/champion-mastery.md
           - League: reference/models/league.md
           - Match: reference/models/match.md
           - MatchList: reference/models/match-list.md
