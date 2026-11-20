@@ -116,6 +116,26 @@ class TestChampionMasteryClient:
 
         assert top == [expected_mastery()]
 
+    async def test_get_top_champion_masteries_with_count(
+        self,
+        fresh_client: NexarClient,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """The exact-URL pin: a provided count lands in the query string."""
+        register_exact_url(
+            mock_aioresponse,
+            f"{BASE_URL}/champion-masteries/by-puuid/test-puuid/top?count=5",
+            [champion_mastery_payload()],
+        )
+
+        top = await fresh_client.get_top_champion_masteries("test-puuid", count=5)
+
+        assert top == [expected_mastery()]
+
+    async def test_get_top_champion_masteries_count_must_be_positive(self, fresh_client: NexarClient) -> None:
+        with pytest.raises(ValueError, match="count must be positive"):
+            await fresh_client.get_top_champion_masteries("test-puuid", count=0)
+
     async def test_get_champion_mastery_score_returns_int(
         self,
         fresh_client: NexarClient,
@@ -225,6 +245,9 @@ class TestChampionMasteryLive:
         top = await real_client.get_top_champion_masteries(player.puuid)
         assert top, "account has top masteries"
         assert top[0].champion_id == masteries[0].champion_id
+
+        top_two = await real_client.get_top_champion_masteries(player.puuid, count=2)
+        assert len(top_two) <= 2
 
         single = await real_client.get_champion_mastery(player.puuid, masteries[0].champion_id)
         assert single.champion_id == masteries[0].champion_id

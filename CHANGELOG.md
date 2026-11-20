@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 - Champion Mastery support, current puuid-only surface: `NexarClient.get_champion_masteries`, `get_champion_mastery`, `get_top_champion_masteries`, and `get_champion_mastery_score`, plus `Player.get_champion_masteries()`. Responses parse into typed `ChampionMastery` models (milestone fields included), with 30-minute smart cache TTLs and live canaries covering all four endpoints.
 
+- `get_top_champion_masteries` accepts an optional `count` parameter (Riot's reference default is 3) — surfaced by the review pass, verified against the live reference, and pinned by an exact-URL test plus a live canary row.
+
 - Docs snippets are now gated like source: ruff (lint and format) runs on `docs/` in the local gates and CI, mypy covers `docs/snippets` via the `files` array in `pyproject.toml`, and a parametrized test imports all 23 snippet modules offline with a dummy key — a snippet referencing removed or misused API fails the suite instead of shipping in the docs.
 
 - `__all__` is now declared in the six leaf modules (`client`, `cache`, `enums`, `exceptions`, `rate_limiter`, `utils`), so scoped imports autocomplete only the public API — implementation constants (`HTTP_*` status shortcuts, match-id defaults) are deliberately excluded, and the surface baseline was refreshed with `UPDATE_BASELINE=1` in the same commit.

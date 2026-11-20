@@ -198,11 +198,16 @@ class NexarClient:
         self,
         puuid: str,
         region: Region | None = None,
+        count: int | None = None,
     ) -> list[ChampionMastery]:
-        """Get a player's top champion masteries."""
+        """Get a player's top champion masteries (Riot's default count is 3)."""
+        if count is not None and count < 1:
+            msg = f"count must be positive, got {count}"
+            raise ValueError(msg)
         resolved_region = self._resolve_region(region)
+        params = {"count": count} if count is not None else None
         endpoint = f"/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}/top"
-        data = await self._make_api_call(endpoint, resolved_region.value)
+        data = await self._make_api_call(endpoint, resolved_region.value, params=params)
         entries_list = cast("list[dict[str, Any]]", data)
         return [ChampionMastery.from_api_response(entry) for entry in entries_list]
 
