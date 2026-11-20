@@ -25,6 +25,12 @@ jobs:
         run: uv run ruff format --check src tests
       - name: Lint
         run: uv run ruff check src tests
+      - name: Reject one-dash snippet include markers
+        run: |
+          if grep -rqP '(?<!-)-8<--' docs/; then
+            echo "Found one-dash -8<-- include markers; use --8<--."
+            exit 1
+          fi
   deploy:
     needs: test
     permissions:

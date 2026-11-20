@@ -20,7 +20,7 @@ These are enforced as sliding windows per region — the same rule Riot's edge a
 Rate limiting is enabled automatically:
 
 ```python
--8<-- "client-features/rate_limiting.py:basic-usage"
+--8<-- "client-features/rate_limiting.py:basic-usage"
 ```
 
 ## Custom Rate Limits
@@ -28,7 +28,7 @@ Rate limiting is enabled automatically:
 Configure custom app rate limits when creating the client:
 
 ```python
--8<-- "client-features/rate_limiting.py:custom-rate-limits"
+--8<-- "client-features/rate_limiting.py:custom-rate-limits"
 ```
 
 ## Production API Keys
@@ -101,5 +101,5 @@ Repeat API calls won't hit rate limits if the response is cached.
 
 ### Example
 ```python
--8<-- "client-features/rate_limiting.py:rate-limiting-vs-caching"
+--8<-- "client-features/rate_limiting.py:rate-limiting-vs-caching"
 ```

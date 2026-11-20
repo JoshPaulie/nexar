@@ -2,7 +2,7 @@
 
 
 ```py
--8<-- "examples/all_examples.py:champ-performance-demo"
+--8<-- "examples/all_examples.py:champ-performance-demo"
 ```
 
 

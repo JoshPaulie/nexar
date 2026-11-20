@@ -281,28 +281,27 @@ API responses are parsed into typed Python objects. Each model class has a `from
    |
    +-- _try_cache_response()
    |     |
-   |     +--- HIT ---> return cached JSON ──────────────────────┐
-   |     |                                                        |
-   |     +--- MISS ---> continue                                  |
-   |                                                              |
-   +-- rate_limiter.acquire("na1", "match-v5")                    |
-   |     |  Checks app buckets: 20/1s + 100/120s                  |
-   |     |  Checks service buckets (if any from prior requests)   |
-   |     |  Checks method buckets (if any)                        |
-   |     |  Blocks if needed, then acquires                       |
-   |                                                              |
-   +-- session.get(url) ─────────────────────────────────────────┐|
-   |     |                                                        ||
-   |     +--- 200 ---> _record_success_response()                 ||
-   |     |     |  update_from_headers() - sync rate limit state   ||
-   |     |     |  handle_response_errors() - raise if not ok      ||
-   |     |     |  return JSON ────────────────────────────────────┘|
+   |     +--- HIT ---> return cached JSON ─────────────────────────┐
+   |     |  (runs before the limiter, so a hit burns no quota)    |
    |     |                                                         |
-   |     +--- 429 ---> retry loop                                  |
-   |     +--- 4xx ---> raise NotFoundError / UnauthorizedError     |
+   |     +--- MISS ---> continue                                   |
    |                                                               |
+   +-- rate_limiter.acquire("na1")                                 |
+   |     |  Sliding-window log, per region: 20/1s + 100/120s       |
+   |     |  Blocks until every window has a free slot               |
+   |                                                               |
+   +-- session.get(url) ──────────────────────────────────────────┐|
+   |     |                                                        ||
+   |     +--- 200 ---> _record_fresh_response()                    ||
+   |     |     |  seed_from_counts() - orient once per region      ||
+   |     |     |  _handle_response_errors() - raise if not ok     ||
+   |     |     |  return JSON ─────────────────────────────────────┘|
+   |     |                                                         |
+   |     +--- 429 ---> block(region, Retry-After), then retry       |
+   |     +--- 4xx ---> raise NotFoundError / UnauthorizedError      |
+   |                                                               v
    v                                                               v
- Match.from_api_response(data)                              Cached response
+ Match.from_api_response(data)                              (fresh response)
    |
    v
  Match object returned to caller

@@ -12,7 +12,7 @@ Issues are encouraged for features I haven't thought of.
 
 There's really nothing magic going on.
 
-It's just `aiohttp` to make async API calls with an `aiolimiter` leaky bucket rate limiter, then use `aiohttp-client-cache` to save responses to disk.
+It's just `aiohttp` to make async API calls with a stdlib sliding-window rate limiter that mirrors Riot's documented enforcement, then `aiohttp-client-cache` to save responses to disk.
 
 - Need the cache in a different format?
 - Need some sort of middleware?

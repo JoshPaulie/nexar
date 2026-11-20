@@ -14,6 +14,6 @@ I built Nexar because I wanted a League-specific library that just works for my 
 
 - Simple summoner and match lookups (like op.gg)
 - League centric (no TFT)
-- Leaky bucket rate limiting via aiolimiter
+- Sliding-window rate limiting that mirrors Riot's documented enforcement (stdlib-only)
 - SQLite disk caching
 - Fully type hinted with high-level objects

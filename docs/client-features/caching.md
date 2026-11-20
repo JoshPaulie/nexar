@@ -5,7 +5,7 @@
     TLDR: Simply use the default caching for most projects:
 
     ```python
-    -8<-- "quick_start/01_client_demo.py:declaration-smart-cache"
+    --8<-- "quick_start/01_client_demo.py:declaration-smart-cache"
     ```
 
 Caching is "smart" by using varying TTLs (time-to-live) for each endpoint:
@@ -26,7 +26,7 @@ Use `CacheConfig` to specify a default cache time, pick a storage backend, and c
 By default, caching uses a 1-hour TTL and stores responses to a SQLite file in `~/.nexar/`:
 
 ```python
--8<-- "caching/default.py"
+--8<-- "caching/default.py"
 ```
 
 ## Cache Backends
@@ -39,7 +39,7 @@ Two cache backends are supported, both of which respect the smart TTL overrides:
 Configure the backend using `CacheConfig`:
 
 ```python
--8<-- "caching/custom_backend.py"
+--8<-- "caching/custom_backend.py"
 ```
 
 ### SQLite Cache Location
@@ -59,7 +59,7 @@ config = CacheConfig(
 Create custom configurations for specific expiration times:
 
 ```python
--8<-- "caching/demo.py:cache-config"
+--8<-- "caching/demo.py:cache-config"
 ```
 
 ## Predefined Configurations
