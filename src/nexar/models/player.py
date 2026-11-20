@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from nexar.enums import Queue
-from nexar.exceptions import BatchError
+from nexar.exceptions import BatchError, gather_partitioned
 
 from .match_list import MatchList
 
@@ -271,24 +270,15 @@ class Player:
             count=count,
         )
 
-        matches = await asyncio.gather(
-            *(self.client.get_match(match_id, region=self.region) for match_id in match_ids),
-            return_exceptions=True,
+        matches, errors = await gather_partitioned(
+            match_ids,
+            lambda match_id: self.client.get_match(match_id, region=self.region),
         )
 
-        successful_matches: list[Match] = []
-        errors: list[tuple[str, BaseException]] = []
-
-        for match_id, result in zip(match_ids, matches, strict=False):
-            if isinstance(result, BaseException):
-                errors.append((match_id, result))
-            else:
-                successful_matches.append(result)
-
         if errors:
-            raise BatchError(errors, successful_results=successful_matches)
+            raise BatchError(errors, successful_results=matches)
 
-        return MatchList(successful_matches, self.riot_account.puuid)
+        return MatchList(matches, self.riot_account.puuid)
 
     async def get_last_match(self) -> Match | None:
         """

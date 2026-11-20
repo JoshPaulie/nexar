@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 
 - `get_cache_info()` now reports a real `cached_responses` row count via the cache storage's `size()` instead of a structurally-zero `hasattr` probe; the never-present `cache_size` key was dropped.
 - Internal: `NexarClient.get_player()` now forwards to `Player.create`, which owns the identification dispatch alone; `Player.by_riot_id()` forwards to it as well.
+- Internal: the batch partition behind `get_players` and `Player.get_matches` is now one helper, `nexar.exceptions.gather_partitioned`, which routes captured `BaseException` results to the error side (the `get_players` variant previously checked the narrower `Exception`).
 
 ## [2.0.0] - 2026-11-19
 

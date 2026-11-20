@@ -24,6 +24,7 @@ from .exceptions import (
     RateLimitError,
     RiotAPIError,
     UnauthorizedError,
+    gather_partitioned,
 )
 from .models import LeagueEntry, Match, Player, RiotAccount, Summoner
 from .rate_limiter import PERSONAL_LIMITS, RateLimiter
@@ -255,23 +256,9 @@ class NexarClient:
                 region=resolved_region,
             )
 
-        results = await asyncio.gather(
-            *(create_player(riot_id) for riot_id in riot_ids),
-            return_exceptions=True,
-        )
-
-        players: list[Player] = []
-        errors: list[tuple[str, Exception]] = []
-
-        for riot_id, result in zip(riot_ids, results, strict=True):
-            if isinstance(result, Exception):
-                errors.append((riot_id, result))
-            else:
-                players.append(cast("Player", result))
-
+        players, errors = await gather_partitioned(riot_ids, create_player)
         if errors:
             raise BatchError(errors, successful_results=players)
-
         return players
 
     # --------------------------------------------------------------------------
