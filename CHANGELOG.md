@@ -4,13 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+## [2.0.0] - 2026-11-19
+
 ### Changed
 
 - **Breaking:** Rate limiter rewritten as a sliding-window log that mirrors Riot's documented enforcement. Batches now run at the full documented quota (e.g. 12 match fetches in ~1s instead of ~14s under the previous burst=1 buckets). `RateLimiter.acquire()` no longer takes a `method` argument. Method and service rate limit headers are no longer tracked — the application window always binds first at every key tier, so tracking them cannot change behavior.
 - On a 429 without a parseable `Retry-After` header, the region is now blocked for a conservative 5s default instead of retrying unpaced.
 - `aiolimiter` dependency removed; rate limiting is now stdlib-only.
 - `aiohttp-client-cache` narrowed to the `sqlite` extra — aioboto3, motor, redis and friends no longer land in the lockfile of a SQLite-only SDK.
-- `ruff` is now a declared dev dependency, so a clean checkout can run `just check`.
+- `ruff` is now a declared dev dependency, so a clean checkout can run the lint gates via `uv`.
 - `Participant.placement` and `Participant.summoner_name` are now `int | None` / `str | None` (parsed to `None` when Riot omits them).
 - `Perks.styles`, `PerkStyle.selections` and `Challenges.legendary_item_used` are tuples now, so those frozen dataclasses are hashable.
 - `ChampionStats.avg_kda` now treats a zero-death record as a perfect KDA instead of returning `0.0`.
@@ -18,11 +20,25 @@ All notable changes to this project will be documented in this file.
 - `LeagueEntry.division` gains a `RankDivision.EMPTY` member for apex and decayed entries, which Riot sends without a `rank`.
 - `MatchInfo.game_duration` is now documented and normalized as seconds: a payload from before patch 11.20 (reported in milliseconds) is divided by 1000 at parse time.
 - **Breaking:** `Player.get_matches` now raises `BatchError` carrying the successfully fetched matches when any match id fails, instead of discarding the whole batch with a bare `NotFoundError` (mirrors `get_players`).
+- **Breaking:** `TeamInfo`/`TeamsInfo` removed — dead public API that nothing in the SDK constructed; the `Team`/`Ban`/`Objective` parse contracts survive as `tests/unit/test_team_parse.py`.
+- **Breaking:** unknown `queueType` strings in league entries map to `Queue.UNKNOWN` (raw string preserved in `queue_type_raw`) instead of conflating new ranked queues with `Queue.CUSTOM`.
+- An unrecognized participant position value degrades to `EMPTY` with a warning instead of aborting the whole match parse, mirroring the `Queue`/`MapId` UNKNOWN sentinels.
+- `Participant.from_api_response` is table-driven: one `(api_name, python_name, default)` row per omissible field replaces ~160 lines of triple bookkeeping, with a sync test pinning the table to the dataclass fields.
+- The unreachable `from_cache` accounting branch in `_make_api_call` is deleted; `_try_cache_response` stays and is documented as load-bearing (cache hits skip the rate limiter, which the library's own cache interception cannot do).
+- `NexarClient._ensure_session()` returns the session, so the unreachable "session not initialized" `RuntimeError` and its seam-only test are gone; retry-exhaustion messages say "attempts", 4xx responses log one warning line instead of a full ERROR traceback, and a `Retry-After` that parses as NaN/inf falls back to the 5s default.
+- Riot-ID parsing is one `_parse_riot_id` helper shared by `Player.create` and `Player.by_riot_id` (the two hand-copies had already diverged in error wording), and the `get_player`/`Player.create` docstrings state the real first-supplied-wins contract.
+- The memory cache backend is a real `CacheBackend` (with its default in-memory storage) — a bare `DictCache` is a storage, not a backend, and `CachedSession` silently swapped the falsy object for a default, dropping the smart-TTL and 200-only wiring.
+- Unreadable sqlite cache rows are dropped as misses across the full unpickle failure set (`CookieError`, `UnpicklingError`, `EOFError`, `sqlite3.Error`), not just poisoned cookies.
+- `Queue.is_ranked` derives from `get_ranked_queues()`, the limiter seed mutates the admission deque in place, `MatchList`/`ParticipantList.__getitem__` drop their defensive isinstance branches, and the batch gathers zip `strict=True`.
+- Docs: all 30 snippet include markers use the `--8<--` form and a CI step rejects the one-dash variant; the request-lifecycle diagram documents the current limiter; reference pages added for enums, exceptions, cache, rate limiting and `MatchList`; the aiolimiter prose is gone from the landing pages.
+- One test entry point: `run_tests.sh` without the `--maxfail` stop-at-first-failure flag, the justfile is gone, and the lint gates run on `src` and `tests` both locally and in CI.
 
 ### Removed
 
 - `RateLimiter.update_from_headers()` and `RateLimiter.dump_state()`.
 - `NexarClient._extract_method_id()` (the limiter no longer tracks per-method limits).
+- `tests/generate_mocks.py` — it wrote a snake_case shape the parsers reject and manufactured the seconds-vs-milliseconds `revisionDate` fixture bug; `tests/mock_responses.json` is recorded payload data (see `tests/README.md`).
+- `justfile` and the `just` entry-point references (`just` was installed nowhere and declared nowhere).
 
 ### Added
 
@@ -43,13 +59,15 @@ All notable changes to this project will be documented in this file.
 - `Player.get_recent_performance_by_role` reports participants with an empty team position under `UNKNOWN` instead of an empty role key, and treats zero-death role records as a perfect KDA instead of `0.0`.
 - `LeagueEntry` tolerates a missing `leagueId` — the live by-puuid entries endpoint no longer returns it — defaulting `league_id` to an empty string instead of raising `KeyError`.
 - `scripts/update_readme_example.py` now refuses to rewrite the README when the example run fails or prints untrustworthy output, instead of silently blanking the Example Output section; `README_example.py` uses keyword-only `get_player` and `participant.kda` (no `challenges` dependency), and the README block is regenerated from a real run.
-- The README's test guidance now describes both paths accurately: mocked tests are the default and need no key, live tests run only with `RIOT_API_KEY` and skip silently without it; the Installation section states the Python 3.13 floor, and mkdocs builds strictly so broken includes fail the deploy.
+- The README's test guidance now describes both paths accurately: mocked tests are the default and need no key, live tests run only with `RIOT_API_KEY` and skip silently without it; the Installation section states the Python 3.13 floor, and mkdocs builds strictly so missing snippet files fail the deploy.
 - `riot-key.sh.example` is now a copy-me template: the header warns to copy it to the gitignored `riot-key.sh` instead of editing the tracked file, and it prompts for the key with `read` rather than storing one inline.
 - `sort_players_by_rank`'s docstring example and `ValueError` message now name the real `ranked_queue_type` parameter instead of `queue_type`.
 - The test suite no longer stops at the first failure: the forced `maxfail` override (and a dead xdist `numprocesses` option) are gone from `tests/conftest.py`, so a failing run reports every failure.
 - Mocked tests no longer read or write the shared `~/.nexar` dogfood cache — every test client now uses an isolated cache, so a stale or cookie-poisoned dogfood cache can never satisfy or break a test.
 - The suite now enforces a 95% coverage floor (measured at 95.35% keyless), so coverage regressions fail the run.
 - The sqlite cache no longer stores cookies — Riot's Cloudflare `Partitioned` cookie made rows unreadable and crashed every later cache read — and a row that still fails to load is dropped and refetched, so an already-poisoned cache heals itself.
+- The mock fixture stored `summoner.revisionDate` in seconds while the parser divides by 1000, so every mocked summoner parse silently reported a 1970 revision date — the fixture now carries the recorded milliseconds and the parse is pinned by an exact-value test.
+- The suite was pruned against the 2026-11 audit: ~51 probe-proven vacuous tests deleted, ~45 rows collapsed into ~10 parametrized tables, ~25 rewritten at stronger boundaries (exact-URL match-ids, value-level performance stats, offline win-streak and top-champions rows, populated-then-cleared cache tests, behavioral `app_rate_limits` pacing); 271 collected tests became 239 and the coverage floor was re-baselined to the measured 96.91% keyless (`fail_under` 96).
 
 ## [1.1.0] - 2026-05-17
 

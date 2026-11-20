@@ -33,7 +33,7 @@ from .models import (
 )
 from .rate_limiter import PERSONAL_LIMITS, PRODUCTION_LIMITS
 
-__version__ = "1.1.0"
+__version__ = "2.0.0"
 
 __all__ = [
     "DEFAULT_CACHE_CONFIG",
