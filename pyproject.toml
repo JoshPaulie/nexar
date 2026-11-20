@@ -57,9 +57,10 @@ filterwarnings = [
 omit = ["tests/*", "examples/*"]
 
 [tool.coverage.report]
-# Floor measured at 95.35% on 2026-11-18; integer floor (never round up) so any
-# real regression trips the gate. Raise deliberately when coverage improves.
-fail_under = 95
+# Floor measured at 96.91% keyless on 2026-11-19 (after the 2026-11 audit prune
+# and rewrites); integer floor (never round up) so any real regression trips the
+# gate. Raise deliberately when coverage improves.
+fail_under = 96
 
 [tool.ruff.lint]
 select = ["ALL"]
