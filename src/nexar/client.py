@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import math
 import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -212,7 +213,12 @@ class NexarClient:
         """
         Get a Player by game name + tag line, PUUID, or Riot ID string.
 
-        Exactly one identification pattern must be provided (all keyword-only):
+        At least one identification pattern must be provided (all keyword-only).
+        When several are supplied, the first one wins, in this order:
+
+        1. ``game_name`` + ``tag_line``
+        2. ``puuid``
+        3. ``riot_id``
 
         Args:
             game_name: Player's game name (without #). Must be paired with tag_line.
@@ -225,7 +231,7 @@ class NexarClient:
             Player instance with riot account data pre-fetched.
 
         Raises:
-            ValueError: If none or an ambiguous combination of identifiers is provided.
+            ValueError: If no identification is provided.
 
         """
         from .models.player import Player
@@ -278,7 +284,7 @@ class NexarClient:
         players: list[Player] = []
         errors: list[tuple[str, Exception]] = []
 
-        for riot_id, result in zip(riot_ids, results, strict=False):
+        for riot_id, result in zip(riot_ids, results, strict=True):
             if isinstance(result, Exception):
                 errors.append((riot_id, result))
             else:
@@ -347,9 +353,9 @@ class NexarClient:
     # Internal Methods
     # --------------------------------------------------------------------------
 
-    async def _ensure_session(self) -> None:
+    async def _ensure_session(self) -> CachedSession | aiohttp.ClientSession:
         if self._session and not self._session.closed:
-            return
+            return self._session
 
         timeout = aiohttp.ClientTimeout(total=self.cache_config.timeout)
 
@@ -360,6 +366,7 @@ class NexarClient:
             )
         else:
             self._session = aiohttp.ClientSession(timeout=timeout)
+        return self._session
 
     async def _try_cache_response(
         self,
@@ -368,7 +375,14 @@ class NexarClient:
         params: dict[str, Any] | None,
         endpoint: str,
     ) -> dict[str, Any] | None:
-        """Try to return a cached response. Returns data on hit, None on miss."""
+        """Try to return a cached response. Returns data on hit, None on miss.
+
+        Load-bearing, not redundant with CachedSession's own interception: this
+        read happens before ``rate_limiter.acquire``, so cache hits skip the
+        limiter instead of burning a rate-limit slot. The library's interception
+        (which cannot skip the limiter) stays unreachable for 200-only rows
+        because this path returns them first.
+        """
         if not isinstance(self._session, CachedSession) or not self._session.cache:
             return None
         cache_key = self._session.cache.create_key("GET", url, params=params, headers=headers)
@@ -388,7 +402,7 @@ class NexarClient:
             return response_data
         return None
 
-    async def _record_success_response(
+    async def _record_fresh_response(
         self,
         response: aiohttp.ClientResponse,
         platform_region: str,
@@ -396,9 +410,13 @@ class NexarClient:
         endpoint: str,
         params: dict[str, Any] | None,
     ) -> dict[str, Any]:
-        """Handle errors, record stats, and return response data."""
-        from_cache = getattr(response, "from_cache", False)
-        if not from_cache:
+        """Orient the limiter, record stats, and return response data.
+
+        ``from_cache`` is read to keep limiter orientation off replayed rows,
+        even though only fresh wire responses reach this method: the manual
+        cache read above preempts the library's own cache interception.
+        """
+        if not getattr(response, "from_cache", False):
             counts = self._parse_rate_limit_counts(response.headers.get("X-App-Rate-Limit-Count"))
             if counts:
                 # Orient from the server's own usage ledger (no-op after the
@@ -407,16 +425,13 @@ class NexarClient:
                 self.rate_limiter.seed_from_counts(platform_region, counts)
         await self._handle_response_errors(response)
         response_data: dict[str, Any] = await response.json()
-        if from_cache:
-            self._call_stats["cache_hits"] += 1
-        else:
-            self._call_stats["fresh_calls"] += 1
-        logger.info("  Success (Status: %d, %s)", response.status, "from cache" if from_cache else "fresh")
+        self._call_stats["fresh_calls"] += 1
+        logger.info("  Success (Status: %d, fresh)", response.status)
         self._debug_print_response(
             endpoint=endpoint,
             url=url,
             status=response.status,
-            from_cache=from_cache,
+            from_cache=False,
             response_data=response_data,
             params=params,
         )
@@ -437,10 +452,7 @@ class NexarClient:
         url = f"https://{routing_region}.api.riotgames.com{endpoint}"
         headers = {"X-Riot-Token": self.riot_api_key}
 
-        await self._ensure_session()
-        if not self._session:
-            msg = "Client session not initialized."
-            raise RuntimeError(msg)
+        session = await self._ensure_session()
 
         for _attempt in range(max_retries):
             self._api_call_count += 1
@@ -453,7 +465,7 @@ class NexarClient:
 
                 await self.rate_limiter.acquire(platform_region)
 
-                async with self._session.get(url, headers=headers, params=params) as response:
+                async with session.get(url, headers=headers, params=params) as response:
                     if response.status == HTTP_TOO_MANY_REQUESTS:
                         retry_after = self._parse_retry_after(response.headers.get("Retry-After"))
                         self._call_stats["retries"] += 1
@@ -468,7 +480,7 @@ class NexarClient:
                         self.rate_limiter.block(platform_region, retry_after)
                         continue
 
-                    return await self._record_success_response(
+                    return await self._record_fresh_response(
                         response,
                         platform_region,
                         url,
@@ -489,16 +501,17 @@ class NexarClient:
                     )
                     await asyncio.sleep(backoff)
                     continue
-                raise RiotAPIError(0, f"Request failed after {max_retries} retries: {e}") from e
+                raise RiotAPIError(0, f"Request failed after {max_retries} attempts: {e}") from e
             except aiohttp.ClientError as e:
                 self._call_stats["errors"] += 1
                 logger.exception("Request failed")
                 raise RiotAPIError(0, f"Request failed: {e}") from e
-            except RiotAPIError:
-                logger.exception("API error")
+            except RiotAPIError as e:
+                # 4xx responses are routine control flow: log without a traceback.
+                logger.warning("API error: %s", e)
                 raise
 
-        msg = f"Max retries ({max_retries}) exceeded for rate-limited requests."
+        msg = f"Max attempts ({max_retries}) exceeded for rate-limited requests."
         raise RateLimitError(HTTP_TOO_MANY_REQUESTS, msg)
 
     async def _handle_response_errors(self, response: aiohttp.ClientResponse) -> None:
@@ -515,11 +528,9 @@ class NexarClient:
             HTTP_UNAUTHORIZED: UnauthorizedError,
             HTTP_FORBIDDEN: ForbiddenError,
             HTTP_NOT_FOUND: NotFoundError,
-            HTTP_TOO_MANY_REQUESTS: RateLimitError,
         }
         error_class = error_map.get(response.status, RiotAPIError)
-        if response.status != HTTP_TOO_MANY_REQUESTS:
-            self._call_stats["errors"] += 1
+        self._call_stats["errors"] += 1
         raise error_class(response.status, message)
 
     def _build_match_ids_params(
@@ -572,7 +583,7 @@ class NexarClient:
         if value is None:
             return DEFAULT_RETRY_AFTER_SECONDS
         try:
-            return float(value)
+            seconds = float(value)
         except ValueError:
             logger.warning(
                 "Invalid Retry-After header %r. Using default of %.0f seconds",
@@ -580,6 +591,15 @@ class NexarClient:
                 DEFAULT_RETRY_AFTER_SECONDS,
             )
             return DEFAULT_RETRY_AFTER_SECONDS
+        if not math.isfinite(seconds):
+            # float("nan")/float("inf") parse but block(region, nan) would never block.
+            logger.warning(
+                "Non-finite Retry-After header %r. Using default of %.0f seconds",
+                value,
+                DEFAULT_RETRY_AFTER_SECONDS,
+            )
+            return DEFAULT_RETRY_AFTER_SECONDS
+        return seconds
 
     @staticmethod
     def _parse_rate_limit_counts(value: str | None) -> dict[int, int]:
