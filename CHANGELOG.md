@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- `tests/test_structure.py` guardrails: a pinned public-API surface baseline (`tests/api_baseline.json`, refresh via `UPDATE_BASELINE=1` in the same commit as a surface change), file and function size budgets, and seam tests forbidding underscore access across module boundaries.
+
 ### Changed
 
 - Internal: client call counters are now keyed from the `CallStats` field definitions instead of a hand-maintained dict, and the redundant in-method `Player` imports were removed.
