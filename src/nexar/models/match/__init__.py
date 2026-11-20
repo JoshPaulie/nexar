@@ -5,7 +5,7 @@ from .match import Match, MatchInfo, MatchMetadata
 from .participant import Participant
 from .participant_list import ParticipantList
 from .perks import Perks, PerkStats, PerkStyle, PerkStyleSelection
-from .team import Ban, Objective, Objectives, Team, TeamInfo, TeamsInfo
+from .team import Ban, Objective, Objectives, Team
 
 __all__ = [
     "Ban",
@@ -23,6 +23,4 @@ __all__ = [
     "PerkStyleSelection",
     "Perks",
     "Team",
-    "TeamInfo",
-    "TeamsInfo",
 ]

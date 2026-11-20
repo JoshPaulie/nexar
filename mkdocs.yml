@@ -56,7 +56,6 @@ nav:
           - Per-Role Performance: examples/per_role_performance.md
           - MatchList Stats: examples/match_list_stats.md
       - Match analysis:
-          - Team Analysis: examples/team_analysis.md
           - Objectives Analysis: examples/objectives_analysis.md
           - ParticipantList Methods: examples/participant_list_methods.md
       - Deeper data:

@@ -18,8 +18,6 @@ from .match import (
     PerkStyle,
     PerkStyleSelection,
     Team,
-    TeamInfo,
-    TeamsInfo,
 )
 from .player import Player
 from .stats import ChampionStats, PerformanceStats
@@ -47,6 +45,4 @@ __all__ = [
     "RiotAccount",
     "Summoner",
     "Team",
-    "TeamInfo",
-    "TeamsInfo",
 ]

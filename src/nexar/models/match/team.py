@@ -1,11 +1,7 @@
 """Team and objective-related models."""
 
-from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from .participant import Participant
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -126,74 +122,3 @@ class Team:
             bans=tuple(Ban.from_api_response(ban) for ban in data.get("bans", [])),
             objectives=Objectives.from_api_response(obj_data) if (obj_data := data.get("objectives")) else None,
         )
-
-
-@dataclass(frozen=True)
-class TeamInfo:
-    """Enhanced team information with participants and aggregated stats."""
-
-    team_id: int
-    """Team identifier (100 for blue, 200 for red)."""
-
-    win: bool
-    """Whether this team won the match."""
-
-    bans: tuple[Ban, ...]
-    """Tuple of champion bans for this team."""
-
-    objectives: Objectives
-    """Objectives taken by this team."""
-
-    participants: tuple["Participant", ...]
-    """Tuple of participants on this team."""
-
-    @property
-    def total_damage(self) -> int:
-        """Total damage dealt to champions by all team members."""
-        return sum(p.total_damage_dealt_to_champions for p in self.participants)
-
-    @property
-    def total_damage_taken(self) -> int:
-        """Total damage taken by all team members."""
-        return sum(p.total_damage_taken for p in self.participants)
-
-    @property
-    def total_gold_earned(self) -> int:
-        """Total gold earned by all team members."""
-        return sum(p.gold_earned for p in self.participants)
-
-    @property
-    def total_kills(self) -> int:
-        """Total kills by all team members."""
-        return sum(p.kills for p in self.participants)
-
-    @property
-    def total_deaths(self) -> int:
-        """Total deaths by all team members."""
-        return sum(p.deaths for p in self.participants)
-
-    @property
-    def total_assists(self) -> int:
-        """Total assists by all team members."""
-        return sum(p.assists for p in self.participants)
-
-    @property
-    def total_vision_score(self) -> int:
-        """Total vision score by all team members."""
-        return sum(p.vision_score for p in self.participants)
-
-
-@dataclass(frozen=True)
-class TeamsInfo:
-    """Container for blue and red team information."""
-
-    blue: TeamInfo
-    """Information for the blue side team (team_id=100)."""
-
-    red: TeamInfo
-    """Information for the red side team (team_id=200)."""
-
-    def __iter__(self) -> Iterator[TeamInfo]:
-        """Allow iteration over teams."""
-        yield self.blue
-        yield self.red
