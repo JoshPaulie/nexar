@@ -140,13 +140,15 @@ class TestTimelineModelApi:
             "ITEM_PURCHASED",
             "SKILL_LEVEL_UP",
             "WARD_PLACED",
+            "LEVEL_UP",
+            "ITEM_SOLD",
             "CHAMPION_KILL",
+            "CHAMPION_SPECIAL_KILL",
             "ELITE_MONSTER_KILL",
             "ITEM_UNDO",
-            "BUILDING_KILL",
-            "CHAMPION_SPECIAL_KILL",
-            "LEVEL_UP",
+            "CHAMPION_KILL",
             "DRAGON_SOUL_GIVEN",
+            "BUILDING_KILL",
             "OBJECTIVE_BOUNTY_PRESTART",
             "GAME_END",
         ]
@@ -166,7 +168,7 @@ class TestTimelineEventParsing:
 
         timeline = await fresh_client.get_match_timeline(MATCH_ID)
 
-        kill = next(event for event in timeline.events if event.type == "CHAMPION_KILL")
+        kill = next(event for event in timeline.events if event.type == "CHAMPION_KILL" and event.timestamp == 768159)
         assert kill.timestamp == 768159
         assert kill.real_timestamp is None, "this kill predates Riot adding realTimestamp to kills"
         assert kill.killer_id == 1
@@ -205,6 +207,40 @@ class TestTimelineEventParsing:
         # identical in this kill; the helper keeps both, as on the wire.
         assert kill.victim_teamfight_damage_received == kill.victim_damage_received
         assert kill.victim_teamfight_damage_dealt == ()
+
+    async def test_four_breakdown_kill_parses_dealt_fields(
+        self,
+        fresh_client: NexarClient,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """The recording's four-breakdown kill pins the two dealt parser lines, a nonzero killStreakLength, and a real assists list."""
+        register_exact_url(mock_aioresponse, f"{BASE_URL}/{MATCH_ID}/timeline", timeline_response_payload())
+
+        timeline = await fresh_client.get_match_timeline(MATCH_ID)
+
+        kill = next(event for event in timeline.events if event.type == "CHAMPION_KILL" and event.timestamp == 350431)
+        assert kill.kill_streak_length == 1
+        assert kill.assisting_participant_ids == (1,)
+        assert kill.bounty == 300
+        assert kill.shutdown_bounty == 43
+        assert kill.killer_id == 2
+        assert kill.victim_id == 7
+        assert kill.position == TimelinePosition(x=3247, y=12830)
+        assert len(kill.victim_damage_dealt) == 5
+        assert kill.victim_damage_dealt[0] == TimelineVictimDamage(
+            basic=False,
+            magic_damage=124,
+            name="Amumu",
+            participant_id=1,
+            physical_damage=0,
+            spell_name="tantrum",
+            spell_slot=2,
+            true_damage=0,
+            type="OTHER",
+        )
+        assert kill.victim_teamfight_damage_dealt == kill.victim_damage_dealt
+        assert len(kill.victim_damage_received) == 13
+        assert kill.victim_teamfight_damage_received == kill.victim_damage_received
 
     async def test_elite_monster_kill_parses_subtype(
         self,
@@ -321,7 +357,7 @@ class TestTimelineEventParsing:
 
         timeline = await fresh_client.get_match_timeline(MATCH_ID)
 
-        assisted = next(event for event in timeline.events if event.assisting_participant_ids)
+        assisted = next(event for event in timeline.events if event.timestamp == 800000)
         assert assisted.assisting_participant_ids == (2, 4, 6)
 
     async def test_victim_teamfight_breakdowns_parse(
@@ -330,8 +366,11 @@ class TestTimelineEventParsing:
         mock_aioresponse: "aioresponses",
     ) -> None:
         payload = timeline_response_payload()
-        kill = payload["info"]["frames"][1]["events"][0]
-        assert kill["type"] == "CHAMPION_KILL"
+        kill = next(
+            event
+            for event in payload["info"]["frames"][1]["events"]
+            if event["type"] == "CHAMPION_KILL" and event["timestamp"] == 768159
+        )
         kill["victimTeamfightDamageReceived"] = [
             {
                 "basic": True,
@@ -349,7 +388,9 @@ class TestTimelineEventParsing:
 
         timeline = await fresh_client.get_match_timeline(MATCH_ID)
 
-        parsed_kill = next(event for event in timeline.events if event.type == "CHAMPION_KILL")
+        parsed_kill = next(
+            event for event in timeline.events if event.type == "CHAMPION_KILL" and event.timestamp == 768159
+        )
         assert parsed_kill.victim_teamfight_damage_received == (
             TimelineVictimDamage(
                 basic=True,
@@ -597,6 +638,11 @@ class TestTimelineRemainingEventTypes:
         assert level_up.level == 2
         assert level_up.participant_id == 7
 
+        sold = next(event for event in timeline.events if event.type == "ITEM_SOLD")
+        assert sold.item_id == 2003
+        assert sold.participant_id == 10
+        assert sold.timestamp == 230035
+
         soul = next(event for event in timeline.events if event.type == "DRAGON_SOUL_GIVEN")
         assert soul.name == "Ocean"
         assert soul.team_id == 0
@@ -620,6 +666,22 @@ class TestMatchTimelineSharedFixture:
         kill = next(event for event in timeline.events if event.type == "CHAMPION_KILL")
         assert kill.victim_teamfight_damage_received
         assert kill.victim_teamfight_damage_received == kill.victim_damage_received
+
+        # The three event types only this fixture carries, asserted against
+        # their recorded values (kills the last unasserted parser paths).
+        plate = next(event for event in timeline.events if event.type == "TURRET_PLATE_DESTROYED")
+        assert plate.lane_type == "MID_LANE"
+        assert plate.team_id == 100
+        assert plate.killer_id == 0
+        assert plate.position == TimelinePosition(x=5846, y=6396)
+
+        ward_kill = next(event for event in timeline.events if event.type == "WARD_KILL")
+        assert ward_kill.killer_id == 9
+        assert ward_kill.ward_type == "SIGHT_WARD"
+
+        destroyed = next(event for event in timeline.events if event.type == "ITEM_DESTROYED")
+        assert destroyed.item_id == 1052
+        assert destroyed.participant_id == 5
 
         # Participants 1 and 2 carry frames in both recorded frames.
         assert len(timeline.frames_for(PUUID_1)) == 2
