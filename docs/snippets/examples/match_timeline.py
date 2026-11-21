@@ -24,6 +24,9 @@ async def main() -> None:
 
         # Gold curve for one player: one snapshot per minute
         frames = timeline.frames_for(player.puuid)
+        if not frames:
+            print("No frames for this player in that match.")
+            return
         print(f"{len(frames)} minute snapshots")
         print(f"final total gold: {frames[-1].total_gold:,}")
 
