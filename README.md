@@ -1,25 +1,23 @@
 # Nexar
 
-A simple League of Legends SDK with built-in rate limiting and disk caching.
-
-Trying to restore the glory days, pre Riot IDs.
+A simple, League-only Python SDK for the Riot API: typed models, built-in rate limiting, and disk caching.
 
 ## Objective
 
-Nexar is a Pythonic, League-only, async, opinionated, and simple SDK. It is not a wrapper. 
+Nexar is more SDK than wrapper — a Pythonic, async, opinionated, League-only SDK that stitches together the oddities of the Riot API (region vs platform routing, epoch timestamps, silently omitted fields), so you can get an API key and start pulling stats in terminology that makes sense to you, instead of learning the Riot API from scratch.
 
 It's built for single-node, single-client projects and not intended for use at scale. If you need a distributed solution, look elsewhere. 
 
 - Built for Python freaks.
 - Robust models with datetime objects and enums.
 - High-level API that abstracts the messy Riot API.
-- Accurate in-memory rate limiting and disk caching.
+- In-memory sliding-window rate limiting that mirrors Riot's documented enforcement, plus disk caching.
 
-Hate Riot IDs? Just `NexarClient.get_player(game_name="username", tag_line="tag", region=Region.NA1)` and explore with your IDE.
+Just `NexarClient.get_player(game_name="username", tag_line="tag", region=Region.NA1)` and explore with your IDE.
 
 Packed with helpful doc strings and tips.
 
-Check out [Why not Nexar?](docs/why-not-nexar.md) for more details.
+Check out [Why not Nexar?](docs/why-not-nexar.md) for scope, expectations, and the recommended alternative.
 
 ## Installation
 
@@ -33,6 +31,64 @@ Requires **Python 3.13 or newer** (`requires-python = ">=3.13"` in `pyproject.to
 ```bash
 uv add "git+https://github.com/joshpaulie/nexar"
 ```
+
+## API surface
+
+Every Riot op Nexar wraps, with the method that wraps it and what you get back. `get_player` is the front door — it resolves an account by Riot ID or PUUID and hands back a `Player` that lazily fetches the rest (`player.get_summoner()`, `player.get_solo_rank()`, `player.get_matches()`). `get_players` does the same for a batch.
+
+### Account & Summoner
+
+| Endpoint | Method | Returns |
+|----------|--------|---------|
+| `GET /riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}` | `get_riot_account` | `RiotAccount` |
+| `GET /riot/account/v1/accounts/by-puuid/{puuid}` | `get_riot_account_by_puuid` | `RiotAccount` |
+| `GET /lol/summoner/v4/summoners/by-puuid/{puuid}` | `get_summoner_by_puuid` | `Summoner` |
+
+### Ranked
+
+| Endpoint | Method | Returns |
+|----------|--------|---------|
+| `GET /lol/league/v4/entries/by-puuid/{puuid}` | `get_league_entries_by_puuid` | `list[LeagueEntry]` |
+| `GET /lol/league/v4/entries/{queue}/{tier}/{division}` | `get_league_entries` | `list[LeagueEntry]` |
+| `GET /lol/league-exp/v4/entries/{queue}/{tier}/{division}` | `get_league_exp_entries` | `list[LeagueEntry]` |
+| `GET /lol/league/v4/challengerleagues/by-queue/{queue}` | `get_challenger_league` | `LeagueList` |
+| `GET /lol/league/v4/grandmasterleagues/by-queue/{queue}` | `get_grandmaster_league` | `LeagueList` |
+| `GET /lol/league/v4/masterleagues/by-queue/{queue}` | `get_master_league` | `LeagueList` |
+
+### Match
+
+| Endpoint | Method | Returns |
+|----------|--------|---------|
+| `GET /lol/match/v5/matches/{matchId}` | `get_match` | `Match` |
+| `GET /lol/match/v5/matches/by-puuid/{puuid}/ids` | `get_match_ids_by_puuid` | `list[str]` |
+| `GET /lol/match/v5/matches/{matchId}/timeline` | `get_match_timeline` | `Timeline` |
+
+### Champion Mastery
+
+| Endpoint | Method | Returns |
+|----------|--------|---------|
+| `GET /lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}/by-champion/{championId}` | `get_champion_mastery` | `ChampionMastery` |
+| `GET /lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}` | `get_champion_masteries` | `list[ChampionMastery]` |
+| `GET /lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}/top` | `get_top_champion_masteries` | `list[ChampionMastery]` |
+| `GET /lol/champion-mastery/v4/scores/by-puuid/{puuid}` | `get_champion_mastery_score` | `int` |
+
+### Platform
+
+| Endpoint | Method | Returns |
+|----------|--------|---------|
+| `GET /lol/platform/v3/champion-rotations` | `get_champion_rotations` | `ChampionRotations` |
+| `GET /lol/status/v4/platform-data` | `get_platform_status` | `PlatformStatus` |
+
+### Challenges
+
+| Endpoint | Method | Returns |
+|----------|--------|---------|
+| `GET /lol/challenges/v1/challenges/config` | `get_all_challenge_configs` | `list[ChallengeConfig]` |
+| `GET /lol/challenges/v1/challenges/{challengeId}/config` | `get_challenge_config` | `ChallengeConfig` |
+| `GET /lol/challenges/v1/challenges/percentiles` | `get_all_challenge_percentiles` | `dict[str, dict[str, float]]` |
+| `GET /lol/challenges/v1/challenges/{challengeId}/percentiles` | `get_challenge_percentiles` | `dict[str, float]` |
+| `GET /lol/challenges/v1/challenges/{challengeId}/leaderboards/by-level/{level}` | `get_challenge_leaderboard` | `list[ChallengeLeaderboardEntry]` |
+| `GET /lol/challenges/v1/player-data/{puuid}` | `get_player_challenge_data` | `PlayerChallengeData` |
 
 ## Usage example
 
@@ -148,6 +204,15 @@ Recent Match History (5 matches):
 10 days ago  Defeat.   Shaco      Jungle   2/5/5 (1.40)
 ```
 <!-- example-output-block-end -->
+
+## Docs
+
+The full docs are hosted at [bexli.dev/nexar](https://bexli.dev/nexar), or browse them in the repo:
+
+- [Quick start](docs/quick_start.md)
+- [Worked examples](docs/examples/) — every snippet import-checked by the test suite
+- [Reference](docs/reference/) — client, models, cache, rate limiting, exceptions
+- [FAQ](docs/FAQ.md) — PUUIDs and region routing
 
 ## Development and contributing
 
