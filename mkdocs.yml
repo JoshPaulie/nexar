@@ -58,6 +58,7 @@ nav:
       - Match analysis:
           - Objectives Analysis: examples/objectives_analysis.md
           - ParticipantList Methods: examples/participant_list_methods.md
+          - Match Timeline: examples/match_timeline.md
       - Deeper data:
           - Champion Mastery: examples/champion_mastery.md
           - Challenge Stats: examples/challenge_stats.md
@@ -76,6 +77,7 @@ nav:
           - Champion Mastery: reference/models/champion-mastery.md
           - League: reference/models/league.md
           - Match: reference/models/match.md
+          - Match Timeline: reference/models/match-timeline.md
           - MatchList: reference/models/match-list.md
           - Participant: reference/models/participant.md
           - ParticipantList: reference/models/participant-list.md

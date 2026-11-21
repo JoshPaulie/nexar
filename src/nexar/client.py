@@ -26,7 +26,7 @@ from .exceptions import (
     UnauthorizedError,
     gather_partitioned,
 )
-from .models import ChampionMastery, LeagueEntry, Match, Player, RiotAccount, Summoner
+from .models import ChampionMastery, LeagueEntry, Match, Player, RiotAccount, Summoner, Timeline
 from .rate_limiter import PERSONAL_LIMITS, RateLimiter
 
 logger = logging.getLogger("nexar")
@@ -224,6 +224,13 @@ class NexarClient:
         endpoint = f"/lol/match/v5/matches/{match_id}"
         data = await self._make_api_call(endpoint, resolved_region.value, resolved_region.v5_region)
         return Match.from_api_response(data)
+
+    async def get_match_timeline(self, match_id: str, region: Region | None = None) -> Timeline:
+        """Get a match's timeline: per-minute participant frames plus the event stream."""
+        resolved_region = self._resolve_region(region)
+        endpoint = f"/lol/match/v5/matches/{match_id}/timeline"
+        data = await self._make_api_call(endpoint, resolved_region.value, resolved_region.v5_region)
+        return Timeline.from_api_response(data)
 
     async def get_match_ids_by_puuid(
         self,

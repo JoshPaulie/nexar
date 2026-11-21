@@ -31,6 +31,7 @@ from .models import (
     Player,
     RiotAccount,
     Summoner,
+    Timeline,
 )
 from .rate_limiter import PERSONAL_LIMITS, PRODUCTION_LIMITS
 
@@ -67,5 +68,6 @@ __all__ = [
     "RiotAPIError",
     "RiotAccount",
     "Summoner",
+    "Timeline",
     "UnauthorizedError",
 ]

@@ -19,6 +19,16 @@ from .match import (
     PerkStyle,
     PerkStyleSelection,
     Team,
+    Timeline,
+    TimelineChampionStats,
+    TimelineDamageStats,
+    TimelineEvent,
+    TimelineFrame,
+    TimelineInfo,
+    TimelineParticipant,
+    TimelineParticipantFrame,
+    TimelinePosition,
+    TimelineVictimDamage,
 )
 from .player import Player
 from .stats import ChampionStats, PerformanceStats
@@ -49,4 +59,14 @@ __all__ = [
     "RiotAccount",
     "Summoner",
     "Team",
+    "Timeline",
+    "TimelineChampionStats",
+    "TimelineDamageStats",
+    "TimelineEvent",
+    "TimelineFrame",
+    "TimelineInfo",
+    "TimelineParticipant",
+    "TimelineParticipantFrame",
+    "TimelinePosition",
+    "TimelineVictimDamage",
 ]

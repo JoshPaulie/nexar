@@ -1,0 +1,10 @@
+::: nexar.models.match.timeline.Timeline
+::: nexar.models.match.timeline.TimelineInfo
+::: nexar.models.match.timeline.TimelineParticipant
+::: nexar.models.match.timeline.TimelineFrame
+::: nexar.models.match.timeline.TimelineParticipantFrame
+::: nexar.models.match.timeline.TimelinePosition
+::: nexar.models.match.timeline.TimelineChampionStats
+::: nexar.models.match.timeline.TimelineDamageStats
+::: nexar.models.match.timeline.TimelineEvent
+::: nexar.models.match.timeline.TimelineVictimDamage

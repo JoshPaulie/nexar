@@ -70,6 +70,15 @@ async def client(
         repeat=True,
     )
 
+    # Registered before the bare match catch-all: aioresponses matches in
+    # insertion order, and the match pattern would otherwise serve the match
+    # payload to timeline URLs.
+    mock_aioresponse.get(
+        re.compile(r"https://.*\.api\.riotgames\.com/lol/match/v5/matches/(?!by-puuid).+/timeline"),
+        payload=mock_responses["match_timeline"],
+        repeat=True,
+    )
+
     mock_aioresponse.get(
         re.compile(r"https://.*\.api\.riotgames\.com/lol/match/v5/matches/(?!by-puuid).+"),
         payload=mock_responses["match"],

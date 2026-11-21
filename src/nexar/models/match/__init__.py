@@ -6,6 +6,18 @@ from .participant import Participant
 from .participant_list import ParticipantList
 from .perks import Perks, PerkStats, PerkStyle, PerkStyleSelection
 from .team import Ban, Objective, Objectives, Team
+from .timeline import (
+    Timeline,
+    TimelineChampionStats,
+    TimelineDamageStats,
+    TimelineEvent,
+    TimelineFrame,
+    TimelineInfo,
+    TimelineParticipant,
+    TimelineParticipantFrame,
+    TimelinePosition,
+    TimelineVictimDamage,
+)
 
 __all__ = [
     "Ban",
@@ -23,4 +35,14 @@ __all__ = [
     "PerkStyleSelection",
     "Perks",
     "Team",
+    "Timeline",
+    "TimelineChampionStats",
+    "TimelineDamageStats",
+    "TimelineEvent",
+    "TimelineFrame",
+    "TimelineInfo",
+    "TimelineParticipant",
+    "TimelineParticipantFrame",
+    "TimelinePosition",
+    "TimelineVictimDamage",
 ]

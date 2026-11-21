@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Match timeline support: `NexarClient.get_match_timeline` parses the match-v5 timeline into typed `Timeline` models — per-minute `TimelineParticipantFrame` snapshots with champion and damage stats, and a `TimelineEvent` flat union covering every event type and field observed on the live op (Riot's reference documents only the three common event fields; per-type keys like `assistingParticipantIds` and the champion-kill victim damage breakdowns were verified against a real payload). `Timeline.frames_for(puuid)` returns one player's per-minute snapshots and `Timeline.events` flattens the stream; the URL rides the existing immutable match cache glob, and exact-URL offline tests plus a live canary (account, match ids, one timeline) cover it.
+
 - Champion Mastery support, current puuid-only surface: `NexarClient.get_champion_masteries`, `get_champion_mastery`, `get_top_champion_masteries`, and `get_champion_mastery_score`, plus `Player.get_champion_masteries()`. Responses parse into typed `ChampionMastery` models (milestone fields included), with 30-minute smart cache TTLs and live canaries covering all four endpoints.
 
 - `get_top_champion_masteries` accepts an optional `count` parameter (Riot's reference default is 3) — surfaced by the review pass, verified against the live reference, and pinned by an exact-URL test plus a live canary row.

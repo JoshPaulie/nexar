@@ -18,6 +18,7 @@
    "get_league_entries_by_puuid",
    "get_match",
    "get_match_ids_by_puuid",
+   "get_match_timeline",
    "get_player",
    "get_players",
    "get_riot_account",
@@ -282,6 +283,7 @@
     "RiotAPIError",
     "RiotAccount",
     "Summoner",
+    "Timeline",
     "UnauthorizedError"
    ],
    "defs": []
@@ -392,7 +394,17 @@
     "RewardConfig",
     "RiotAccount",
     "Summoner",
-    "Team"
+    "Team",
+    "Timeline",
+    "TimelineChampionStats",
+    "TimelineDamageStats",
+    "TimelineEvent",
+    "TimelineFrame",
+    "TimelineInfo",
+    "TimelineParticipant",
+    "TimelineParticipantFrame",
+    "TimelinePosition",
+    "TimelineVictimDamage"
    ],
    "defs": []
   },
@@ -412,7 +424,17 @@
     "PerkStyle",
     "PerkStyleSelection",
     "Perks",
-    "Team"
+    "Team",
+    "Timeline",
+    "TimelineChampionStats",
+    "TimelineDamageStats",
+    "TimelineEvent",
+    "TimelineFrame",
+    "TimelineInfo",
+    "TimelineParticipant",
+    "TimelineParticipantFrame",
+    "TimelinePosition",
+    "TimelineVictimDamage"
    ],
    "defs": []
   },
