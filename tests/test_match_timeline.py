@@ -414,6 +414,15 @@ class TestTimelineOmissions:
         assert info.frame_interval == 0
         assert info.end_of_game_result is None
 
+    def test_info_without_participants_and_frames_keys(self) -> None:
+        """Riot omits empty values: absent arrays parse empty, not KeyError."""
+        from nexar.models.match.timeline import TimelineInfo
+
+        info = TimelineInfo.from_api_response({"gameId": 1})
+
+        assert info.participants == []
+        assert info.frames == []
+
     def test_champion_and_damage_stats_default_omitted_values(self) -> None:
         champion_stats = TimelineChampionStats.from_api_response({})
         assert champion_stats.health == 0

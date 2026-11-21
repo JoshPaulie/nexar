@@ -93,7 +93,8 @@ class TimelineChampionStats:
     """Attack damage."""
 
     attack_speed: int
-    """Attack speed (attacks per 100 seconds, Riot's own encoding)."""
+    """Attack speed in Riot's raw frame encoding; the reference declares no
+    unit for it (values like 128-216 do not map to attacks per second)."""
 
     bonus_armor_pen_percent: int
     """Bonus armor penetration percent."""
@@ -269,7 +270,9 @@ class TimelineParticipantFrame:
     """Experience by this frame."""
 
     time_enemy_spent_controlled: int
-    """Crowd-control time inflicted by this frame, in seconds (Riot's encoding)."""
+    """Crowd-control time inflicted by this frame, in milliseconds (the wire
+    carries raw ms — 70337 near the end of a 26-minute match; the reference
+    lists no unit, and this is not seconds like ``timeCCingOthers``)."""
 
     position: TimelinePosition | None
     """Map position at this frame, or None when Riot omits it."""
@@ -565,8 +568,12 @@ class TimelineInfo:
             # Identity field: matches MatchInfo.game_id's direct read.
             game_id=data["gameId"],
             end_of_game_result=data.get("endOfGameResult"),
-            participants=[TimelineParticipant.from_api_response(participant) for participant in data["participants"]],
-            frames=[TimelineFrame.from_api_response(frame) for frame in data["frames"]],
+            # Collections harden like every non-identity field: Riot omits empty
+            # values, so an absent array parses empty instead of raising.
+            participants=[
+                TimelineParticipant.from_api_response(participant) for participant in data.get("participants", [])
+            ],
+            frames=[TimelineFrame.from_api_response(frame) for frame in data.get("frames", [])],
         )
 
 

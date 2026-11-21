@@ -35,6 +35,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Timeline model corrections from the adversarial review pass: `TimelineParticipantFrame.time_enemy_spent_controlled` is documented in milliseconds (the wire value; "seconds" was a 1000x mislabel — this field is not `timeCCingOthers`), the `attack_speed` docstring no longer invents a unit the reference never declares, and `TimelineInfo` now `.get`-hardens its `participants`/`frames` arrays so a payload that omits an empty array parses instead of raising (only `gameId` stays a direct identity read).
+
 - The match-v5 cache glob (`*/lol/match/v5/matches/*`, which timeline URLs also ride) now carries `-1`, aiohttp-client-cache's never-expire sentinel — its `None` value was skipped by the library's expiration coalescing, so "cached forever" rows (match detail and timeline alike) actually expired after the 1-hour session default since the row landed. The effective expiry is now pinned by a unit test resolved through the library's own `CacheActions` path.
 
 - The champion-mastery example snippet guards its single-champion lookup against an empty mastery list, so an account with no masteries no longer raises IndexError mid-example (score still prints, as the scores endpoint works regardless).
