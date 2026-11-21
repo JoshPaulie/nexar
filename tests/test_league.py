@@ -380,6 +380,31 @@ class TestApexLeagueModels:
 
         assert item.division is RankDivision.EMPTY
 
+    def test_league_item_parses_a_mini_series_value(self) -> None:
+        """The DTO declares miniSeries even though live apex entries never carry it."""
+        item = LeagueItem.from_api_response(
+            {"puuid": "p", "miniSeries": {"losses": 1, "progress": "WLN", "target": 3, "wins": 1}},
+        )
+
+        assert item.mini_series == MiniSeries(losses=1, progress="WLN", target=3, wins=1)
+
+    def test_league_list_explicit_null_entries_parse_empty(self) -> None:
+        """A null entries array must parse like an omitted one — tuple(None) would raise."""
+        league = LeagueList.from_api_response({"tier": "CHALLENGER", "entries": None})
+
+        assert league.entries == ()
+        assert league.tier is RankTier.CHALLENGER
+
+    def test_unknown_tier_raises_by_design(self) -> None:
+        """Tier is a direct identity read: an unknown string fails loudly, not silently.
+
+        Unknown queue strings degrade to Queue.UNKNOWN (pinned above); an
+        unknown tier would mean Riot invented a tier the enum does not know,
+        which should surface rather than half-parse a ladder.
+        """
+        with pytest.raises(ValueError, match="UNMAPPED"):
+            LeagueList.from_api_response({"tier": "UNMAPPED"})
+
 
 class TestApexLeagueClient:
     """Apex by-queue ops against exact-URL registrations (routing and path pinning)."""
@@ -538,9 +563,14 @@ class TestDivisionLadderClient:
 class TestLadderValidation:
     """Path values the division ladders do not serve raise before any wire call."""
 
-    async def test_apex_tier_raises(self, fresh_client: NexarClient) -> None:
+    @pytest.mark.parametrize(
+        "tier",
+        [RankTier.MASTER, RankTier.GRANDMASTER, RankTier.CHALLENGER],
+        ids=["master", "grandmaster", "challenger"],
+    )
+    async def test_apex_tier_raises(self, tier: RankTier, fresh_client: NexarClient) -> None:
         with pytest.raises(ValueError, match="division tier"):
-            await fresh_client.get_league_entries(Queue.RANKED_SOLO_5x5, RankTier.MASTER, RankDivision.ONE)
+            await fresh_client.get_league_entries(Queue.RANKED_SOLO_5x5, tier, RankDivision.ONE)
 
     async def test_empty_division_raises(self, fresh_client: NexarClient) -> None:
         with pytest.raises(ValueError, match="real division"):
@@ -563,8 +593,6 @@ class TestLiveLadderCanaries:
         challenger = await real_client.get_challenger_league(Queue.RANKED_SOLO_5x5)
         assert challenger.tier is RankTier.CHALLENGER
         assert 0 < len(challenger.entries) <= 300
-        points = [entry.league_points for entry in challenger.entries]
-        assert points == sorted(points, reverse=True)
 
         grandmaster = await real_client.get_grandmaster_league(Queue.RANKED_SOLO_5x5)
         assert grandmaster.tier is RankTier.GRANDMASTER
@@ -573,6 +601,11 @@ class TestLiveLadderCanaries:
         master = await real_client.get_master_league(Queue.RANKED_SOLO_5x5)
         assert master.tier is RankTier.MASTER
         assert master.entries
+
+        # All three apex docstrings claim pre-sorted entries — pin each ladder.
+        for league in (challenger, grandmaster, master):
+            points = [entry.league_points for entry in league.entries]
+            assert points == sorted(points, reverse=True)
 
     @pytest.mark.slow
     async def test_live_division_pages_paginate(self, real_client: NexarClient) -> None:
@@ -592,4 +625,6 @@ class TestLiveLadderCanaries:
         assert {entry.puuid for entry in page_two} != {entry.puuid for entry in page_one}
 
         exp_page = await real_client.get_league_exp_entries(Queue.RANKED_SOLO_5x5, RankTier.GOLD, RankDivision.ONE)
-        assert len(exp_page) == 205
+        # Exact page size is pinned once, on the league-v4 page above; the exp
+        # row only needs to prove the same op shape, not re-pin Riot's constant.
+        assert 0 < len(exp_page) <= 205

@@ -24,9 +24,9 @@ async def main() -> None:
         for incident in status.incidents:
             severity = incident.incident_severity or "info"
             title = incident.titles[0].content if incident.titles else "Untitled incident"
-            latest = incident.updates[-1] if incident.updates else None
-            when = latest.created_at if latest and latest.created_at else "unknown time"
-            print(f"  [{severity}] {title} (first posted {when})")
+            update = incident.updates[0] if incident.updates else None
+            when = update.created_at if update and update.created_at else "unknown time"
+            print(f"  [{severity}] {title} (posted {when})")
 
 
 if __name__ == "__main__":

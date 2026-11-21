@@ -145,6 +145,69 @@ class TestPlatformStatusModels:
 
         assert entry.created_at is None
 
+    def test_explicit_nulls_parse_like_absences(self) -> None:
+        """The status op demonstrably sends nulls — every null field must parse to its empty value.
+
+        ``.get(key, default)`` alone passes a null straight through (and
+        ``tuple(None)`` raises), so the status models guard with ``or``.
+        """
+        status = PlatformStatus.from_api_response(
+            {
+                "id": "NA1",
+                "name": None,
+                "locales": None,
+                "maintenances": None,
+                "incidents": [
+                    {
+                        "id": None,
+                        "maintenance_status": None,
+                        "incident_severity": None,
+                        "titles": None,
+                        "updates": None,
+                        "platforms": None,
+                        "created_at": None,
+                        "archive_at": None,
+                        "updated_at": None,
+                    }
+                ],
+            },
+        )
+
+        assert status == PlatformStatus(
+            id="NA1",
+            name="",
+            locales=(),
+            maintenances=(),
+            incidents=(
+                StatusEntry(
+                    id=0,
+                    maintenance_status="",
+                    incident_severity="",
+                    titles=(),
+                    updates=(),
+                    platforms=(),
+                    created_at=None,
+                    archive_at=None,
+                    updated_at=None,
+                ),
+            ),
+        )
+
+    def test_explicit_null_update_fields_parse_like_absences(self) -> None:
+        update = StatusUpdate.from_api_response(
+            {"id": None, "publish": None, "author": None, "publish_locations": None, "translations": None},
+        )
+
+        assert update == StatusUpdate(
+            id=0,
+            publish=False,
+            author="",
+            publish_locations=(),
+            translations=(),
+            created_at=None,
+            updated_at=None,
+        )
+
     def test_empty_payload_parses_empty(self) -> None:
         status = PlatformStatus.from_api_response({})
 

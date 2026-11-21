@@ -20,8 +20,12 @@ class ChampionRotations:
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "ChampionRotations":
-        """Create ChampionRotations from an API response (Riot omits empty values)."""
+        """Create ChampionRotations from an API response.
+
+        Guarded with ``or`` rather than a ``.get`` default so an explicit null
+        parses as empty alongside an omitted key.
+        """
         return cls(
-            sr=tuple(data.get("sr", ())),
-            newplayer=tuple(data.get("newplayer", ())),
+            sr=tuple(data.get("sr") or ()),
+            newplayer=tuple(data.get("newplayer") or ()),
         )

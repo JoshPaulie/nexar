@@ -10,7 +10,7 @@ import aiohttp
 import pytest
 from aiohttp_client_cache.backends import CacheBackend
 from aiohttp_client_cache.backends.sqlite import SQLiteBackend
-from aiohttp_client_cache.cache_control import CacheActions
+from aiohttp_client_cache.cache_control import CacheActions, ExpirationTime
 from aiohttp_client_cache.session import CachedSession
 
 from nexar.cache import (
@@ -19,6 +19,7 @@ from nexar.cache import (
     NO_CACHE_CONFIG,
     CacheConfig,
     create_cache_backend,
+    ttl,
 )
 from nexar.client import NexarClient
 from nexar.enums import Region
@@ -106,12 +107,11 @@ class TestSmartEndpointTtls:
     ) -> None:
         """Ladder rows ride the 5-minute league class, rotations the day class, status minutes.
 
-        The by-puuid row proves the division glob (three path segments after
-        /entries/) never shadows it. Resolved through CacheActions.from_settings
-        (the library's own resolution path), not the raw dict value: the claim
-        under test is the effective expiry of each URL. The page query parameter
-        is not part of the URL pattern matching, so the division rows cover
-        every page of those ladders.
+        Resolved through CacheActions.from_settings (the library's own
+        resolution path), not the raw dict value: the claim under test is the
+        effective expiry of each URL. The page query parameter is not part of
+        the URL pattern matching, so the division rows cover every page of
+        those ladders.
         """
         actions = CacheActions.from_settings(
             key="probe",
@@ -120,6 +120,26 @@ class TestSmartEndpointTtls:
             session_expire_after=DEFAULT_CACHE_CONFIG.expire_after,
         )
         assert actions.expire_after == expected_expire_after
+
+    def test_division_glob_cannot_shadow_the_by_puuid_row(self) -> None:
+        """The structural no-shadow proof — against the division glob ALONE, a by-puuid URL falls through.
+
+        Both rows carry the same 5-minute TTL, so resolving a by-puuid URL
+        against the full dict cannot tell which row answered. Against a
+        division-only subset, the by-puuid URL resolving to the session
+        default is the observable difference between "matched no row" and
+        "matched the wrong row". The mechanism: the glob requires two literal
+        slashes after /entries/ and by-puuid URLs carry one (fnmatch ``*``
+        crosses slashes, but the pattern's own slashes are literal).
+        """
+        division_only: dict[str, ExpirationTime] = {"*/lol/league/v4/entries/*/*/*": ttl(minutes=5)}
+        actions = CacheActions.from_settings(
+            key="probe",
+            url="https://na1.api.riotgames.com/lol/league/v4/entries/by-puuid/p",
+            urls_expire_after=division_only,
+            session_expire_after=DEFAULT_CACHE_CONFIG.expire_after,
+        )
+        assert actions.expire_after == DEFAULT_CACHE_CONFIG.expire_after
 
 
 class TestCreateCacheBackend:

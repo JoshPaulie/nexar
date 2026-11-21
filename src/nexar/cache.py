@@ -50,9 +50,11 @@ def ttl(*, minutes: int = 0, hours: int = 0, days: int = 0) -> int:
 _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/match/v5/matches/by-puuid/*/ids": ttl(minutes=1),
     "*/lol/league/v4/entries/by-puuid/*": ttl(minutes=5),
-    # Division ladders have three path segments after /entries/, so this never
-    # shadows the by-puuid row above; the page query parameter is not part of
-    # the URL the library matches patterns against.
+    # Division ladders: this glob needs two literal slashes after /entries/,
+    # which by-puuid URLs never have (they carry one), so it cannot shadow the
+    # row above — verified through the library's own url_match, not just
+    # assumed. The page query parameter is not part of the URL the library
+    # matches patterns against.
     "*/lol/league/v4/entries/*/*/*": ttl(minutes=5),
     "*/lol/league/v4/challengerleagues/*": ttl(minutes=5),
     "*/lol/league/v4/grandmasterleagues/*": ttl(minutes=5),

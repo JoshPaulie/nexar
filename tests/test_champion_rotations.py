@@ -74,6 +74,12 @@ class TestChampionRotationsModels:
         assert rotations.sr == ()
         assert rotations.newplayer == ()
 
+    def test_explicit_null_pools_parse_empty(self) -> None:
+        """A null pool must parse like an omitted one — tuple(None) would raise."""
+        rotations = ChampionRotations.from_api_response({"sr": None, "newplayer": None})
+
+        assert rotations == ChampionRotations(sr=(), newplayer=())
+
 
 class TestLiveRotationCanary:
     """Live canary: the rotations op against the real API."""

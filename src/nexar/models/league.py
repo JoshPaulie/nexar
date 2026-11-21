@@ -310,7 +310,12 @@ class LeagueList:
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "LeagueList":
-        """Create LeagueList from a league-list API response."""
+        """Create LeagueList from a league-list API response.
+
+        ``tier`` is a direct identity read — an unknown tier string raises
+        (deliberate, pinned by a test) rather than degrading the way an unknown
+        queue string does.
+        """
         queue_str = data.get("queue") or ""
         return cls(
             league_id=data.get("leagueId") or "",
@@ -318,5 +323,5 @@ class LeagueList:
             name=data.get("name") or "",
             queue=_queue_from_string(queue_str),
             queue_raw=queue_str,
-            entries=tuple(LeagueItem.from_api_response(entry) for entry in data.get("entries", ())),
+            entries=tuple(LeagueItem.from_api_response(entry) for entry in (data.get("entries") or ())),
         )

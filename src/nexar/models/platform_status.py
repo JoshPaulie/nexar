@@ -39,8 +39,8 @@ class StatusContent:
     def from_api_response(cls, data: dict[str, Any]) -> "StatusContent":
         """Create StatusContent from an API response."""
         return cls(
-            locale=data.get("locale", ""),
-            content=data.get("content", ""),
+            locale=data.get("locale") or "",
+            content=data.get("content") or "",
         )
 
 
@@ -71,13 +71,18 @@ class StatusUpdate:
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "StatusUpdate":
-        """Create StatusUpdate from an API response."""
+        """Create StatusUpdate from an API response.
+
+        This op sends explicit nulls, so every field is guarded against a null
+        value — ``.get(key, default)`` alone would pass the null straight
+        through into a non-optional field.
+        """
         return cls(
-            id=data.get("id", 0),
-            publish=data.get("publish", False),
-            author=data.get("author", ""),
-            publish_locations=tuple(data.get("publish_locations", ())),
-            translations=tuple(StatusContent.from_api_response(t) for t in data.get("translations", ())),
+            id=data.get("id") or 0,
+            publish=data.get("publish") or False,
+            author=data.get("author") or "",
+            publish_locations=tuple(data.get("publish_locations") or ()),
+            translations=tuple(StatusContent.from_api_response(t) for t in (data.get("translations") or ())),
             created_at=_parse_timestamp(data.get("created_at")),
             updated_at=_parse_timestamp(data.get("updated_at")),
         )
@@ -106,7 +111,8 @@ class StatusEntry:
     """Localized titles for this entry."""
 
     updates: tuple[StatusUpdate, ...]
-    """Updates posted under this entry, oldest first."""
+    """Updates posted under this entry, in the order Riot returns them (only
+    single-update incidents have been observed on the wire)."""
 
     platforms: tuple[str, ...]
     """Platforms affected (e.g. 'windows', 'macos', 'android', 'ios')."""
@@ -122,14 +128,14 @@ class StatusEntry:
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "StatusEntry":
-        """Create StatusEntry from an API response."""
+        """Create StatusEntry from an API response (nulls and absences parse the same)."""
         return cls(
-            id=data.get("id", 0),
-            maintenance_status=data.get("maintenance_status", ""),
-            incident_severity=data.get("incident_severity", ""),
-            titles=tuple(StatusContent.from_api_response(t) for t in data.get("titles", ())),
-            updates=tuple(StatusUpdate.from_api_response(u) for u in data.get("updates", ())),
-            platforms=tuple(data.get("platforms", ())),
+            id=data.get("id") or 0,
+            maintenance_status=data.get("maintenance_status") or "",
+            incident_severity=data.get("incident_severity") or "",
+            titles=tuple(StatusContent.from_api_response(t) for t in (data.get("titles") or ())),
+            updates=tuple(StatusUpdate.from_api_response(u) for u in (data.get("updates") or ())),
+            platforms=tuple(data.get("platforms") or ()),
             created_at=_parse_timestamp(data.get("created_at")),
             archive_at=_parse_timestamp(data.get("archive_at")),
             updated_at=_parse_timestamp(data.get("updated_at")),
@@ -161,11 +167,11 @@ class PlatformStatus:
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "PlatformStatus":
-        """Create PlatformStatus from an API response."""
+        """Create PlatformStatus from an API response (nulls and absences parse the same)."""
         return cls(
-            id=data.get("id", ""),
-            name=data.get("name", ""),
-            locales=tuple(data.get("locales", ())),
-            maintenances=tuple(StatusEntry.from_api_response(m) for m in data.get("maintenances", ())),
-            incidents=tuple(StatusEntry.from_api_response(i) for i in data.get("incidents", ())),
+            id=data.get("id") or "",
+            name=data.get("name") or "",
+            locales=tuple(data.get("locales") or ()),
+            maintenances=tuple(StatusEntry.from_api_response(m) for m in (data.get("maintenances") or ())),
+            incidents=tuple(StatusEntry.from_api_response(i) for i in (data.get("incidents") or ())),
         )

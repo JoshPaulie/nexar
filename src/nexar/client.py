@@ -229,9 +229,10 @@ class NexarClient:
     ) -> LeagueList:
         """Get the master ladder for a ranked queue.
 
-        The full ladder arrives in one response: every player above the LP
-        cutoff (10,000 on NA when measured), with no page parameter. Entries
-        are pre-sorted by LP.
+        The full ladder arrives in one response: every master-tier player the
+        platform serves (exactly 10,000 entries on NA when measured — the entry
+        count, not an LP threshold), with no page parameter. Entries are
+        pre-sorted by LP.
         """
         resolved_region = self._resolve_region(region)
         endpoint = f"/lol/league/v4/masterleagues/by-queue/{self._ladder_queue_path(queue)}"
@@ -276,9 +277,10 @@ class NexarClient:
         """Get one page of a division ladder from the expanded league (league-exp-v4).
 
         For the LoL ranked queues this serves the same unordered 205-player
-        pages as ``get_league_entries`` (the two responses were byte-identical
-        when measured); the expanded league exists to also cover non-LoL queue
-        types.
+        pages in the same order as ``get_league_entries``; individual LP and
+        win/loss values drift between the two calls because the ladder keeps
+        moving — each page is its own snapshot. The expanded league exists to
+        also cover non-LoL queue types.
         """
         self._validate_division_ladder(tier, division, page)
         resolved_region = self._resolve_region(region)
