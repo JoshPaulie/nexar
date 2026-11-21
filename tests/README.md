@@ -1,5 +1,13 @@
 # Tests
 
+## Layout
+
+- **`tests/` root — per-family wave tests.** One `test_<family>.py` per Riot API family (league, match timeline, champion mastery, ...), each wave built on mocked wire calls and recorded payloads.
+- **`tests/unit/` — machinery tests.** The client's session, cache, retry, rate-limiter, and enum plumbing, independent of any endpoint wave.
+- **`tests/payloads/` — shared fixture data, split by payload family** (match, timeline, mastery). `tests/helpers.py` re-exports every payload and factory, so test files import fixtures from `tests.helpers` and no call site depends on the split.
+
+The structure budgets in `test_structure.py` cover this whole tree: files stay under 1000 lines and functions under 100, with the two recorded fixture payloads pinned in `KNOWN_LONG` at their measured size — the table only shrinks.
+
 ## Running
 
 One entry point for live runs, plain `uv` for offline runs:

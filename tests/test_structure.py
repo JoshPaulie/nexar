@@ -7,8 +7,10 @@ Three gates, each failing for a reason:
   and removals both fail). Any deliberate surface change must refresh the
   baseline in the same commit: set ``UPDATE_BASELINE=1`` to regenerate.
 - file/function budget tests — tripwires against the next god-file, not style
-  police. Current maxima: participant.py 816 lines, ``_make_api_call`` 76
-  (client_plumbing.py since the topic split).
+  police. The budgets cover src and tests alike. Current src maxima:
+  participant.py 816 lines, ``_make_api_call`` 76 (client_plumbing.py since
+  the topic split); the two over-cap test functions are recorded fixture
+  payloads pinned in ``KNOWN_LONG`` at their measured size.
   Caps sit above them with headroom; a file crossing 1000 lines or a function
   crossing 100 gets split before it lands, by decision.
 - seam tests — no underscore attribute access off ``self``/``cls`` anywhere in
@@ -28,7 +30,9 @@ from typing import TypedDict
 import pytest
 
 SRC = Path(__file__).parent.parent / "src" / "nexar"
+TESTS = Path(__file__).parent
 BASELINE = Path(__file__).parent / "api_baseline.json"
+SCAN_ROOTS = (SRC, TESTS)
 
 # Modules whose top-level definitions are the SDK's public API surface.
 SURFACE_MODULES = [
@@ -57,6 +61,16 @@ SURFACE_CLASSES = [
 
 MAX_FILE_LINES = 1000
 MAX_FUNCTION_LINES = 100
+
+# Function debt recorded at its measured size, never above it: growth past
+# the recorded number fails the budget test, and the companion test below
+# fails when an entry no longer needs its ceiling, so the table only shrinks.
+# Both entries predate the cap (they are recorded fixture payloads, moved
+# verbatim out of helpers.py when the test tree came under the budgets).
+KNOWN_LONG: dict[tuple[str, str], int] = {
+    ("tests/payloads/match.py", "create_test_participant"): 128,
+    ("tests/payloads/timeline.py", "timeline_response_payload"): 814,
+}
 
 
 def _module_surface(path: Path) -> dict[str, list[str] | None]:
@@ -131,23 +145,53 @@ def test_api_surface_matches_baseline() -> None:
 
 
 def test_no_file_exceeds_the_line_budget() -> None:
-    """A file crossing 1000 lines is the next god-file; split before landing."""
-    for path in sorted(SRC.rglob("*.py")):
-        line_count = len(path.read_text().splitlines())
-        assert line_count <= MAX_FILE_LINES, f"{path} is {line_count} lines (cap {MAX_FILE_LINES})"
+    """A file crossing 1000 lines is the next god-file; split before landing.
+
+    The budget covers the test tree too: helpers.py was 1060 lines with the
+    test tree unguarded, so the payload families moved to ``payloads/``.
+    """
+    for root in SCAN_ROOTS:
+        for path in sorted(root.rglob("*.py")):
+            line_count = len(path.read_text().splitlines())
+            assert line_count <= MAX_FILE_LINES, f"{path} is {line_count} lines (cap {MAX_FILE_LINES})"
+
+
+def _repo_rel(path: Path) -> str:
+    return str(path.relative_to(Path(__file__).parent.parent))
 
 
 def test_no_function_exceeds_the_line_budget() -> None:
-    """A function crossing 100 lines collapses (table, chain, or phases)."""
+    """A function crossing 100 lines collapses (table, chain, or phases).
+
+    Functions predating the cap carry a ceiling in ``KNOWN_LONG`` at their
+    measured size, so the table is debt, not an allowance.
+    """
     over: list[tuple[int, str, str]] = []
-    for path in sorted(SRC.rglob("*.py")):
-        tree = ast.parse(path.read_text())
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-                length = (node.end_lineno or node.lineno) - node.lineno + 1
-                if length > MAX_FUNCTION_LINES:
-                    over.append((length, f"{path}:{node.lineno}", node.name))
-    assert not over, f"functions over {MAX_FUNCTION_LINES} lines: {over}"
+    for root in SCAN_ROOTS:
+        for path in sorted(root.rglob("*.py")):
+            tree = ast.parse(path.read_text())
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                    length = (node.end_lineno or node.lineno) - node.lineno + 1
+                    cap = KNOWN_LONG.get((_repo_rel(path), node.name), MAX_FUNCTION_LINES)
+                    if length > cap:
+                        over.append((length, f"{path}:{node.lineno}", node.name))
+    assert not over, f"functions over their budget: {over}"
+
+
+def test_known_long_entries_stay_necessary() -> None:
+    """An allowance whose function fits the cap must be deleted, not lowered."""
+    oversized: set[tuple[str, str]] = set()
+    for root in SCAN_ROOTS:
+        for path in sorted(root.rglob("*.py")):
+            tree = ast.parse(path.read_text())
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                    length = (node.end_lineno or node.lineno) - node.lineno + 1
+                    if length > MAX_FUNCTION_LINES:
+                        oversized.add((_repo_rel(path), node.name))
+    stale = sorted(set(KNOWN_LONG) - oversized)
+    assert not stale, f"KNOWN_LONG entries that now fit the cap; delete them: {stale}"
 
 
 def test_no_underscore_attribute_access_off_self_or_cls() -> None:
