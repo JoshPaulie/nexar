@@ -10,12 +10,18 @@
 
 Caching is "smart" by using varying TTLs (time-to-live) for each endpoint:
 
-| Endpoint           | Cache Duration |
-| ------------------ | -------------- |
-| Matches            | Forever        |
-| Accounts/Summoners | 24 hours       |
-| League Entries     | 5 minutes      |
-| Match IDs          | 1 minute       |
+| Endpoint                        | Cache Duration |
+| ------------------------------- | -------------- |
+| Matches (incl. timelines)       | Forever        |
+| Accounts/Summoners              | 24 hours       |
+| League Entries & Ranked Ladders | 5 minutes      |
+| Match IDs                       | 1 minute       |
+| Champion Masteries              | 30 minutes     |
+| Challenge Configs & Percentiles | 6 hours        |
+| Challenge Leaderboards          | 5 minutes      |
+| Challenge Player Data           | 30 minutes     |
+| Champion Rotations              | 1 day          |
+| Platform Status                 | 1 minute       |
 
 All other requests use the default expiration time (1 hour).
 

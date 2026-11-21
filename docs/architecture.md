@@ -192,15 +192,32 @@ Nexar uses `aiohttp-client-cache` for transparent HTTP caching.
 
 ### Smart endpoint TTLs
 
+First match wins, so the rows keep the source dict's specific-before-generic order.
+
 ```
- Endpoint pattern                                    TTL
- ──────────────────────────────────────────────────  ──────────
- */lol/match/v5/matches/*                            forever
- */lol/league/v4/entries/by-puuid/*                  5 minutes
- */lol/match/v5/matches/by-puuid/*/ids               1 minute
- */riot/account/v1/accounts/by-riot-id/*             24 hours
- */lol/summoner/v4/summoners/by-puuid/*              24 hours
- (anything else)                                     1 hour (default)
+ Endpoint pattern                                           TTL
+ ─────────────────────────────────────────────────────────  ──────────
+ */lol/match/v5/matches/by-puuid/*/ids                      1 minute
+ */lol/league/v4/entries/by-puuid/*                         5 minutes
+ */lol/league/v4/entries/*/*/*                              5 minutes
+ */lol/league/v4/challengerleagues/*                        5 minutes
+ */lol/league/v4/grandmasterleagues/*                       5 minutes
+ */lol/league/v4/masterleagues/*                            5 minutes
+ */lol/league-exp/v4/entries/*/*/*                          5 minutes
+ */lol/champion-mastery/v4/champion-masteries/by-puuid/*    30 minutes
+ */lol/champion-mastery/v4/scores/by-puuid/*                30 minutes
+ */lol/challenges/v1/challenges/config                      6 hours
+ */lol/challenges/v1/challenges/*/config                    6 hours
+ */lol/challenges/v1/challenges/percentiles                 6 hours
+ */lol/challenges/v1/challenges/*/percentiles               6 hours
+ */lol/challenges/v1/challenges/*/leaderboards/by-level/*   5 minutes
+ */lol/challenges/v1/player-data/*                          30 minutes
+ */lol/match/v5/matches/*                                   forever
+ */lol/platform/v3/champion-rotations                       1 day
+ */lol/status/v4/platform-data                              1 minute
+ */riot/account/v1/accounts/by-riot-id/*                    24 hours
+ */lol/summoner/v4/summoners/by-puuid/*                     24 hours
+ (anything else)                                            1 hour (default)
 ```
 
 ### Cache lookup flow
