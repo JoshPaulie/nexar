@@ -27,6 +27,10 @@ All notable changes to this project will be documented in this file.
 
 - Internal: the batch partition behind `get_players` and `Player.get_matches` is now one helper, `nexar.exceptions.gather_partitioned`, which routes captured `BaseException` results to the error side (the `get_players` variant previously checked the narrower `Exception`).
 
+### Removed
+
+- `Region.PH2` and `Region.TH2` (with their `PlatformId` aliases) — Riot migrated the Philippines and Thailand platforms into SG2 on 2025-01-08, and both are absent from the reference's executable region list, so nexar tracks the current surface. The routing-table mirror drops both rows ahead of the upstream docs page, which still lists them.
+
 ### Fixed
 
 - The champion-mastery example snippet guards its single-champion lookup against an empty mastery list, so an account with no masteries no longer raises IndexError mid-example (score still prints, as the scores endpoint works regardless).

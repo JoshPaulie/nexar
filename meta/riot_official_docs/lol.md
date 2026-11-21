@@ -92,9 +92,7 @@ To execute a request to the League of Legends (LoL) API, you must select the cor
 | OC1      | oc1.api.riotgames.com  |
 | TR1      | tr1.api.riotgames.com  |
 | RU       | ru.api.riotgames.com   |
-| PH2      | ph2.api.riotgames.com  |
 | SG2      | sg2.api.riotgames.com  |
-| TH2      | th2.api.riotgames.com  |
 | TW2      | tw2.api.riotgames.com  |
 | VN2      | vn2.api.riotgames.com  |
 

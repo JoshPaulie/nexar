@@ -24,6 +24,11 @@ class TestRegion:
         assert Region.ME1.v5_region == "europe"
         assert Region.ME1.account_region == "europe"
 
+    def test_deprecated_platforms_removed(self) -> None:
+        """PH2 and TH2 moved into SG2 (2025-01-08) and are off the executable surface."""
+        assert "PH2" not in Region.__members__
+        assert "TH2" not in Region.__members__
+
 
 class TestQueue:
     def test_is_ranked_solo(self) -> None:
