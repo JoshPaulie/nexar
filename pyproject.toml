@@ -64,23 +64,39 @@ fail_under = 96
 
 [tool.ruff.lint]
 select = ["ALL"]
+# Formatter-owned style is ignored, not fought: ruff's formatter docs list these
+# rules as conflicting with `ruff format`. Left enabled they make the formatter
+# emit warnings and hand back diffs the linter would reverse.
 ignore = [
+    "COM812",  # Formatter owns trailing commas
+    "COM819",  # Formatter owns trailing commas (the prohibited half)
     "D101",    # Ignore missing docstring in public class
     "D102",    # Ignore missing docstring in public method
     "D103",    # Ignore missing docstring in public function
     "D105",    # Ignore missing docstring in magic methods
     "D107",    # Ignore missing docstring in __init__
+    "D203",    # Silence D203/D211 conflict warning (D211 preferred)
+    "D206",    # Formatter normalizes docstring indentation
     "D212",    # Ignore dumb rule about docstrings and how they start
     "D213",    # Silence the other half of the D212/D213 summary-line toggle
-    "D203",    # Silence D203/D211 conflict warning (D211 preferred)
+    "D300",    # Formatter emits triple double quotes
     "D401",    # Allow declarative docstrings
     "DTZ006",  # Ignore missing tz in datetime
+    "E111",    # Preview-only indentation rules: inert today, ignored so turning
+    "E114",    # preview on cannot reintroduce the formatter fight
+    "E117",
     "FIX002",  # Allow fixme comments
     "PLC0415", # Allow imports to be imported anywhere avoid circular imports
     "PLR0913", # Ignore too many return statements
     "PLR2004", # Allow magic numbers
+    "Q000",    # Formatter owns quote style (double)
+    "Q001",    # Same group as Q000, one rule per string kind
+    "Q002",
+    "Q003",
+    "Q004",
     "T201",    # Allow print statements
     "TD003",   # Allow issue-less todos
+    "W191",    # Formatter owns indentation; tabs never survive a format run
 ]
 
 [tool.ruff.lint.per-file-ignores]
