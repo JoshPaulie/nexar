@@ -8,6 +8,7 @@ from enum import Enum
 logger = logging.getLogger("nexar")
 
 __all__ = [
+    "ChallengeLevel",
     "MapId",
     "MatchParticipantPosition",
     "MatchType",
@@ -465,6 +466,39 @@ class MatchType(Enum):
 
     TOURNEY = "tourney"
     """Tournament matches only"""
+
+
+class ChallengeLevel(Enum):
+    """Challenge tier levels, as lol-challenges-v1 spells them.
+
+    All thirteen values are the reference op block's legal set for the shared
+    ``Level`` string. Only the apex three serve on the leaderboard path
+    (MASTER/GRANDMASTER/CHALLENGER — the rest answer 400, measured 2026-11-21
+    on NA1); the full set appears in per-challenge progress and as the keys of
+    percentile and threshold maps.
+    """
+
+    NONE = "NONE"
+    """No progress on the challenge yet."""
+
+    IRON = "IRON"
+    BRONZE = "BRONZE"
+    SILVER = "SILVER"
+    GOLD = "GOLD"
+    PLATINUM = "PLATINUM"
+    DIAMOND = "DIAMOND"
+    MASTER = "MASTER"
+    GRANDMASTER = "GRANDMASTER"
+    CHALLENGER = "CHALLENGER"
+
+    HIGHEST_NOT_LEADERBOARD_ONLY = "HIGHEST_NOT_LEADERBOARD_ONLY"
+    """Meta level: the player's highest tier, leaderboard position excluded."""
+
+    HIGHEST = "HIGHEST"
+    """Meta level: the player's highest tier, leaderboard position included."""
+
+    LOWEST = "LOWEST"
+    """Meta level: the player's lowest tier across all challenges."""
 
 
 class MatchParticipantPosition(Enum):

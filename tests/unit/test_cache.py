@@ -88,6 +88,12 @@ class TestSmartEndpointTtls:
             ("https://na1.api.riotgames.com/lol/league/v4/entries/by-puuid/p", 5 * 60),
             ("https://na1.api.riotgames.com/lol/platform/v3/champion-rotations", 24 * 60 * 60),
             ("https://na1.api.riotgames.com/lol/status/v4/platform-data", 60),
+            ("https://na1.api.riotgames.com/lol/challenges/v1/challenges/config", 6 * 60 * 60),
+            ("https://na1.api.riotgames.com/lol/challenges/v1/challenges/0/config", 6 * 60 * 60),
+            ("https://na1.api.riotgames.com/lol/challenges/v1/challenges/percentiles", 6 * 60 * 60),
+            ("https://na1.api.riotgames.com/lol/challenges/v1/challenges/0/percentiles", 6 * 60 * 60),
+            ("https://na1.api.riotgames.com/lol/challenges/v1/challenges/0/leaderboards/by-level/MASTER", 5 * 60),
+            ("https://na1.api.riotgames.com/lol/challenges/v1/player-data/p", 30 * 60),
         ],
         ids=[
             "challenger",
@@ -98,6 +104,12 @@ class TestSmartEndpointTtls:
             "by-puuid-entries",
             "rotations",
             "status",
+            "all-challenge-configs",
+            "one-challenge-config",
+            "all-challenge-percentiles",
+            "one-challenge-percentiles",
+            "challenge-leaderboard",
+            "challenge-player-data",
         ],
     )
     def test_ladder_rotation_status_rows_keep_their_freshness_class(
@@ -106,6 +118,10 @@ class TestSmartEndpointTtls:
         expected_expire_after: int,
     ) -> None:
         """Ladder rows ride the 5-minute league class, rotations the day class, status minutes.
+
+        Challenge rows ride their own classes: catalogs (configs, percentiles)
+        6 hours, leaderboards the 5-minute ladder class, player-data the
+        30-minute mastery class.
 
         Resolved through CacheActions.from_settings (the library's own
         resolution path), not the raw dict value: the claim under test is the
@@ -140,6 +156,30 @@ class TestSmartEndpointTtls:
             session_expire_after=DEFAULT_CACHE_CONFIG.expire_after,
         )
         assert actions.expire_after == DEFAULT_CACHE_CONFIG.expire_after
+
+    def test_by_id_challenge_globs_cannot_shadow_the_catalog_rows(self) -> None:
+        """The by-id config/percentiles globs need an extra path segment the catalog URLs lack.
+
+        Both rows share a TTL class, so — like the division glob proof above —
+        the observable difference between "matched no row" and "matched the
+        wrong row" is only visible against a by-id-only subset: a catalog URL
+        resolving to the session default proves the by-id globs did not answer.
+        """
+        by_id_only: dict[str, ExpirationTime] = {
+            "*/lol/challenges/v1/challenges/*/config": ttl(hours=6),
+            "*/lol/challenges/v1/challenges/*/percentiles": ttl(hours=6),
+        }
+        for catalog_url in (
+            "https://na1.api.riotgames.com/lol/challenges/v1/challenges/config",
+            "https://na1.api.riotgames.com/lol/challenges/v1/challenges/percentiles",
+        ):
+            actions = CacheActions.from_settings(
+                key="probe",
+                url=catalog_url,
+                urls_expire_after=by_id_only,
+                session_expire_after=DEFAULT_CACHE_CONFIG.expire_after,
+            )
+            assert actions.expire_after == DEFAULT_CACHE_CONFIG.expire_after
 
 
 class TestCreateCacheBackend:

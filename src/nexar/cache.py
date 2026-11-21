@@ -46,6 +46,9 @@ def ttl(*, minutes: int = 0, hours: int = 0, days: int = 0) -> int:
 # Match ID lists change as new matches are played → cached 1 minute.
 # Champion rotations refresh on the weekly/patch cycle → cached 1 day.
 # Platform status is near-realtime incident data → cached 1 minute.
+# Challenge configs and percentiles are catalog data on the patch cycle → 6 hours.
+# Challenge leaderboards shift live with every game → cached 5 minutes.
+# Player challenge progress changes only through play → cached 30 minutes.
 # Order matters: more specific patterns must come first (first match wins).
 _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/match/v5/matches/by-puuid/*/ids": ttl(minutes=1),
@@ -62,6 +65,16 @@ _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/league-exp/v4/entries/*/*/*": ttl(minutes=5),
     "*/lol/champion-mastery/v4/champion-masteries/by-puuid/*": ttl(minutes=30),
     "*/lol/champion-mastery/v4/scores/by-puuid/*": ttl(minutes=30),
+    # Challenge family: the two catalog ops and their by-id twins ride together.
+    # The literal config/percentiles globs cannot shadow the by-id ones — the
+    # library's matcher never crosses a path separator, and the by-id URLs
+    # carry an extra segment.
+    "*/lol/challenges/v1/challenges/config": ttl(hours=6),
+    "*/lol/challenges/v1/challenges/*/config": ttl(hours=6),
+    "*/lol/challenges/v1/challenges/percentiles": ttl(hours=6),
+    "*/lol/challenges/v1/challenges/*/percentiles": ttl(hours=6),
+    "*/lol/challenges/v1/challenges/*/leaderboards/by-level/*": ttl(minutes=5),
+    "*/lol/challenges/v1/player-data/*": ttl(minutes=30),
     # aiohttp-client-cache's never-expire sentinel. A None value here is skipped
     # by the library's coalesce (indistinguishable from no pattern match), which
     # silently resolved immutable match URLs to the 1-hour session default.

@@ -1137,5 +1137,62 @@
       "championPoints": 61220
     }
   ],
-  "champion_mastery_score": 157331
+  "champion_mastery_score": 157331,
+  "challenge_player_data": {
+    "challenges": [
+      {
+        "challengeId": 302101,
+        "percentile": 0.003,
+        "position": 73196,
+        "playersInLevel": 109586,
+        "level": "GRANDMASTER",
+        "value": 295.0,
+        "achievedTime": 1737630019432
+      },
+      {
+        "challengeId": 0,
+        "percentile": 0.022,
+        "level": "DIAMOND",
+        "value": 15165.0,
+        "achievedTime": 1761351539269
+      },
+      {
+        "challengeId": 303204,
+        "percentile": 1.0,
+        "level": "NONE",
+        "value": 1.0
+      }
+    ],
+    "preferences": {
+      "bannerAccent": "1",
+      "title": "40220104",
+      "challengeIds": [
+        402409,
+        203404,
+        402201
+      ],
+      "crestBorder": "1",
+      "prestigeCrestBorderLevel": 225
+    },
+    "totalPoints": {
+      "level": "DIAMOND",
+      "current": 15165,
+      "max": 29680,
+      "percentile": 0.022
+    },
+    "categoryPoints": {
+      "IMAGINATION": {
+        "level": "PLATINUM",
+        "current": 1760,
+        "max": 4730,
+        "percentile": 0.08
+      },
+      "COLLECTION": {
+        "level": "PLATINUM",
+        "current": 1915,
+        "max": 4200,
+        "percentile": 0.108
+      }
+    }
+  }
 }

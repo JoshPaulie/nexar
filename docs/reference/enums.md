@@ -16,4 +16,6 @@ All enums live in `nexar.enums` and are re-exported from the top-level `nexar` p
 
 ::: nexar.enums.MatchType
 
+::: nexar.enums.ChallengeLevel
+
 ::: nexar.enums.MatchParticipantPosition

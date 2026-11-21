@@ -1,6 +1,15 @@
 """Domain models for Riot API responses."""
 
 from .account import RiotAccount, Summoner
+from .challenge import (
+    ChallengeConfig,
+    ChallengeLeaderboardEntry,
+    ChallengePoints,
+    ChallengePreferences,
+    ChallengeProgress,
+    LocalizedChallengeNames,
+    PlayerChallengeData,
+)
 from .champion_mastery import ChampionMastery, NextSeasonMilestone, RewardConfig
 from .champion_rotations import ChampionRotations
 from .league import LeagueEntry, LeagueItem, LeagueList, MiniSeries
@@ -37,6 +46,11 @@ from .stats import ChampionStats, PerformanceStats
 
 __all__ = [
     "Ban",
+    "ChallengeConfig",
+    "ChallengeLeaderboardEntry",
+    "ChallengePoints",
+    "ChallengePreferences",
+    "ChallengeProgress",
     "Challenges",
     "ChampionMastery",
     "ChampionRotations",
@@ -44,6 +58,7 @@ __all__ = [
     "LeagueEntry",
     "LeagueItem",
     "LeagueList",
+    "LocalizedChallengeNames",
     "Match",
     "MatchInfo",
     "MatchMetadata",
@@ -61,6 +76,7 @@ __all__ = [
     "Perks",
     "PlatformStatus",
     "Player",
+    "PlayerChallengeData",
     "RewardConfig",
     "RiotAccount",
     "StatusContent",

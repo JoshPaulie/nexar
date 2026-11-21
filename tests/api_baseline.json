@@ -10,8 +10,13 @@
   "nexar.client.NexarClient": [
    "clear_cache",
    "close",
+   "get_all_challenge_configs",
+   "get_all_challenge_percentiles",
    "get_api_call_stats",
    "get_cache_info",
+   "get_challenge_config",
+   "get_challenge_leaderboard",
+   "get_challenge_percentiles",
    "get_challenger_league",
    "get_champion_masteries",
    "get_champion_mastery",
@@ -27,6 +32,7 @@
    "get_match_timeline",
    "get_platform_status",
    "get_player",
+   "get_player_challenge_data",
    "get_players",
    "get_riot_account",
    "get_riot_account_by_puuid",
@@ -231,6 +237,7 @@
    "sort_by"
   ],
   "nexar.models.player.Player": [
+   "_challenge_data",
    "_champion_masteries",
    "_league_entries",
    "_summoner",
@@ -238,6 +245,7 @@
    "client",
    "create",
    "game_name",
+   "get_challenge_data",
    "get_champion_masteries",
    "get_flex_rank",
    "get_last_match",
@@ -337,6 +345,7 @@
   },
   "nexar/enums.py": {
    "all": [
+    "ChallengeLevel",
     "MapId",
     "MatchParticipantPosition",
     "MatchType",
@@ -347,6 +356,7 @@
     "Region"
    ],
    "defs": [
+    "ChallengeLevel",
     "MapId",
     "MatchParticipantPosition",
     "MatchType",
@@ -382,6 +392,11 @@
   "nexar/models/__init__.py": {
    "all": [
     "Ban",
+    "ChallengeConfig",
+    "ChallengeLeaderboardEntry",
+    "ChallengePoints",
+    "ChallengePreferences",
+    "ChallengeProgress",
     "Challenges",
     "ChampionMastery",
     "ChampionRotations",
@@ -389,6 +404,7 @@
     "LeagueEntry",
     "LeagueItem",
     "LeagueList",
+    "LocalizedChallengeNames",
     "Match",
     "MatchInfo",
     "MatchMetadata",
@@ -406,6 +422,7 @@
     "Perks",
     "PlatformStatus",
     "Player",
+    "PlayerChallengeData",
     "RewardConfig",
     "RiotAccount",
     "StatusContent",

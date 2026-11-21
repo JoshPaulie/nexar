@@ -106,6 +106,12 @@ async def client(
         repeat=True,
     )
 
+    mock_aioresponse.get(
+        re.compile(r"https://.*\.api\.riotgames\.com/lol/challenges/v1/player-data/.*"),
+        payload=mock_responses["challenge_player_data"],
+        repeat=True,
+    )
+
     nexar_client = NexarClient(
         riot_api_key="test-api-key",
         default_region=Region.NA1,

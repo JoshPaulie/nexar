@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from nexar.enums import MatchType, Region
 
     from .account import RiotAccount, Summoner
+    from .challenge import PlayerChallengeData
     from .champion_mastery import ChampionMastery
     from .league import LeagueEntry
     from .match.match import Match
@@ -68,6 +69,7 @@ class Player:
     _summoner: Summoner | None = field(default=None, init=False, repr=False)
     _league_entries: list[LeagueEntry] | None = field(default=None, init=False, repr=False)
     _champion_masteries: list[ChampionMastery] | None = field(default=None, init=False, repr=False)
+    _challenge_data: PlayerChallengeData | None = field(default=None, init=False, repr=False)
 
     @classmethod
     async def create(
@@ -216,6 +218,25 @@ class Player:
                 region=self.region,
             )
         return self._champion_masteries
+
+    async def get_challenge_data(self) -> PlayerChallengeData:
+        """
+        Get the player's challenge system data.
+
+        One call covering every challenge the player has progress on, plus
+        per-category and total challenge points and the player's challenge
+        customization.
+
+        Returns:
+            PlayerChallengeData with per-challenge progress and point totals.
+
+        """
+        if self._challenge_data is None:
+            self._challenge_data = await self.client.get_player_challenge_data(
+                self.riot_account.puuid,
+                region=self.region,
+            )
+        return self._challenge_data
 
     async def get_match_ids(
         self,
@@ -477,6 +498,7 @@ class Player:
         self._summoner = None
         self._league_entries = None
         self._champion_masteries = None
+        self._challenge_data = None
 
     def __str__(self) -> str:
         """Return string representation of the player."""
