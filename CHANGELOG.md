@@ -18,7 +18,7 @@ All notable changes to this project will be documented in this file.
 
 - `Region.ME1` (Middle East & North Africa) joins the platform routing: verified live via a 200 from `me1.api.riotgames.com` and against Riot's spec consts, and routed through the `europe` cluster for both account and match lookups. The local mirror of Riot's routing table gains the row the upstream docs page has not published yet.
 
-- Docs snippets are now gated like source: ruff (lint and format) runs on `docs/` in the local gates and CI, mypy covers `docs/snippets` via the `files` array in `pyproject.toml`, and a parametrized test imports all 23 snippet modules offline with a dummy key — a snippet referencing removed or misused API fails the suite instead of shipping in the docs.
+- Docs snippets are now gated like source: ruff (lint and format) runs on `docs/` in the local gates and CI, mypy covers `docs/snippets` via the `files` array in `pyproject.toml`, and a parametrized test imports every snippet module offline with a dummy key — a snippet referencing removed or misused API fails the suite instead of shipping in the docs.
 
 - `__all__` is now declared in the six leaf modules (`client`, `cache`, `enums`, `exceptions`, `rate_limiter`, `utils`), so scoped imports autocomplete only the public API — implementation constants (`HTTP_*` status shortcuts, match-id defaults) are deliberately excluded, and the surface baseline was refreshed with `UPDATE_BASELINE=1` in the same commit.
 - `tests/test_structure.py` guardrails: a pinned public-API surface baseline (`tests/api_baseline.json`, refresh via `UPDATE_BASELINE=1` in the same commit as a surface change), file and function size budgets, and seam tests forbidding underscore access across module boundaries.
