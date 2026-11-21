@@ -113,7 +113,7 @@ class TestPlayer:
         def summoner_wire_hits() -> int:
             return sum(
                 len(calls)
-                for (method, url), calls in mock_aioresponse.requests.items()
+                for (method, url), calls in (mock_aioresponse.requests or {}).items()
                 if method == "GET" and "summoners/by-puuid" in str(url)
             )
 

@@ -9,7 +9,7 @@ uv run python -m pytest tests -q -m "not slow"  # mocked only (fast, no key need
 ./run_tests.sh                                  # full suite incl. live Riot API calls (slow)
 ```
 
-CI runs the mocked suite, mypy (on `src` plus the docs snippets), and ruff on `src`, `tests`, and `docs` directly via `uv`.
+CI runs the mocked suite, `ty` (whole tree, `--error-on-warning`), and ruff on `src`, `tests`, and `docs` directly via `uv`.
 
 ## Markers
 

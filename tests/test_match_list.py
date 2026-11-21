@@ -25,7 +25,8 @@ def documented_example(func: Callable[..., Any]) -> str:
                 if example_line.strip() and not example_line.strip().startswith("#")
             ]
             return textwrap.dedent("\n".join(block))
-    msg = f"{func.__qualname__} has no Example: block"
+    name = getattr(func, "__qualname__", func)
+    msg = f"{name} has no Example: block"
     raise AssertionError(msg)
 
 
@@ -47,14 +48,14 @@ class TestMatchList:
 
         # Test with a valid stat
         avg_gold_per_min = matches.get_average_stat(
-            lambda p: p.challenges.gold_per_minute or 0.0,
+            lambda p: (p.challenges.gold_per_minute or 0.0) if p.challenges else 0.0,
         )
         assert isinstance(avg_gold_per_min, float)
         assert avg_gold_per_min > 0
 
         # Test with another valid stat
         avg_kda = matches.get_average_stat(
-            lambda p: p.challenges.kda or 0.0,
+            lambda p: (p.challenges.kda or 0.0) if p.challenges else 0.0,
         )
         assert isinstance(avg_kda, float)
         assert avg_kda > 0
@@ -118,7 +119,7 @@ class TestMatchList:
         ],
         ids=["first", "second", "negative", "slice", "full-slice"],
     )
-    def test_getitem(self, index: object, expected_ids: list[str]) -> None:
+    def test_getitem(self, index: int | slice, expected_ids: list[str]) -> None:
         matches = MatchList(
             [
                 create_test_match("NA1_1", puuid="p1", game_id=1),
@@ -128,14 +129,14 @@ class TestMatchList:
             "p1",
         )
 
-        result = matches[index]
-
         if isinstance(index, slice):
+            result = matches[index]
             assert isinstance(result, MatchList)
             assert result.puuid == "p1"
             assert [m.metadata.match_id for m in result] == expected_ids
         else:
-            assert [result.metadata.match_id] == expected_ids
+            match = matches[index]
+            assert [match.metadata.match_id] == expected_ids
 
 
 class TestGetAverageStatWithoutChallenges:

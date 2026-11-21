@@ -4,7 +4,7 @@ import pickle
 import sqlite3
 from http.cookies import Morsel, SimpleCookie
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import aiohttp
 import pytest
@@ -79,7 +79,7 @@ class TestSmartEndpointTtls:
 
 class TestCreateCacheBackend:
     @pytest.mark.parametrize("backend_name", ["sqlite", "memory"])
-    def test_backend_wiring(self, tmp_path: Path, backend_name: str) -> None:
+    def test_backend_wiring(self, tmp_path: Path, backend_name: Literal["sqlite", "memory"]) -> None:
         """Both backends carry the smart endpoint TTLs (preceding the default) and cache 200s only."""
         config = CacheConfig(
             backend=backend_name,
@@ -105,7 +105,7 @@ class TestCreateCacheBackend:
         assert backend.allowed_codes == (200,)
 
     def test_invalid_backend_raises(self) -> None:
-        config = CacheConfig(backend="invalid")  # type: ignore[arg-type]
+        config = CacheConfig(backend="invalid")  # ty: ignore[invalid-argument-type]
         with pytest.raises(ValueError, match="Unsupported cache backend"):
             create_cache_backend(config)
 

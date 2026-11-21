@@ -94,7 +94,12 @@ def update_readme(code: str, output: str) -> None:
         elif "<!-- example-output-block-end -->" in line:
             output_end_idx = i
 
-    if None in [code_start_idx, code_end_idx, output_start_idx, output_end_idx]:
+    if (
+        code_start_idx is None
+        or code_end_idx is None
+        or output_start_idx is None
+        or output_end_idx is None
+    ):
         msg = "Could not find all required comment markers in README"
         raise ValueError(msg)
 

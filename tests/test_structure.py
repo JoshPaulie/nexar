@@ -22,6 +22,7 @@ import importlib
 import json
 import os
 from pathlib import Path
+from typing import TypedDict
 
 import pytest
 
@@ -93,10 +94,17 @@ def _class_surface(cls: type) -> list[str]:
     return sorted(names)
 
 
-def capture_surface() -> dict[str, dict[str, dict[str, list[str] | None]]]:
+class Surface(TypedDict):
+    """The baseline's shape: modules carry ``__all__``, classes carry member names."""
+
+    modules: dict[str, dict[str, list[str] | None]]
+    classes: dict[str, list[str]]
+
+
+def capture_surface() -> Surface:
     """The current public surface, as the baseline file stores it."""
     modules = {rel: _module_surface(SRC.parent / rel) for rel in SURFACE_MODULES}
-    classes = {}
+    classes: dict[str, list[str]] = {}
     for mod_name, cls_name in SURFACE_CLASSES:
         cls = getattr(importlib.import_module(mod_name), cls_name)
         classes[f"{mod_name}.{cls_name}"] = _class_surface(cls)

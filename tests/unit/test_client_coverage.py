@@ -8,7 +8,7 @@ import os
 import re
 import sqlite3
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -345,7 +345,7 @@ async def test_debug_print_response(
     client: NexarClient,
     mock_aioresponse: "aioresponses",
     capsys: pytest.CaptureFixture,
-    make_request: Callable[[NexarClient], object],
+    make_request: Callable[[NexarClient], Awaitable[object]],
     expected_snippet: str,
 ) -> None:
     """NEXAR_DEBUG_RESPONSES=1 prints the response block, and the params line when a call has them."""

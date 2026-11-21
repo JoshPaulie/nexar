@@ -19,13 +19,13 @@ dev = [
     "hatch>=1.16.5",
     "mkdocs-material>=9.6.15",
     "mkdocstrings[python]>=0.29.1",
-    "mypy>=1.16.1",
     "pymdown-extensions>=10.16",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=7.0.0",
     "pytest-mock>=3.14.1",
     "ruff>=0.15.15,<0.16",
+    "ty==0.0.42",
 ]
 
 [build-system]
@@ -112,13 +112,3 @@ ignore = [
 
 [tool.ruff]
 line-length = 120
-
-[tool.mypy]
-files = ["src", "docs/snippets"]
-strict = true
-python_version = "3.13"
-mypy_path = "src"
-
-[[tool.mypy.overrides]]
-module = "tests.*"
-disable_error_code = ["method-assign"]

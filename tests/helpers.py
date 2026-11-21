@@ -1021,7 +1021,7 @@ def create_test_participant(**overrides: object) -> Participant:
         "summoner_id": "test_summoner_id",
         "summoner_level": 150,
         "team_early_surrendered": False,
-        "perks": Perks(stat_perks=PerkStats(defense=0, flex=0, offense=0), styles=[]),
+        "perks": Perks(stat_perks=PerkStats(defense=0, flex=0, offense=0), styles=()),
         "challenges": Challenges(),
         "missions": Missions(),
     }

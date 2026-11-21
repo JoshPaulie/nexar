@@ -20,7 +20,7 @@ jobs:
       - name: Run tests
         run: uv run python -m pytest tests -m "not slow"
       - name: Type check
-        run: uv run mypy
+        run: uv run ty check --error-on-warning
       - name: Check formatting
         run: uv run ruff format --check src tests docs
       - name: Lint

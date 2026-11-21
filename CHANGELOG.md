@@ -21,6 +21,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- The type gate is `ty` (pinned `0.0.42`) instead of `mypy --strict`, and it runs over the whole tree — `src`, `tests`, `scripts`, and `docs/snippets` — with `--error-on-warning`, so a stale `ty: ignore` fails like any other diagnostic. ty resolves `aiohttp_client_cache`'s `CachedSession`, which mypy erased to `Any` (the library builds its mixin base in an `if`/`else`); the switch surfaced one real defect: a cached row with an empty body decodes to `None` on the cache-hit path and is now treated as a miss instead of a dict.
+
 - The logging snippet is renamed `client-features/log_config.py`: a snippet named `logging.py` resolves `import logging` to itself under mypy's basename module naming, and is a `sys.modules` shadow hazard for anything that imports it unqualified (the four `--8<--` markers in `docs/client-features/logging.md` follow the rename).
 
 - Internal: client call counters are now keyed from the `CallStats` field definitions instead of a hand-maintained dict, and the redundant in-method `Player` imports were removed.

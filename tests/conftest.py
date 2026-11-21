@@ -31,7 +31,10 @@ def mock_responses() -> dict[str, Any]:
 def riot_api_key() -> str:
     api_key = os.getenv("RIOT_API_KEY")
     if not api_key:
-        pytest.skip("RIOT_API_KEY environment variable not set. Source riot-key.sh before running tests.")
+        # pytest.skip() trips ty's vendored pytest stub (it reads as zero-arg);
+        # raising the Skipped exception is the same thing.
+        msg = "RIOT_API_KEY environment variable not set. Source riot-key.sh before running tests."
+        raise pytest.skip.Exception(msg)
     return api_key
 
 
