@@ -7,7 +7,8 @@ Three gates, each failing for a reason:
   and removals both fail). Any deliberate surface change must refresh the
   baseline in the same commit: set ``UPDATE_BASELINE=1`` to regenerate.
 - file/function budget tests — tripwires against the next god-file, not style
-  police. Current maxima: participant.py 816 lines, ``_make_api_call`` 76.
+  police. Current maxima: participant.py 816 lines, ``_make_api_call`` 76
+  (client_plumbing.py since the topic split).
   Caps sit above them with headroom; a file crossing 1000 lines or a function
   crossing 100 gets split before it lands, by decision.
 - seam tests — no underscore attribute access off ``self``/``cls`` anywhere in
@@ -33,6 +34,8 @@ BASELINE = Path(__file__).parent / "api_baseline.json"
 SURFACE_MODULES = [
     "nexar/__init__.py",
     "nexar/client.py",
+    "nexar/client_match.py",
+    "nexar/client_plumbing.py",
     "nexar/cache.py",
     "nexar/enums.py",
     "nexar/exceptions.py",

@@ -25,6 +25,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- `NexarClient` is assembled from per-topic mixins — `client_identity`, `client_league`, `client_platform`, `client_challenges`, `client_match`, and `client_plumbing` — over the shared declarations in `nexar.core`; `from nexar.client import NexarClient` and `CallStats` import exactly as before, with the client's internal `HTTP_*` status constants now living in `client_plumbing` and the match-id defaults in `client_match`, both pinned by the API baseline.
+
 - The lint config ignores the rules ruff's own formatter docs list as conflicting (`COM812`, `COM819`, `D206`, `D300`, `Q000`–`Q004`, `W191`, and the preview-only `E111`/`E114`/`E117`), so `ruff format` runs warning-free and the linter no longer hands back diffs the formatter reverses. Nothing in the tree violated them; the change is future-proofing the layout gate.
 
 - The type gate is `ty` (pinned `0.0.42`) instead of `mypy --strict`, and it runs over the whole tree — `src`, `tests`, `scripts`, and `docs/snippets` — with `--error-on-warning`, so a stale `ty: ignore` fails like any other diagnostic. ty resolves `aiohttp_client_cache`'s `CachedSession`, which mypy erased to `Any` (the library builds its mixin base in an `if`/`else`); the switch surfaced one real defect: a cached row with an empty body decodes to `None` on the cache-hit path and is now treated as a miss instead of a dict.

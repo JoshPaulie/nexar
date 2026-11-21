@@ -331,16 +331,28 @@
     "NexarClient"
    ],
    "defs": [
-    "CallStats",
+    "NexarClient"
+   ]
+  },
+  "nexar/client_match.py": {
+   "all": null,
+   "defs": [
     "DEFAULT_MATCH_ID_COUNT",
+    "MAX_MATCH_ID_COUNT",
+    "MatchMixin"
+   ]
+  },
+  "nexar/client_plumbing.py": {
+   "all": null,
+   "defs": [
+    "CallStats",
     "DEFAULT_RETRY_AFTER_SECONDS",
     "HTTP_FORBIDDEN",
     "HTTP_NOT_FOUND",
     "HTTP_OK",
     "HTTP_TOO_MANY_REQUESTS",
     "HTTP_UNAUTHORIZED",
-    "MAX_MATCH_ID_COUNT",
-    "NexarClient"
+    "PlumbingMixin"
    ]
   },
   "nexar/enums.py": {
