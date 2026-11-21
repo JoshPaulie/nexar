@@ -8,9 +8,10 @@ stats inside a match payload.
 
 - `NexarClient.get_all_challenge_configs()` / `get_challenge_config(id)` —
   the challenge catalog, typed as `ChallengeConfig` (405 challenges on NA at
-  recording; the wire sends only id, localizedNames, state, leaderboard, and
-  thresholds — the reference DTO table's tracking/timestamp fields never
-  appear on the wire).
+  recording; the wire sends id, localizedNames, state, leaderboard, and
+  thresholds on every entry, plus endTimestamp on exactly one — challenge
+  600012; the reference DTO table's tracking and startTimestamp never appear
+  on the wire).
 - `NexarClient.get_all_challenge_percentiles()` /
   `get_challenge_percentiles(id)` — flat challengeId→level→percentile maps.
 - `NexarClient.get_challenge_leaderboard(id, level, limit=...)` — apex-level

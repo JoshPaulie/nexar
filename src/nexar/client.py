@@ -383,8 +383,9 @@ class NexarClient:
         """Get every challenge's configuration.
 
         The full catalog in one call — 405 challenges on NA at recording. The
-        wire sends only id, localizedNames, state, leaderboard, and
-        thresholds; the DTO table's tracking/timestamp fields never appear.
+        wire sends id, localizedNames, state, leaderboard, and thresholds on
+        every entry plus endTimestamp on exactly one (challenge 600012); the
+        DTO table's tracking and startTimestamp never appear.
         """
         resolved_region = self._resolve_region(region)
         endpoint = "/lol/challenges/v1/challenges/config"

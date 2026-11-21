@@ -42,11 +42,11 @@ class LocalizedChallengeNames:
 class ChallengeConfig:
     """One challenge's configuration, from the config family of ops.
 
-    The live wire sends exactly ``id``, ``localizedNames``, ``state``,
-    ``leaderboard``, and ``thresholds`` (measured 2026-11-21 NA1, 405
-    challenges) — the reference DTO table also lists ``tracking``,
-    ``startTimestamp``, and ``endTimestamp``, but none of the three ever
-    appears on the wire.
+    The live wire sends ``id``, ``localizedNames``, ``state``, ``leaderboard``,
+    and ``thresholds`` on every entry (measured 2026-11-21 NA1, 405
+    challenges), plus ``endTimestamp`` on exactly one — challenge 600012, a
+    launch-window challenge the catalog still serves. The reference DTO
+    table's ``tracking`` and ``startTimestamp`` never appear on the wire.
     """
 
     id: int
@@ -67,6 +67,10 @@ class ChallengeConfig:
     Only the tiers a challenge can reach appear (some cap below CHALLENGER).
     """
 
+    end_timestamp: datetime | None
+    """When a time-limited challenge ends, or None on open-ended challenges —
+    the catalog carries this on exactly one entry (measured 2026-11-21)."""
+
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "ChallengeConfig":
         """Create ChallengeConfig from API response.
@@ -75,6 +79,7 @@ class ChallengeConfig:
         defaults.
         """
         localized_raw = data.get("localizedNames") or {}
+        end_ms = data.get("endTimestamp")
         return cls(
             id=data["id"],
             localized_names={
@@ -83,6 +88,7 @@ class ChallengeConfig:
             state=data.get("state") or "",
             leaderboard=data.get("leaderboard", False),
             thresholds=dict(data.get("thresholds") or {}),
+            end_timestamp=datetime.fromtimestamp(end_ms / 1000, tz=UTC) if end_ms else None,
         )
 
 

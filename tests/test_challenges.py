@@ -129,6 +129,7 @@ def configs_payload() -> list[dict[str, Any]]:
 
 def expected_config(config_payload: dict[str, Any]) -> ChallengeConfig:
     """The model the client must parse a config row into."""
+    end_ms = config_payload.get("endTimestamp")
     return ChallengeConfig(
         id=config_payload["id"],
         localized_names={
@@ -142,6 +143,7 @@ def expected_config(config_payload: dict[str, Any]) -> ChallengeConfig:
         state=config_payload["state"],
         leaderboard=config_payload["leaderboard"],
         thresholds=config_payload["thresholds"],
+        end_timestamp=datetime.fromtimestamp(end_ms / 1000, tz=UTC) if end_ms else None,
     )
 
 
@@ -319,14 +321,34 @@ class TestChallengeModels:
         """Riot omits empty values: an id-only row parses with defaults."""
         config = ChallengeConfig.from_api_response({"id": 7})
 
-        assert config == ChallengeConfig(id=7, localized_names={}, state="", leaderboard=False, thresholds={})
+        assert config == ChallengeConfig(
+            id=7, localized_names={}, state="", leaderboard=False, thresholds={}, end_timestamp=None
+        )
 
     def test_config_explicit_nulls_parse_empty(self) -> None:
         """A null must parse like an omitted key — dict(None) would raise."""
-        config = ChallengeConfig.from_api_response({"id": 7, "localizedNames": None, "thresholds": None})
+        config = ChallengeConfig.from_api_response(
+            {"id": 7, "localizedNames": None, "thresholds": None, "endTimestamp": None}
+        )
 
         assert config.localized_names == {}
         assert config.thresholds == {}
+        assert config.end_timestamp is None
+
+    def test_config_parses_the_one_timed_entry(self) -> None:
+        """Challenge 600012 is the only catalog entry carrying endTimestamp.
+
+        Measured 2026-11-21: 404/405 rows send the plain five keys, 600012
+        ("Challenges are Here!") adds endTimestamp — the review pass surfaced
+        it after the model claimed timestamps never appear. The timestamp is
+        epoch milliseconds, same as every other Riot timestamp.
+        """
+        timed = ChallengeConfig.from_api_response({"id": 600012, "endTimestamp": 1666234800000})
+
+        assert timed.end_timestamp == datetime.fromtimestamp(1666234800000 / 1000, tz=UTC)
+
+        open_ended = ChallengeConfig.from_api_response({"id": 0})
+        assert open_ended.end_timestamp is None
 
     def test_progress_parses_all_three_wire_shapes(self) -> None:
         """The wire sends three key shapes (measured).
@@ -458,6 +480,9 @@ class TestLiveChallengesCanary:
         assert single.id == 0
         assert single.state == by_id[0].state
         assert single.thresholds == by_id[0].thresholds
+        # The one timed catalog entry (measured 2026-11-21): the launch-window
+        # challenge the catalog still serves with an endTimestamp.
+        assert by_id[600012].end_timestamp is not None
 
         all_percentiles = await real_client.get_all_challenge_percentiles()
         assert all_percentiles, "percentile maps are non-empty"
