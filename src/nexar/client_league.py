@@ -100,13 +100,7 @@ class LeagueMixin(NexarCore):
         (measured: Gold I page 1 arrives unsorted) — sort with
         ``LeagueEntry.rank_tuple`` when rank order matters.
         """
-        self._validate_division_ladder(tier, division, page)
-        resolved_region = self._resolve_region(region)
-        params = {"page": page} if page != 1 else None
-        endpoint = f"/lol/league/v4/entries/{self._ladder_queue_path(queue)}/{tier.value}/{division.value}"
-        data = await self._make_api_call(endpoint, resolved_region.value, params=params)
-        entries_list = cast("list[dict[str, Any]]", data)
-        return [LeagueEntry.from_api_response(entry) for entry in entries_list]
+        return await self._division_page("/lol/league/v4/entries", queue, tier, division, region, page)
 
     async def get_league_exp_entries(
         self,
@@ -125,13 +119,7 @@ class LeagueMixin(NexarCore):
         moving — each page is its own snapshot. The expanded league exists to
         also cover non-LoL queue types.
         """
-        self._validate_division_ladder(tier, division, page)
-        resolved_region = self._resolve_region(region)
-        params = {"page": page} if page != 1 else None
-        endpoint = f"/lol/league-exp/v4/entries/{self._ladder_queue_path(queue)}/{tier.value}/{division.value}"
-        data = await self._make_api_call(endpoint, resolved_region.value, params=params)
-        entries_list = cast("list[dict[str, Any]]", data)
-        return [LeagueEntry.from_api_response(entry) for entry in entries_list]
+        return await self._division_page("/lol/league-exp/v4/entries", queue, tier, division, region, page)
 
     def _ladder_queue_path(self, queue: Queue) -> str:
         """Resolve a Queue to the queue string Riot's league paths take.
@@ -156,3 +144,26 @@ class LeagueMixin(NexarCore):
         if page < 1:
             msg = f"page must be 1 or greater, got {page}"
             raise ValueError(msg)
+
+    async def _division_page(
+        self,
+        entries_root: str,
+        queue: Queue,
+        tier: RankTier,
+        division: RankDivision,
+        region: Region | None,
+        page: int,
+    ) -> list[LeagueEntry]:
+        """Fetch and parse one division-ladder page under either league root.
+
+        The shared tail of ``get_league_entries`` and ``get_league_exp_entries``
+        — the two routes differ only in the root path. Page 1 sends no query
+        parameter, as both public routes always have.
+        """
+        self._validate_division_ladder(tier, division, page)
+        resolved_region = self._resolve_region(region)
+        params = {"page": page} if page != 1 else None
+        endpoint = f"{entries_root}/{self._ladder_queue_path(queue)}/{tier.value}/{division.value}"
+        data = await self._make_api_call(endpoint, resolved_region.value, params=params)
+        entries_list = cast("list[dict[str, Any]]", data)
+        return [LeagueEntry.from_api_response(entry) for entry in entries_list]
