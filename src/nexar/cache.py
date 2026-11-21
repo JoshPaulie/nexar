@@ -49,7 +49,10 @@ _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/league/v4/entries/by-puuid/*": ttl(minutes=5),
     "*/lol/champion-mastery/v4/champion-masteries/by-puuid/*": ttl(minutes=30),
     "*/lol/champion-mastery/v4/scores/by-puuid/*": ttl(minutes=30),
-    "*/lol/match/v5/matches/*": None,
+    # aiohttp-client-cache's never-expire sentinel. A None value here is skipped
+    # by the library's coalesce (indistinguishable from no pattern match), which
+    # silently resolved immutable match URLs to the 1-hour session default.
+    "*/lol/match/v5/matches/*": -1,
     "*/riot/account/v1/accounts/by-riot-id/*": ttl(days=1),
     "*/lol/summoner/v4/summoners/by-puuid/*": ttl(days=1),
 }

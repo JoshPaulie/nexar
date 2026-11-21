@@ -10,9 +10,11 @@ import aiohttp
 import pytest
 from aiohttp_client_cache.backends import CacheBackend
 from aiohttp_client_cache.backends.sqlite import SQLiteBackend
+from aiohttp_client_cache.cache_control import CacheActions
 from aiohttp_client_cache.session import CachedSession
 
 from nexar.cache import (
+    _SMART_ENDPOINT_TTLS,
     DEFAULT_CACHE_CONFIG,
     NO_CACHE_CONFIG,
     CacheConfig,
@@ -40,6 +42,41 @@ def _poisoned_cookie() -> SimpleCookie:
     return cookie
 
 
+class TestSmartEndpointTtls:
+    def test_immutable_match_rows_never_expire(self) -> None:
+        """The match-v5 glob must resolve to the library's never-expire sentinel.
+
+        ``CacheActions`` coalesces per-URL over per-session expiration, skipping
+        ``None`` values — so a ``None`` pattern row is indistinguishable from no
+        match and quietly resolves to the 1-hour session default. Resolved
+        through ``CacheActions.from_settings`` (the library's own resolution
+        path), not the raw dict value: the claim under test is the effective
+        expiry of the URL, which the dict alone cannot prove.
+        """
+        for url in (
+            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_5671503499/timeline",
+            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_5671503499",
+        ):
+            actions = CacheActions.from_settings(
+                key="probe",
+                url=url,
+                urls_expire_after=_SMART_ENDPOINT_TTLS,
+                session_expire_after=DEFAULT_CACHE_CONFIG.expire_after,
+            )
+            assert actions.expire_after == -1
+            assert actions.expires is None
+
+    def test_freshness_rows_keep_their_ttl(self) -> None:
+        """The specificity-ordered rows still resolve ahead of the session default."""
+        actions = CacheActions.from_settings(
+            key="probe",
+            url="https://na1.api.riotgames.com/lol/champion-mastery/v4/scores/by-puuid/p",
+            urls_expire_after=_SMART_ENDPOINT_TTLS,
+            session_expire_after=DEFAULT_CACHE_CONFIG.expire_after,
+        )
+        assert actions.expire_after == 30 * 60
+
+
 class TestCreateCacheBackend:
     @pytest.mark.parametrize("backend_name", ["sqlite", "memory"])
     def test_backend_wiring(self, tmp_path: Path, backend_name: str) -> None:
@@ -58,7 +95,8 @@ class TestCreateCacheBackend:
         assert backend.expire_after == 60
         assert backend.urls_expire_after is not None
         # Per-endpoint TTLs take precedence over the 60s default expire_after.
-        assert backend.urls_expire_after["*/lol/match/v5/matches/*"] is None  # immutable: cached forever
+        # -1 is the library's never-expire sentinel (None is skipped by coalesce).
+        assert backend.urls_expire_after["*/lol/match/v5/matches/*"] == -1  # immutable: cached forever
         assert backend.urls_expire_after["*/lol/league/v4/entries/by-puuid/*"] == 300  # 5 minutes
         assert (
             backend.urls_expire_after["*/lol/champion-mastery/v4/champion-masteries/by-puuid/*"] == 1800

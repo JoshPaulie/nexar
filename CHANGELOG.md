@@ -35,6 +35,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- The match-v5 cache glob (`*/lol/match/v5/matches/*`, which timeline URLs also ride) now carries `-1`, aiohttp-client-cache's never-expire sentinel — its `None` value was skipped by the library's expiration coalescing, so "cached forever" rows (match detail and timeline alike) actually expired after the 1-hour session default since the row landed. The effective expiry is now pinned by a unit test resolved through the library's own `CacheActions` path.
+
 - The champion-mastery example snippet guards its single-champion lookup against an empty mastery list, so an account with no masteries no longer raises IndexError mid-example (score still prints, as the scores endpoint works regardless).
 
 - Snippet fixes surfaced by the new gates: the two client-features snippets that fetched `RIOT_API_KEY` at module level now guard inside `main()` (module-level narrowing does not survive into function bodies, so the old pattern failed strict mypy), `match_list_stats.py` guards `participant.challenges` before reading `gold_per_minute` (the same pre-2022 `AttributeError` class the `get_average_stat` docstring guards against), and `league_comparison.py` dropped an unused `Region` import.
