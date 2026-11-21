@@ -133,6 +133,11 @@ class NexarClient(
         riot_ids: list[str],
         region: Region | None = None,
     ) -> list["Player"]:
+        """Fetch several Players at once.
+
+        Raises ``BatchError`` carrying the successful players when any
+        lookup fails.
+        """
         resolved_region = self._resolve_region(region)
 
         async def create_player(riot_id: str) -> Player:

@@ -62,6 +62,7 @@ class PlumbingMixin(NexarCore):
     """Session, cache, retry, and stats machinery."""
 
     async def close(self) -> None:
+        """Close the underlying HTTP session. Safe to call when already closed."""
         if self._session and not self._session.closed:
             await self._session.close()
 
@@ -70,6 +71,7 @@ class PlumbingMixin(NexarCore):
     # --------------------------------------------------------------------------
 
     async def clear_cache(self) -> None:
+        """Delete every cached response. No-op when the session has no active cache."""
         if isinstance(self._session, CachedSession) and self._session.cache:
             await self._session.cache.clear()
             logger.info("Cache cleared")
@@ -101,9 +103,11 @@ class PlumbingMixin(NexarCore):
         return info
 
     def get_api_call_stats(self) -> CallStats:
+        """Snapshot the call counters as a ``CallStats`` instance."""
         return CallStats(**self._call_stats)
 
     def print_api_call_summary(self) -> None:
+        """Log a one-line summary of the call counters at INFO level."""
         stats = self.get_api_call_stats()
         if stats.total_calls > 0:
             cache_hit_rate = (stats.cache_hits / stats.total_calls) * 100

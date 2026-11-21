@@ -29,6 +29,7 @@ class LeagueMixin(NexarCore):
         puuid: str,
         region: Region | None = None,
     ) -> list[LeagueEntry]:
+        """Get a player's current ranked entries — one per queue they hold a rank in."""
         resolved_region = self._resolve_region(region)
         endpoint = f"/lol/league/v4/entries/by-puuid/{puuid}"
         data = await self._make_api_call(endpoint, resolved_region.value)

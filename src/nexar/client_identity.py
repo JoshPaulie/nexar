@@ -39,6 +39,7 @@ class IdentityMixin(NexarCore):
 
     # Summoner API
     async def get_summoner_by_puuid(self, puuid: str, region: Region | None = None) -> Summoner:
+        """Get a summoner's platform data by PUUID (level, name, profile icon)."""
         resolved_region = self._resolve_region(region)
         endpoint = f"/lol/summoner/v4/summoners/by-puuid/{puuid}"
         data = await self._make_api_call(endpoint, resolved_region.value)

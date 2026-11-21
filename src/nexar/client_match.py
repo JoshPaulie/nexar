@@ -16,6 +16,7 @@ class MatchMixin(NexarCore):
 
     # Match API
     async def get_match(self, match_id: str, region: Region | None = None) -> Match:
+        """Get one match by its match-v5 id (e.g. ``NA1_1234567890``)."""
         resolved_region = self._resolve_region(region)
         endpoint = f"/lol/match/v5/matches/{match_id}"
         data = await self._make_api_call(endpoint, resolved_region.value, resolved_region.v5_region)
@@ -40,6 +41,11 @@ class MatchMixin(NexarCore):
         count: int = DEFAULT_MATCH_ID_COUNT,
         region: Region | None = None,
     ) -> list[str]:
+        """Get a page of a player's match ids.
+
+        ``start`` skips into the history and ``count`` caps the page at
+        ``MAX_MATCH_ID_COUNT`` (100) per call.
+        """
         if start < 0:
             msg = f"start must be non-negative, got {start}"
             raise ValueError(msg)
