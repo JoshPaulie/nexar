@@ -137,6 +137,33 @@ async def test_cache_hit_serves_stored_row_without_wire(mock_aioresponse: aiores
 
 
 @pytest.mark.asyncio
+async def test_cache_row_with_empty_body_is_a_miss(mock_aioresponse: aioresponses) -> None:
+    """A stored 200 row with an empty body decodes to None: the row is dropped and the wire serves."""
+    config = CacheConfig(enabled=True, backend="memory", expire_after=60)
+    client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=config)
+    await client._ensure_session()
+    session = client._session
+    assert isinstance(session, CachedSession)
+
+    url = "https://americas.api.riotgames.com/lol/match/v5/matches/M_456"
+    mock_aioresponse.get(url, body=b"")
+    response = await session.get(url)
+    response.method = "GET"
+    await session.cache.save_response(response)
+
+    mock_aioresponse.get(url, payload=match_response_payload("M_456"))
+    match = await client.get_match("M_456")
+
+    assert match.metadata.match_id == "M_456"
+    stats = client.get_api_call_stats()
+    assert stats.cache_hits == 0
+    assert stats.fresh_calls == 1
+    # The junk row is gone; aioresponses' lowercase method blocks the library's own write.
+    assert await session.cache.responses.size() == 0
+    await client.close()
+
+
+@pytest.mark.asyncio
 async def test_clear_cache_populated_to_empty(mock_aioresponse: aioresponses) -> None:
     """clear_cache drops stored rows: one row before, zero after."""
     config = CacheConfig(enabled=True, backend="memory", expire_after=60)
@@ -151,9 +178,9 @@ async def test_clear_cache_populated_to_empty(mock_aioresponse: aioresponses) ->
     response.method = "GET"
     await session.cache.save_response(response)
 
-    assert len(session.cache.responses) == 1
+    assert await session.cache.responses.size() == 1
 
     await client.clear_cache()
 
-    assert len(session.cache.responses) == 0
+    assert await session.cache.responses.size() == 0
     await client.close()

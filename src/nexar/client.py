@@ -415,7 +415,12 @@ class NexarClient:
         cache_key = self._session.cache.create_key("GET", url, params=params, headers=headers)
         cached_response = await self._session.cache.get_response(cache_key)
         if cached_response and cached_response.ok:
-            response_data: dict[str, Any] = await cached_response.json()
+            response_data = await cached_response.json()
+            if response_data is None:
+                # An empty body is unreadable: drop the row, or the session's own
+                # interception serves it again on the wire call that follows.
+                await self._session.cache.delete(cache_key)
+                return None
             self._call_stats["cache_hits"] += 1
             logger.info("  Success (Status: %d, from cache)", cached_response.status)
             self._debug_print_response(
