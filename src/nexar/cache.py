@@ -66,9 +66,10 @@ _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/champion-mastery/v4/champion-masteries/by-puuid/*": ttl(minutes=30),
     "*/lol/champion-mastery/v4/scores/by-puuid/*": ttl(minutes=30),
     # Challenge family: the two catalog ops and their by-id twins ride together.
-    # The literal config/percentiles globs cannot shadow the by-id ones — the
-    # library's matcher never crosses a path separator, and the by-id URLs
-    # carry an extra segment.
+    # The literal config/percentiles globs cannot shadow the by-id ones — they
+    # carry no wildcard before their final segment, so the by-id URLs' extra
+    # segment cannot be absorbed. (The library's matcher crosses path
+    # separators freely, verified through its own url_match.)
     "*/lol/challenges/v1/challenges/config": ttl(hours=6),
     "*/lol/challenges/v1/challenges/*/config": ttl(hours=6),
     "*/lol/challenges/v1/challenges/percentiles": ttl(hours=6),
