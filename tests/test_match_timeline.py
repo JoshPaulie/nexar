@@ -113,7 +113,7 @@ class TestTimelineModelApi:
 
         mine = timeline.frames_for(PUUID_1)
         assert [frame.participant_id for frame in mine] == [1, 1]
-        assert [frame.total_gold for frame in mine] == [500, 500]
+        assert [frame.total_gold for frame in mine] == [500, 10275]
 
     async def test_frames_for_unknown_puuid_returns_empty(
         self,
@@ -144,6 +144,10 @@ class TestTimelineModelApi:
             "ELITE_MONSTER_KILL",
             "ITEM_UNDO",
             "BUILDING_KILL",
+            "CHAMPION_SPECIAL_KILL",
+            "LEVEL_UP",
+            "DRAGON_SOUL_GIVEN",
+            "OBJECTIVE_BOUNTY_PRESTART",
             "GAME_END",
         ]
         assert timeline.frames[0].events == timeline.events[:4]
@@ -197,6 +201,10 @@ class TestTimelineEventParsing:
                 type="OTHER",
             ),
         )
+        # The recording carries the teamfight twin of the received breakdown,
+        # identical in this kill; the helper keeps both, as on the wire.
+        assert kill.victim_teamfight_damage_received == kill.victim_damage_received
+        assert kill.victim_teamfight_damage_dealt == ()
 
     async def test_elite_monster_kill_parses_subtype(
         self,
@@ -481,6 +489,121 @@ class TestTimelineOmissions:
             true_damage_taken=0,
         )
         assert frame.position == TimelinePosition(x=1964, y=12192)
+
+
+class TestTimelineRecordedSnapshots:
+    """Every snapshot field parsed against the recording, value for value."""
+
+    async def test_last_frame_snapshot_field_for_field(
+        self,
+        fresh_client: NexarClient,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """A second value point for every parser line: no parser constant can satisfy both frames."""
+        register_exact_url(mock_aioresponse, f"{BASE_URL}/{MATCH_ID}/timeline", timeline_response_payload())
+
+        timeline = await fresh_client.get_match_timeline(MATCH_ID)
+
+        last = timeline.frames_for(PUUID_1)[-1]
+        assert last == TimelineParticipantFrame(
+            participant_id=1,
+            level=16,
+            current_gold=640,
+            total_gold=10275,
+            gold_per_second=0,
+            jungle_minions_killed=0,
+            minions_killed=198,
+            xp=15879,
+            time_enemy_spent_controlled=70337,
+            position=TimelinePosition(x=5734, y=5834),
+            champion_stats=TimelineChampionStats(
+                ability_haste=0,
+                ability_power=0,
+                armor=96,
+                armor_pen=0,
+                armor_pen_percent=0,
+                attack_damage=189,
+                attack_speed=216,
+                bonus_armor_pen_percent=0,
+                bonus_magic_pen_percent=0,
+                cc_reduction=30,
+                cooldown_reduction=0,
+                health=0,
+                health_max=2613,
+                health_regen=74,
+                lifesteal=12,
+                magic_pen=0,
+                magic_pen_percent=0,
+                magic_resist=131,
+                movement_speed=395,
+                omnivamp=1,
+                physical_vamp=0,
+                power=659,
+                power_max=786,
+                power_regen=32,
+                spell_vamp=0,
+            ),
+            damage_stats=TimelineDamageStats(
+                magic_damage_done=32367,
+                magic_damage_done_to_champions=8192,
+                magic_damage_taken=21232,
+                physical_damage_done=90009,
+                physical_damage_done_to_champions=9476,
+                physical_damage_taken=11616,
+                total_damage_done=131794,
+                total_damage_done_to_champions=17669,
+                total_damage_taken=35025,
+                true_damage_done=9417,
+                true_damage_done_to_champions=0,
+                true_damage_taken=2175,
+            ),
+        )
+
+    async def test_jungler_frame_carries_recorded_gold_per_second(
+        self,
+        fresh_client: NexarClient,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """The jungler row (pid 5) is the recorded nonzero gold_per_second value point."""
+        register_exact_url(mock_aioresponse, f"{BASE_URL}/{MATCH_ID}/timeline", timeline_response_payload())
+
+        timeline = await fresh_client.get_match_timeline(MATCH_ID)
+
+        pid_5_frame = timeline.frames[0].participant_frames[5]
+        assert pid_5_frame.participant_id == 5
+        assert pid_5_frame.gold_per_second == 30
+        assert pid_5_frame.position == TimelinePosition(x=10942, y=1552)
+
+
+class TestTimelineRemainingEventTypes:
+    """Value assertions for every event type the earlier tests did not touch."""
+
+    async def test_special_kill_level_up_soul_and_bounty_events(
+        self,
+        fresh_client: NexarClient,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        register_exact_url(mock_aioresponse, f"{BASE_URL}/{MATCH_ID}/timeline", timeline_response_payload())
+
+        timeline = await fresh_client.get_match_timeline(MATCH_ID)
+
+        special = next(event for event in timeline.events if event.type == "CHAMPION_SPECIAL_KILL")
+        assert special.kill_type == "KILL_MULTI"
+        assert special.multi_kill_length == 2
+        assert special.killer_id == 3
+        assert special.position == TimelinePosition(x=11393, y=1747)
+
+        level_up = next(event for event in timeline.events if event.type == "LEVEL_UP")
+        assert level_up.level == 2
+        assert level_up.participant_id == 7
+
+        soul = next(event for event in timeline.events if event.type == "DRAGON_SOUL_GIVEN")
+        assert soul.name == "Ocean"
+        assert soul.team_id == 0
+
+        bounty = next(event for event in timeline.events if event.type == "OBJECTIVE_BOUNTY_PRESTART")
+        assert bounty.actual_start_time == 1505000
+        assert bounty.team_id == 100
 
 
 class TestMatchTimelineSharedFixture:

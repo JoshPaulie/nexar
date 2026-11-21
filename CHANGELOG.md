@@ -35,6 +35,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Internal: the timeline test helper now carries the recording's real end-of-game snapshots and one real event of every type the live payload showed — its second frame previously duplicated minute-one stats under a 26-minute timestamp (the asserted gold curve read 500, 500, a pair that cannot occur), and the champion kill dropped the teamfight breakdown the recorded payload keeps. Every modelled field now has a recorded value point, pinned so a parser constant or fixture-mixing regression fails the suite (verified by mutation on a tree copy).
+
 - Timeline model corrections from the adversarial review pass: `TimelineParticipantFrame.time_enemy_spent_controlled` is documented in milliseconds (the wire value; "seconds" was a 1000x mislabel — this field is not `timeCCingOthers`), the `attack_speed` docstring no longer invents a unit the reference never declares, and `TimelineInfo` now `.get`-hardens its `participants`/`frames` arrays so a payload that omits an empty array parses instead of raising (only `gameId` stays a direct identity read).
 
 - The match-v5 cache glob (`*/lol/match/v5/matches/*`, which timeline URLs also ride) now carries `-1`, aiohttp-client-cache's never-expire sentinel — its `None` value was skipped by the library's expiration coalescing, so "cached forever" rows (match detail and timeline alike) actually expired after the 1-hour session default since the row landed. The effective expiry is now pinned by a unit test resolved through the library's own `CacheActions` path.
