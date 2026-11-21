@@ -70,6 +70,7 @@ nav:
           - Custom Cache & Stats: examples/custom_cache_and_stats.md
   - Reference:
       - Architecture: architecture.md
+      - API Surface: reference/api-surface.md
       - Client: reference/client.md
       - Enums: reference/enums.md
       - Exceptions: reference/exceptions.md
