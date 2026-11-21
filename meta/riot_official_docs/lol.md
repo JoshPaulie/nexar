@@ -87,6 +87,7 @@ To execute a request to the League of Legends (LoL) API, you must select the cor
 | KR       | kr.api.riotgames.com   |
 | LA1      | la1.api.riotgames.com  |
 | LA2      | la2.api.riotgames.com  |
+| ME1      | me1.api.riotgames.com  |
 | NA1      | na1.api.riotgames.com  |
 | OC1      | oc1.api.riotgames.com  |
 | TR1      | tr1.api.riotgames.com  |

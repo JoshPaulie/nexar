@@ -19,6 +19,11 @@ class TestRegion:
         for region in Region:
             assert region.account_region in {"americas", "asia", "europe"}
 
+    def test_me1_region_routing(self) -> None:
+        """ME1 (Middle East & North Africa) routes via the europe cluster."""
+        assert Region.ME1.v5_region == "europe"
+        assert Region.ME1.account_region == "europe"
+
 
 class TestQueue:
     def test_is_ranked_solo(self) -> None:

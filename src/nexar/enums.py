@@ -29,6 +29,7 @@ class Region(Enum):
     KR = "kr"
     LA1 = "la1"
     LA2 = "la2"
+    ME1 = "me1"
     NA1 = "na1"
     OC1 = "oc1"
     PH2 = "ph2"
@@ -63,6 +64,7 @@ _V5_REGION_MAP = {
     Region.EUW1: "europe",
     Region.TR1: "europe",
     Region.RU: "europe",
+    Region.ME1: "europe",
     Region.OC1: "sea",
     Region.PH2: "sea",
     Region.SG2: "sea",
@@ -82,6 +84,7 @@ _ACCOUNT_REGION_MAP = {
     Region.EUW1: "europe",
     Region.TR1: "europe",
     Region.RU: "europe",
+    Region.ME1: "europe",
     # SEA regions are not in the account-v1 documentation, so we map them to the nearest cluster.
     Region.OC1: "americas",
     Region.PH2: "asia",
@@ -103,6 +106,7 @@ class PlatformId(Enum):
     KR = "KR"
     LA1 = "LA1"
     LA2 = "LA2"
+    ME1 = "ME1"
     NA1 = "NA1"
     OC1 = "OC1"
     PH2 = "PH2"

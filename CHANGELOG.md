@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 - `get_top_champion_masteries` accepts an optional `count` parameter (Riot's reference default is 3) — surfaced by the review pass, verified against the live reference, and pinned by an exact-URL test plus a live canary row.
 
+- `Region.ME1` (Middle East & North Africa) joins the platform routing: verified live via a 200 from `me1.api.riotgames.com` and against Riot's spec consts, and routed through the `europe` cluster for both account and match lookups. The local mirror of Riot's routing table gains the row the upstream docs page has not published yet.
+
 - Docs snippets are now gated like source: ruff (lint and format) runs on `docs/` in the local gates and CI, mypy covers `docs/snippets` via the `files` array in `pyproject.toml`, and a parametrized test imports all 23 snippet modules offline with a dummy key — a snippet referencing removed or misused API fails the suite instead of shipping in the docs.
 
 - `__all__` is now declared in the six leaf modules (`client`, `cache`, `enums`, `exceptions`, `rate_limiter`, `utils`), so scoped imports autocomplete only the public API — implementation constants (`HTTP_*` status shortcuts, match-id defaults) are deliberately excluded, and the surface baseline was refreshed with `UPDATE_BASELINE=1` in the same commit.
