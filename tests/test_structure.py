@@ -22,6 +22,7 @@ Three gates, each failing for a reason:
 import ast
 import dataclasses
 import importlib
+import inspect
 import json
 import os
 from pathlib import Path
@@ -64,9 +65,10 @@ MAX_FUNCTION_LINES = 100
 
 # Function debt recorded at its measured size, never above it: growth past
 # the recorded number fails the budget test, and the companion test below
-# fails when an entry no longer needs its ceiling, so the table only shrinks.
-# Both entries predate the cap (they are recorded fixture payloads, moved
-# verbatim out of helpers.py when the test tree came under the budgets).
+# fails when an entry no longer needs its ceiling or a ceiling drifts above
+# the measured size, so the table only shrinks. Both entries predate the cap
+# (they are recorded fixture payloads, moved verbatim out of helpers.py when
+# the test tree came under the budgets).
 KNOWN_LONG: dict[tuple[str, str], int] = {
     ("tests/payloads/match.py", "create_test_participant"): 128,
     ("tests/payloads/timeline.py", "timeline_response_payload"): 814,
@@ -180,18 +182,90 @@ def test_no_function_exceeds_the_line_budget() -> None:
 
 
 def test_known_long_entries_stay_necessary() -> None:
-    """An allowance whose function fits the cap must be deleted, not lowered."""
-    oversized: set[tuple[str, str]] = set()
+    """The allowance table must track the tree exactly: entries live, ceilings exact.
+
+    Three staleness shapes fail: an entry whose function vanished, an entry
+    whose function now fits the cap (delete it), and a ceiling left above the
+    measured size after a partial shrink (lower it — a loose ceiling is a
+    silent growth budget).
+    """
+    measured: dict[tuple[str, str], int] = {}
     for root in SCAN_ROOTS:
         for path in sorted(root.rglob("*.py")):
             tree = ast.parse(path.read_text())
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+                    key = (_repo_rel(path), node.name)
                     length = (node.end_lineno or node.lineno) - node.lineno + 1
-                    if length > MAX_FUNCTION_LINES:
-                        oversized.add((_repo_rel(path), node.name))
-    stale = sorted(set(KNOWN_LONG) - oversized)
-    assert not stale, f"KNOWN_LONG entries that now fit the cap; delete them: {stale}"
+                    measured[key] = max(measured.get(key, 0), length)
+    problems: list[str] = []
+    for key, ceiling in KNOWN_LONG.items():
+        size = measured.get(key)
+        if size is None:
+            problems.append(f"{key}: function no longer exists; delete the entry")
+        elif size <= MAX_FUNCTION_LINES:
+            problems.append(f"{key}: fits the cap at {size} lines; delete the entry")
+        elif ceiling > size:
+            problems.append(f"{key}: ceiling {ceiling} is above the measured {size}; lower it")
+    assert not problems, "KNOWN_LONG must track the tree: " + "; ".join(problems)
+
+
+def _stub_params(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> list[tuple[str, str, bool]]:
+    """A signature as the parity language: (name, kind, has-default) per parameter."""
+    out: list[tuple[str, str, bool]] = []
+    args = fn.args
+    positional = list(args.posonlyargs) + list(args.args)
+    defaults = [None] * (len(positional) - len(args.defaults)) + list(args.defaults)
+    for arg, default in zip(positional, defaults, strict=True):
+        out.append((arg.arg, "positional", default is not None))
+    if args.vararg:
+        out.append((args.vararg.arg, "vararg", True))
+    for arg, default in zip(args.kwonlyargs, args.kw_defaults, strict=True):
+        out.append((arg.arg, "keyword-only", default is not None))
+    if args.kwarg:
+        out.append((args.kwarg.arg, "keyword-dict", True))
+    return out
+
+
+def test_core_seam_stubs_match_the_real_signatures() -> None:
+    """core.py's TYPE_CHECKING stubs must mirror the methods the mixins call.
+
+    The stubs vanish at runtime, so a stub that drifts from the real
+    definition still type-checks every mixin call site against the stale
+    shape. Compare each stub's parameter list against the method that
+    actually executes on ``NexarClient``.
+    """
+    tree = ast.parse((SRC / "core.py").read_text())
+    stubs: dict[str, list[tuple[str, str, bool]]] = {}
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.If) and isinstance(node.test, ast.Name) and node.test.id == "TYPE_CHECKING"):
+            continue
+        for fn in node.body:
+            if isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
+                stubs[fn.name] = _stub_params(fn)
+    assert stubs, "core.py's TYPE_CHECKING stub block is gone; move this test with it"
+
+    client_cls = importlib.import_module("nexar.client").NexarClient
+    problems: list[str] = []
+    for name, stub in stubs.items():
+        real = getattr(client_cls, name, None)
+        if real is None:
+            problems.append(f"{name}: stub has no real method on NexarClient")
+            continue
+        kinds = {
+            inspect.Parameter.POSITIONAL_ONLY: "positional",
+            inspect.Parameter.POSITIONAL_OR_KEYWORD: "positional",
+            inspect.Parameter.KEYWORD_ONLY: "keyword-only",
+            inspect.Parameter.VAR_POSITIONAL: "vararg",
+            inspect.Parameter.VAR_KEYWORD: "keyword-dict",
+        }
+        live = [
+            (p.name, kinds[p.kind], p.default is not inspect.Parameter.empty)
+            for p in inspect.signature(real).parameters.values()
+        ]
+        if live != stub:
+            problems.append(f"{name}: stub {stub} != real {live}")
+    assert not problems, "core seam stubs drifted from the real methods: " + "; ".join(problems)
 
 
 def test_no_underscore_attribute_access_off_self_or_cls() -> None:
