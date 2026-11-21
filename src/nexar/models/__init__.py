@@ -2,7 +2,8 @@
 
 from .account import RiotAccount, Summoner
 from .champion_mastery import ChampionMastery, NextSeasonMilestone, RewardConfig
-from .league import LeagueEntry, MiniSeries
+from .champion_rotations import ChampionRotations
+from .league import LeagueEntry, LeagueItem, LeagueList, MiniSeries
 from .match import (
     Ban,
     Challenges,
@@ -30,6 +31,7 @@ from .match import (
     TimelinePosition,
     TimelineVictimDamage,
 )
+from .platform_status import PlatformStatus, StatusContent, StatusEntry, StatusUpdate
 from .player import Player
 from .stats import ChampionStats, PerformanceStats
 
@@ -37,8 +39,11 @@ __all__ = [
     "Ban",
     "Challenges",
     "ChampionMastery",
+    "ChampionRotations",
     "ChampionStats",
     "LeagueEntry",
+    "LeagueItem",
+    "LeagueList",
     "Match",
     "MatchInfo",
     "MatchMetadata",
@@ -54,9 +59,13 @@ __all__ = [
     "PerkStyle",
     "PerkStyleSelection",
     "Perks",
+    "PlatformStatus",
     "Player",
     "RewardConfig",
     "RiotAccount",
+    "StatusContent",
+    "StatusEntry",
+    "StatusUpdate",
     "Summoner",
     "Team",
     "Timeline",

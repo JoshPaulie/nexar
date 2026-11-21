@@ -40,19 +40,32 @@ def ttl(*, minutes: int = 0, hours: int = 0, days: int = 0) -> int:
 # Per-endpoint TTLs for data that has predictable freshness characteristics.
 # Match detail is immutable once finished → cached forever.
 # Account/summoner lookup data rarely changes → cached 24 hours.
-# League entries change frequently → cached 5 minutes.
+# League ladders (apex lists, division pages, by-puuid entries) shift with every
+# ranked game → cached 5 minutes.
 # Champion mastery changes only through play → cached 30 minutes.
 # Match ID lists change as new matches are played → cached 1 minute.
+# Champion rotations refresh on the weekly/patch cycle → cached 1 day.
+# Platform status is near-realtime incident data → cached 1 minute.
 # Order matters: more specific patterns must come first (first match wins).
 _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/match/v5/matches/by-puuid/*/ids": ttl(minutes=1),
     "*/lol/league/v4/entries/by-puuid/*": ttl(minutes=5),
+    # Division ladders have three path segments after /entries/, so this never
+    # shadows the by-puuid row above; the page query parameter is not part of
+    # the URL the library matches patterns against.
+    "*/lol/league/v4/entries/*/*/*": ttl(minutes=5),
+    "*/lol/league/v4/challengerleagues/*": ttl(minutes=5),
+    "*/lol/league/v4/grandmasterleagues/*": ttl(minutes=5),
+    "*/lol/league/v4/masterleagues/*": ttl(minutes=5),
+    "*/lol/league-exp/v4/entries/*/*/*": ttl(minutes=5),
     "*/lol/champion-mastery/v4/champion-masteries/by-puuid/*": ttl(minutes=30),
     "*/lol/champion-mastery/v4/scores/by-puuid/*": ttl(minutes=30),
     # aiohttp-client-cache's never-expire sentinel. A None value here is skipped
     # by the library's coalesce (indistinguishable from no pattern match), which
     # silently resolved immutable match URLs to the 1-hour session default.
     "*/lol/match/v5/matches/*": -1,
+    "*/lol/platform/v3/champion-rotations": ttl(days=1),
+    "*/lol/status/v4/platform-data": ttl(minutes=1),
     "*/riot/account/v1/accounts/by-riot-id/*": ttl(days=1),
     "*/lol/summoner/v4/summoners/by-puuid/*": ttl(days=1),
 }

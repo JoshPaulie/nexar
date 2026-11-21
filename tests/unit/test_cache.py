@@ -76,6 +76,51 @@ class TestSmartEndpointTtls:
         )
         assert actions.expire_after == 30 * 60
 
+    @pytest.mark.parametrize(
+        ("url", "expected_expire_after"),
+        [
+            ("https://na1.api.riotgames.com/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5", 5 * 60),
+            ("https://na1.api.riotgames.com/lol/league/v4/grandmasterleagues/by-queue/RANKED_SOLO_5x5", 5 * 60),
+            ("https://na1.api.riotgames.com/lol/league/v4/masterleagues/by-queue/RANKED_SOLO_5x5", 5 * 60),
+            ("https://na1.api.riotgames.com/lol/league/v4/entries/RANKED_SOLO_5x5/GOLD/I", 5 * 60),
+            ("https://na1.api.riotgames.com/lol/league-exp/v4/entries/RANKED_SOLO_5x5/GOLD/I", 5 * 60),
+            ("https://na1.api.riotgames.com/lol/league/v4/entries/by-puuid/p", 5 * 60),
+            ("https://na1.api.riotgames.com/lol/platform/v3/champion-rotations", 24 * 60 * 60),
+            ("https://na1.api.riotgames.com/lol/status/v4/platform-data", 60),
+        ],
+        ids=[
+            "challenger",
+            "grandmaster",
+            "master",
+            "division-entries",
+            "league-exp-entries",
+            "by-puuid-entries",
+            "rotations",
+            "status",
+        ],
+    )
+    def test_ladder_rotation_status_rows_keep_their_freshness_class(
+        self,
+        url: str,
+        expected_expire_after: int,
+    ) -> None:
+        """Ladder rows ride the 5-minute league class, rotations the day class, status minutes.
+
+        The by-puuid row proves the division glob (three path segments after
+        /entries/) never shadows it. Resolved through CacheActions.from_settings
+        (the library's own resolution path), not the raw dict value: the claim
+        under test is the effective expiry of each URL. The page query parameter
+        is not part of the URL pattern matching, so the division rows cover
+        every page of those ladders.
+        """
+        actions = CacheActions.from_settings(
+            key="probe",
+            url=url,
+            urls_expire_after=_SMART_ENDPOINT_TTLS,
+            session_expire_after=DEFAULT_CACHE_CONFIG.expire_after,
+        )
+        assert actions.expire_after == expected_expire_after
+
 
 class TestCreateCacheBackend:
     @pytest.mark.parametrize("backend_name", ["sqlite", "memory"])

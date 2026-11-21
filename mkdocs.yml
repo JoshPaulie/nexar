@@ -61,6 +61,8 @@ nav:
           - Match Timeline: examples/match_timeline.md
       - Deeper data:
           - Champion Mastery: examples/champion_mastery.md
+          - Ranked Ladders: examples/ranked_ladders.md
+          - Rotations & Status: examples/rotations_and_status.md
           - Challenge Stats: examples/challenge_stats.md
           - Runes and Perks: examples/runes_and_perks.md
       - Infrastructure:
@@ -75,12 +77,14 @@ nav:
       - Models:
           - Account: reference/models/account.md
           - Champion Mastery: reference/models/champion-mastery.md
+          - Champion Rotations: reference/models/champion-rotations.md
           - League: reference/models/league.md
           - Match: reference/models/match.md
           - Match Timeline: reference/models/match-timeline.md
           - MatchList: reference/models/match-list.md
           - Participant: reference/models/participant.md
           - ParticipantList: reference/models/participant-list.md
+          - Platform Status: reference/models/platform-status.md
           - Player: reference/models/player.md
           - Stats: reference/models/stats.md
           - Team: reference/models/team.md

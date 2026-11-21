@@ -17,6 +17,14 @@ _QUEUE_TYPE_MAP = {
 }
 
 
+def _queue_from_string(queue_str: str) -> Queue:
+    """Map an API queue string to a Queue enum, degrading unknown strings to UNKNOWN."""
+    if queue_str not in _QUEUE_TYPE_MAP:
+        logger.warning("Unknown queue type '%s' in league payload. Defaulting to UNKNOWN.", queue_str)
+        return Queue.UNKNOWN
+    return _QUEUE_TYPE_MAP[queue_str]
+
+
 @dataclass(frozen=True)
 class MiniSeries:
     """Represents mini series progress, colloquially known as 'promos'."""
@@ -170,11 +178,7 @@ class LeagueEntry:
     def from_api_response(cls, data: dict[str, Any]) -> "LeagueEntry":
         """Create LeagueEntry from API response."""
         queue_type_str = data["queueType"]
-        if queue_type_str not in _QUEUE_TYPE_MAP:
-            logger.warning("Unknown queue type '%s' in league entry. Defaulting to UNKNOWN.", queue_type_str)
-            queue_type = Queue.UNKNOWN
-        else:
-            queue_type = _QUEUE_TYPE_MAP[queue_type_str]
+        queue_type = _queue_from_string(queue_type_str)
 
         # Riot omits empty values: apex/decayed entries have no rank, and 0 LP/wins/losses
         # are absent rather than zero.
@@ -200,4 +204,119 @@ class LeagueEntry:
             fresh_blood=data.get("freshBlood", False),
             inactive=data.get("inactive", False),
             mini_series=MiniSeries.from_api_response(data["miniSeries"]) if data.get("miniSeries") else None,
+        )
+
+
+@dataclass(frozen=True)
+class LeagueItem:
+    """A single player's standing inside an apex league (challenger/grandmaster/master).
+
+    The live apex payloads are puuid-era shaped: entries carry ``puuid`` and no
+    ``summonerId``/``summonerName`` (measured 2026-11-21). Unlike
+    :class:`LeagueEntry` there is no ``queueType`` — the queue lives on the
+    container :class:`LeagueList`.
+    """
+
+    puuid: str
+    """Player's universally unique identifier."""
+
+    division: RankDivision
+    """Division placeholder the wire still sends on apex entries ('I'). EMPTY when omitted."""
+
+    league_points: int
+    """Current LP (League Points) in the ladder."""
+
+    wins: int
+    """Total number of wins in the current season for this queue."""
+
+    losses: int
+    """Total number of losses in the current season for this queue."""
+
+    hot_streak: bool
+    """Whether the player is currently on a winning streak."""
+
+    veteran: bool
+    """Whether the player is a veteran (has played 100+ games in the tier)."""
+
+    fresh_blood: bool
+    """Whether the player is newly promoted into the tier."""
+
+    inactive: bool
+    """Whether the player has been inactive and is subject to decay."""
+
+    mini_series: MiniSeries | None = None
+    """Promotion series data if currently in promos, None otherwise (apex entries
+    are never in promos on the live wire; the field exists because Riot's DTO
+    declares it)."""
+
+    @classmethod
+    def from_api_response(cls, data: dict[str, Any]) -> "LeagueItem":
+        """Create LeagueItem from an apex-league entries element.
+
+        Riot omits empty values, so everything except ``puuid`` parses with defaults.
+        """
+        rank_str = data.get("rank") or ""
+        try:
+            division = RankDivision(rank_str)
+        except ValueError:
+            logger.warning("Unknown division '%s' in apex league item. Defaulting to EMPTY.", rank_str)
+            division = RankDivision.EMPTY
+
+        return cls(
+            puuid=data["puuid"],
+            division=division,
+            league_points=data.get("leaguePoints", 0),
+            wins=data.get("wins", 0),
+            losses=data.get("losses", 0),
+            hot_streak=data.get("hotStreak", False),
+            veteran=data.get("veteran", False),
+            fresh_blood=data.get("freshBlood", False),
+            inactive=data.get("inactive", False),
+            mini_series=MiniSeries.from_api_response(data["miniSeries"]) if data.get("miniSeries") else None,
+        )
+
+
+@dataclass(frozen=True)
+class LeagueList:
+    """An apex league (challenger, grandmaster or master) for one ranked queue.
+
+    Riot wraps the apex ladders in this small container; the ladder itself is
+    not paginated — every entry arrives in one response, pre-sorted by league
+    points. The live payload carries no ``leagueId`` and no ``name`` (both
+    measured absent on every apex queue, 2026-11-21), so both parse as empty
+    strings rather than raising.
+    """
+
+    league_id: str
+    """Unique identifier for the league. Empty on the live surface."""
+
+    tier: RankTier
+    """The apex tier this league covers (CHALLENGER, GRANDMASTER or MASTER)."""
+
+    name: str
+    """League display name. Empty when Riot omits it (the live payload does)."""
+
+    queue: Queue
+    """Type of ranked queue the ladder covers."""
+
+    queue_raw: str
+    """Original queue string from the API (e.g. 'RANKED_SOLO_5x5').
+
+    Useful for forward compatibility when Riot adds new queue types.
+    """
+
+    entries: tuple[LeagueItem, ...]
+    """The full ladder, highest league points first (Riot pre-sorts it)."""
+
+    @classmethod
+    def from_api_response(cls, data: dict[str, Any]) -> "LeagueList":
+        """Create LeagueList from a league-list API response."""
+        queue_str = data.get("queue") or ""
+        return cls(
+            league_id=data.get("leagueId") or "",
+            tier=RankTier(data["tier"]),
+            name=data.get("name") or "",
+            queue=_queue_from_string(queue_str),
+            queue_raw=queue_str,
+            entries=tuple(LeagueItem.from_api_response(entry) for entry in data.get("entries", ())),
         )
