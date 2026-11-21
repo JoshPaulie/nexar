@@ -41,6 +41,8 @@ All notable changes to this project will be documented in this file.
 
 ### Removed
 
+- `HTTP_OK`, the one wire-status constant with no caller anywhere (importable from `nexar.client` in v2.0.0 but never referenced by the SDK, a test, or a doc) — the plumbing split surfaced it, and the API baseline records the removal in the same commit.
+
 - `Region.PH2` and `Region.TH2` (with their `PlatformId` aliases) — Riot migrated the Philippines and Thailand platforms into SG2 on 2025-01-08, and both are absent from the reference's executable region list, so nexar tracks the current surface. The routing-table mirror drops both rows ahead of the upstream docs page, which still lists them.
 
 ### Fixed

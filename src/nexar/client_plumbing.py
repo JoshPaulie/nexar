@@ -26,7 +26,6 @@ from .exceptions import (
 logger = logging.getLogger("nexar")
 
 
-HTTP_OK = 200
 HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
 HTTP_NOT_FOUND = 404
