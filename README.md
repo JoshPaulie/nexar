@@ -11,7 +11,9 @@ It's built for single-node, single-client projects and not intended for use at s
 - Built for Python freaks.
 - Robust models with datetime objects and enums.
 - High-level API that abstracts the messy Riot API.
-- In-memory sliding-window rate limiting that mirrors Riot's documented enforcement, plus disk caching.
+- In-memory sliding-window rate limiting.
+- Rate limiting auto-aligns with the server: fresh clients seed their windows from Riot's reported usage counts, and 429s back off for `Retry-After`.
+- API responses cached to disk, SQLite by default.
 - Packed with helpful doc strings and tips.
 
 Check out [Why not Nexar?](https://bexli.dev/nexar/why-not-nexar/) for scope, expectations, and the recommended alternative.
