@@ -217,3 +217,10 @@ class TestParticipantList:
         # Non-existent PUUID should raise ValueError
         with pytest.raises(ValueError, match="No participant found with PUUID: not_a_real_puuid"):
             participant_list.team_of("not_a_real_puuid")
+
+    def test_team_of_can_drop_the_player_themselves(self, participant_list: ParticipantList) -> None:
+        """include_self=False leaves the teammates, which is the report-shaped list."""
+        teammates = participant_list.team_of("player1", include_self=False)
+        assert [p.puuid for p in teammates] == ["player2"]
+        # The default keeps the old behavior.
+        assert [p.puuid for p in participant_list.team_of("player1")] == ["player1", "player2"]

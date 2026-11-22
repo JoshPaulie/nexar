@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `ParticipantList.team_of` takes `include_self`, defaulting to True so existing calls are unchanged. `include_self=False` returns the four teammates, which is the list a per-player report wants; the audit reached for the method and got the player back in their own team.
+
 - `Player.get_matches` takes `allow_partial`: one failed match id no longer fails the whole pull, and the skipped ids are logged at WARNING. Strict by default, so a pull either succeeds whole or names every failure, and the raising path still carries `successful_results` for callers that catch it.
 
 - CI builds the docs site with `mkdocs build --strict` on every push and pull request, and the `gh-deploy` job is gated to pushes on `main`. It previously ran on pull requests too, so a same-repo PR published its own branch's docs.

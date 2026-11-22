@@ -111,12 +111,15 @@ class ParticipantList(list["Participant"]):
         """
         return ParticipantList(p for p in self if not p.win)
 
-    def team_of(self, puuid: str) -> "ParticipantList":
+    def team_of(self, puuid: str, *, include_self: bool = True) -> "ParticipantList":
         """
         Get the team of the participant with the given PUUID.
 
         Args:
             puuid: The player's universally unique identifier
+            include_self: Keep the participant's own entry in the result. Pass
+                False for a teammates list, which is what a per-player report
+                almost always wants.
 
         Returns:
             A ParticipantList containing all participants on the same team as the specified PUUID.
@@ -129,7 +132,10 @@ class ParticipantList(list["Participant"]):
         if participant is None:
             msg = f"No participant found with PUUID: {puuid}"
             raise ValueError(msg)
-        return self.by_team(participant.team_id)
+        team = self.by_team(participant.team_id)
+        if include_self:
+            return team
+        return ParticipantList(member for member in team if member.puuid != puuid)
 
     def filter(self, predicate: Callable[["Participant"], bool]) -> "ParticipantList":
         """
