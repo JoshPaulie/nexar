@@ -44,7 +44,8 @@ class MatchMixin(NexarCore):
         """Get a page of a player's match ids.
 
         ``start`` skips into the history and ``count`` caps the page at
-        ``MAX_MATCH_ID_COUNT`` (100) per call.
+        ``MAX_MATCH_ID_COUNT`` (100) per call, defaulting to
+        ``DEFAULT_MATCH_ID_COUNT`` (20).
         """
         if start < 0:
             msg = f"start must be non-negative, got {start}"

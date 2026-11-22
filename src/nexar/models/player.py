@@ -260,7 +260,8 @@ class Player:
             queue: Queue ID filter (int or Queue enum)
             match_type: Match type filter (str or MatchType enum)
             start: Start index (0-based)
-            count: Number of match IDs to return (0-100)
+            count: Number of match IDs to return (0-100), defaulting to 20.
+                One request per call.
 
         Returns:
             List of match IDs
@@ -297,7 +298,9 @@ class Player:
             queue: Queue ID filter (int or Queue enum)
             match_type: Match type filter (str or MatchType enum)
             start: Start index (0-based)
-            count: Number of match IDs to return (0-100)
+            count: Number of match IDs to return (0-100), defaulting to 20.
+                Each pull costs one request for the id list plus one request
+                per match, so a fresh default page is 21 requests.
             allow_partial: Return the matches that loaded instead of raising
                 BatchError when one id fails; the skipped ids are logged at
                 WARNING. Strict by default, so a pull either succeeds whole or

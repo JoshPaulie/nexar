@@ -71,6 +71,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- The wire cost of `get_matches` is now stated where the call is documented: one request for the id list plus one per match, so a fresh default page is 21 requests. The default `count` of 20 is named on `Player.get_matches` and `get_match_ids_by_puuid`, and the bare example calls on the match-history and champion-performance pages carry the same note. A personal key allows 100 requests per 2 minutes, and two example pages spent a fifth of that on one unfiltered call with nothing in the docs saying so.
+
 - Examples pages now render demos that run as copied. The match-history and sort-players-by-rank sections imported their `dt` alias, `Queue`, and `sort_players_by_rank` at the top of `all_examples.py`, where the page render never shows them, so the code the pages displayed raised NameError when pasted into the quick-start boilerplate. Each section now carries its own imports inside its markers, and a new row in `tests/test_snippets.py` assembles every examples page's rendered sections onto the quick-start boilerplate and executes that synthetic module against the sandbox: red on first run against both pages, and red again under the mutation proof that strips one restored import.
 
 - README: the install section covers the commands a bare environment needs: `uv pip install` or `pip install` into any virtual environment, and `uv init` plus `uv add` for a uv project. The only published command was `uv add`, which fails outside a uv project with `No pyproject.toml found`, so the first install stalled before any SDK code ran.

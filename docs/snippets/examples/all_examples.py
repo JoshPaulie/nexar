@@ -46,7 +46,7 @@ async def main() -> None:
         # Get player
         player = await client.get_player(riot_id="bexli#bex")
 
-        # Get recent matches
+        # Get recent matches (defaults to 20: one id-list request, then one per match)
         matches = await player.get_matches()
 
         champ_performance = matches.get_champion_stats()
@@ -64,7 +64,7 @@ async def main() -> None:
         # Get player
         player = await client.get_player(riot_id="bexli#bex")
 
-        # Get last 20 matches
+        # Get last 20 matches (one id-list request, then one per match)
         matches = await player.get_matches()
 
         # Get last 5 solo queue matches
