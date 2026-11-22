@@ -25,6 +25,7 @@ async def main() -> None:
         print(f"\nCRYSTAL MASTER percentile: {percentiles.get('MASTER')}")
 
         # Leaderboards serve the apex levels only (MASTER/GRANDMASTER/CHALLENGER).
+        # Positions run across the challenge's tiers, so an apex board starts above #1.
         board = await client.get_challenge_leaderboard(crystal.id, ChallengeLevel.MASTER, Region.NA1, limit=3)
         print(f"\nTop {len(board)} CRYSTAL MASTER players:")
         for row in board:
