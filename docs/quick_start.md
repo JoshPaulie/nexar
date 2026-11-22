@@ -4,7 +4,7 @@
 
 The primary object for Nexar is the `NexarClient`.
 
-Here you set your Riot API key and optionally set a default region(1) for your lookups.
+Here you set your [Riot API key](https://developer.riotgames.com/) and optionally set a default region(1) for your lookups.
 { .annotate }
 
 1. Helpful for personal projects, where you're only pulling stats for yourself and friends.

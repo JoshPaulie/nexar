@@ -1,0 +1,26 @@
+name: live
+
+on:
+  schedule:
+    # 09:17 UTC daily, 03:17 America/Chicago.
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+      - run: uv sync
+      - name: Run the live canaries
+        env:
+          RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+        run: |
+          if [ -z "$RIOT_API_KEY" ]; then
+            echo "::notice::RIOT_API_KEY is not set; skipping the live suite."
+            exit 0
+          fi
+          uv run python -m pytest tests -m slow -q
