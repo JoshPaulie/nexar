@@ -1,8 +1,8 @@
-"""ChampionStats derived values — one table next to the model they pin."""
+"""ChampionStats and RoleStats derived values — tables next to the models they pin."""
 
 import pytest
 
-from nexar.models.stats import ChampionStats, PerformanceStats
+from nexar.models.stats import ChampionStats, PerformanceStats, RoleStats
 
 
 @pytest.mark.parametrize(
@@ -86,6 +86,28 @@ def test_zero_games_properties_report_zero_not_a_division(field: str) -> None:
         games_played=0,
         wins=0,
         losses=0,
+        total_kills=10,
+        total_deaths=3,
+        total_assists=5,
+    )
+
+    assert getattr(stats, field) == 0.0
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["win_rate", "avg_kda", "avg_kills", "avg_deaths", "avg_assists"],
+)
+def test_role_stats_zero_games_report_zero_not_a_division(field: str) -> None:
+    """A zero-games role record reads 0.0 off every derived property, never a ZeroDivisionError.
+
+    Mirrors the ChampionStats table: nonzero numerators, so a guard that only
+    held for all-zero inputs cannot pass while a real ratio leaks through.
+    """
+    stats = RoleStats(
+        role="TOP",
+        games_played=0,
+        wins=0,
         total_kills=10,
         total_deaths=3,
         total_assists=5,
