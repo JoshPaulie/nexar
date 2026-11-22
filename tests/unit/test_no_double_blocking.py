@@ -1,6 +1,7 @@
 """Test to verify no double-blocking on 429 responses."""
 
 import time
+from collections.abc import AsyncGenerator
 
 import pytest
 from aioresponses import aioresponses
@@ -11,15 +12,18 @@ from nexar.enums import Region
 
 
 @pytest.fixture
-def simple_client() -> NexarClient:
+async def simple_client() -> AsyncGenerator[NexarClient]:
     # Use only the 20/1s bucket to avoid ~1.2s refill from the 100/120s bucket
-    # interfering with timing assertions in these tests.
-    return NexarClient(
+    # interfering with timing assertions in these tests. The session closes
+    # after each test, red or green, so a failing row cannot hang the run.
+    client = NexarClient(
         riot_api_key="test-api-key",
         default_region=Region.NA1,
         app_rate_limits=((20, 1),),
         cache_config=NO_CACHE_CONFIG,
     )
+    yield client
+    await client.close()
 
 
 def _register_summoner_responses(mock_aioresponse: aioresponses, url: str, retry_after: str) -> None:

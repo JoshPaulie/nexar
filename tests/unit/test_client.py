@@ -20,16 +20,31 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def fresh_client(tmp_path: Path) -> NexarClient:
-    """Client with a sqlite cache confined to tmp_path — never ~/.nexar/."""
+async def fresh_client(tmp_path: Path) -> AsyncGenerator[NexarClient]:
+    """Client with a sqlite cache confined to tmp_path — never ~/.nexar/.
+
+    The session closes after each test, red or green: an unclosed client
+    leaves background threads alive and a red run hangs after its summary.
+    """
     config = CacheConfig(backend="sqlite", cache_dir=tmp_path)
-    return NexarClient(riot_api_key="test-api-key", default_region=Region.NA1, cache_config=config)
+    client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1, cache_config=config)
+    yield client
+    await client.close()
 
 
 @pytest.fixture
 async def stats_client() -> AsyncGenerator[NexarClient]:
     """Uncached client whose session is always closed, even when a test fails."""
     client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1, cache_config=NO_CACHE_CONFIG)
+    yield client
+    await client.close()
+
+
+@pytest.fixture
+async def memory_client() -> AsyncGenerator[NexarClient]:
+    """In-memory cached client whose session is always closed, even when a test fails."""
+    config = CacheConfig(enabled=True, backend="memory", expire_after=60)
+    client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=config)
     yield client
     await client.close()
 
@@ -145,12 +160,12 @@ async def test_cache_info_empty(fresh_client: NexarClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_cache_hit_serves_stored_row_without_wire(mock_aioresponse: aioresponses) -> None:
+async def test_cache_hit_serves_stored_row_without_wire(
+    memory_client: NexarClient, mock_aioresponse: aioresponses
+) -> None:
     """A stored 200 row is served by the manual read path, counted as a cache hit, wire untouched."""
-    config = CacheConfig(enabled=True, backend="memory", expire_after=60)
-    client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=config)
-    await client._ensure_session()
-    session = client._session
+    await memory_client._ensure_session()
+    session = memory_client._session
     assert isinstance(session, CachedSession)
 
     url = "https://americas.api.riotgames.com/lol/match/v5/matches/M_123"
@@ -160,22 +175,19 @@ async def test_cache_hit_serves_stored_row_without_wire(mock_aioresponse: aiores
     response.method = "GET"
     await session.cache.save_response(response)
 
-    match = await client.get_match("M_123")
+    match = await memory_client.get_match("M_123")
 
     assert match.metadata.match_id == "M_123"
-    stats = client.get_api_call_stats()
+    stats = memory_client.get_api_call_stats()
     assert stats.cache_hits == 1
     assert stats.fresh_calls == 0
-    await client.close()
 
 
 @pytest.mark.asyncio
-async def test_cache_row_with_empty_body_is_a_miss(mock_aioresponse: aioresponses) -> None:
+async def test_cache_row_with_empty_body_is_a_miss(memory_client: NexarClient, mock_aioresponse: aioresponses) -> None:
     """A stored 200 row with an empty body decodes to None: the row is dropped and the wire serves."""
-    config = CacheConfig(enabled=True, backend="memory", expire_after=60)
-    client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=config)
-    await client._ensure_session()
-    session = client._session
+    await memory_client._ensure_session()
+    session = memory_client._session
     assert isinstance(session, CachedSession)
 
     url = "https://americas.api.riotgames.com/lol/match/v5/matches/M_456"
@@ -185,24 +197,21 @@ async def test_cache_row_with_empty_body_is_a_miss(mock_aioresponse: aioresponse
     await session.cache.save_response(response)
 
     mock_aioresponse.get(url, payload=match_response_payload("M_456"))
-    match = await client.get_match("M_456")
+    match = await memory_client.get_match("M_456")
 
     assert match.metadata.match_id == "M_456"
-    stats = client.get_api_call_stats()
+    stats = memory_client.get_api_call_stats()
     assert stats.cache_hits == 0
     assert stats.fresh_calls == 1
     # The junk row is gone; aioresponses' lowercase method blocks the library's own write.
     assert await session.cache.responses.size() == 0
-    await client.close()
 
 
 @pytest.mark.asyncio
-async def test_clear_cache_populated_to_empty(mock_aioresponse: aioresponses) -> None:
+async def test_clear_cache_populated_to_empty(memory_client: NexarClient, mock_aioresponse: aioresponses) -> None:
     """clear_cache drops stored rows: one row before, zero after."""
-    config = CacheConfig(enabled=True, backend="memory", expire_after=60)
-    client = NexarClient(riot_api_key="key", default_region=Region.NA1, cache_config=config)
-    await client._ensure_session()
-    session = client._session
+    await memory_client._ensure_session()
+    session = memory_client._session
     assert isinstance(session, CachedSession)
 
     url = "https://na1.api.riotgames.com/lol/test/clear"
@@ -213,7 +222,6 @@ async def test_clear_cache_populated_to_empty(mock_aioresponse: aioresponses) ->
 
     assert await session.cache.responses.size() == 1
 
-    await client.clear_cache()
+    await memory_client.clear_cache()
 
     assert await session.cache.responses.size() == 0
-    await client.close()

@@ -5,6 +5,7 @@ builds the exact query string the case names, so a dropped or mangled parameter
 fails the call instead of silently matching a catch-all regex (probe P7).
 """
 
+from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING
 
 import pytest
@@ -18,6 +19,14 @@ if TYPE_CHECKING:
     from aioresponses import aioresponses
 
 _IDS_URL = "https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/test-puuid/ids"
+
+
+@pytest.fixture
+async def exact_client() -> AsyncGenerator[NexarClient]:
+    """Isolated uncached client on literal registrations, closed even when a row fails."""
+    client = NexarClient(riot_api_key="test-api-key", default_region=Region.NA1, cache_config=NO_CACHE_CONFIG)
+    yield client
+    await client.close()
 
 
 @pytest.mark.parametrize(
@@ -47,19 +56,14 @@ _IDS_URL = "https://americas.api.riotgames.com/lol/match/v5/matches/by-puuid/tes
     ],
 )
 async def test_get_match_ids_builds_exact_query(
+    exact_client: NexarClient,
     mock_aioresponse: "aioresponses",
     kwargs: dict,
     query: str,
 ) -> None:
     """Only the exact URL answers, so every parameter must survive the builder."""
-    client = NexarClient(
-        riot_api_key="test-api-key",
-        default_region=Region.NA1,
-        cache_config=NO_CACHE_CONFIG,
-    )
     register_exact_url(mock_aioresponse, _IDS_URL + query, ["NA1_1"])
 
-    ids = await client.get_match_ids_by_puuid("test-puuid", **kwargs)
+    ids = await exact_client.get_match_ids_by_puuid("test-puuid", **kwargs)
 
     assert ids == ["NA1_1"]
-    await client.close()

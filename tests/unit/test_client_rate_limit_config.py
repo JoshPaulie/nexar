@@ -1,6 +1,7 @@
 """Tests for rate limit configuration options."""
 
 import time
+from collections.abc import AsyncGenerator
 
 import pytest
 from aioresponses import aioresponses
@@ -35,15 +36,25 @@ def test_invalid_app_rate_limits_are_rejected(limit: int, window: int, match: st
         RateLimiter(((limit, window),))
 
 
-@pytest.mark.asyncio
-async def test_custom_app_rate_limits_pace_calls(mock_aioresponse: aioresponses) -> None:
-    """The app_rate_limits argument actually wires: a (1, 1) budget paces the second call."""
+@pytest.fixture
+async def paced_client() -> AsyncGenerator[NexarClient]:
+    """A (1, 1) budget paces the second call; the session closes even when the row fails."""
     client = NexarClient(
         riot_api_key="test",
         default_region=Region.NA1,
         app_rate_limits=((1, 1),),
         cache_config=NO_CACHE_CONFIG,
     )
+    yield client
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_custom_app_rate_limits_pace_calls(
+    paced_client: NexarClient,
+    mock_aioresponse: aioresponses,
+) -> None:
+    """The app_rate_limits argument actually wires: a (1, 1) budget paces the second call."""
     url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/p1"
     mock_aioresponse.get(
         url,
@@ -52,13 +63,11 @@ async def test_custom_app_rate_limits_pace_calls(mock_aioresponse: aioresponses)
     )
 
     start = time.perf_counter()
-    await client.get_summoner_by_puuid("p1")
+    await paced_client.get_summoner_by_puuid("p1")
     first_elapsed = time.perf_counter() - start
     assert first_elapsed < 0.5
 
     start = time.perf_counter()
-    await client.get_summoner_by_puuid("p1")
+    await paced_client.get_summoner_by_puuid("p1")
     second_elapsed = time.perf_counter() - start
     assert 0.9 <= second_elapsed < 1.3
-
-    await client.close()

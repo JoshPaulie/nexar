@@ -9,7 +9,7 @@ import os
 import re
 import sqlite3
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -30,10 +30,16 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def client(tmp_path: Path) -> NexarClient:
-    """Client whose cache lives in tmp_path, never in the shared ~/.nexar/ store."""
+async def client(tmp_path: Path) -> AsyncGenerator[NexarClient]:
+    """Client whose cache lives in tmp_path, never in the shared ~/.nexar/ store.
+
+    The session closes after each test, red or green: an unclosed client
+    leaves background threads alive and a red run hangs after its summary.
+    """
     config = CacheConfig(backend="sqlite", cache_dir=tmp_path)
-    return NexarClient(riot_api_key="test-key", default_region=Region.NA1, cache_config=config)
+    nexar_client = NexarClient(riot_api_key="test-key", default_region=Region.NA1, cache_config=config)
+    yield nexar_client
+    await nexar_client.close()
 
 
 # ---------------------------------------------------------------------------
@@ -193,10 +199,12 @@ async def test_context_manager(client: NexarClient) -> None:
 async def test_ensure_session_no_cache() -> None:
     config = CacheConfig(enabled=False)
     client = NexarClient(riot_api_key="key", cache_config=config, default_region=Region.NA1)
-    await client._ensure_session()
-    assert not isinstance(client._session, CachedSession)
-    assert isinstance(client._session, aiohttp.ClientSession)
-    await client.close()
+    try:
+        await client._ensure_session()
+        assert not isinstance(client._session, CachedSession)
+        assert isinstance(client._session, aiohttp.ClientSession)
+    finally:
+        await client.close()
 
 
 @pytest.mark.asyncio
