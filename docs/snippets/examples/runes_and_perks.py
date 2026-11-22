@@ -29,7 +29,8 @@ async def main() -> None:
         print(f"  Flex:    {perks.stat_perks.flex}")
         print(f"  Defense: {perks.stat_perks.defense}")
 
-        # Rune pages (primary + secondary)
+        # Rune pages (primary + secondary).
+        # description is Riot's own label ('primaryStyle'/'subStyle'), kept as-is.
         print("\nRune pages:")
         for style in perks.styles:
             print(f"  {style.description} (style {style.style}):")

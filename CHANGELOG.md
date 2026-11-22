@@ -83,6 +83,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- The runes example notes that a style `description` is Riot's own label (`primaryStyle`/`subStyle`), kept as-is like the rotation pools' `sr`/`newplayer` keys.
 - The rate-limiting page names `get_api_call_stats()` for run totals (fresh, cached, retries, errors), with the caching page kept as the worked example under Cache Management.
 - The challenges example notes that leaderboard positions run across the challenge's tiers, so an apex board starts above #1.
 - `get_all_challenge_percentiles` says its keys are strings: JSON object keys always are, so lookups go through `str(config.id)` instead of silently missing.
