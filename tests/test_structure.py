@@ -23,6 +23,7 @@ import dataclasses
 import importlib
 import inspect
 import json
+import logging
 import os
 from pathlib import Path
 from typing import TypedDict
@@ -296,3 +297,20 @@ def test_no_cross_module_underscore_imports() -> None:
                     if alias.name.startswith("_") and not alias.name.startswith("__")
                 )
     assert not findings, "underscore imports:\n" + "\n".join(findings)
+
+
+def test_package_namespace_offers_no_importable_logging_name() -> None:
+    """The stdlib logging module no longer leaks into the package namespace.
+
+    ``__init__`` imported logging at module level for the NullHandler
+    attach, so ``dir(nexar)`` offered a ``nexar.logging`` that raises
+    ModuleNotFoundError when imported, and ``from nexar import logging``
+    silently returned the stdlib module: a trap that existed only in
+    editor completion. The attach lives in client_plumbing now, and the
+    contract it implements still holds.
+    """
+    import nexar
+
+    assert "logging" not in dir(nexar)
+    handlers = logging.getLogger("nexar").handlers
+    assert any(isinstance(handler, logging.NullHandler) for handler in handlers)

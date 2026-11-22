@@ -26,6 +26,13 @@ from .exceptions import (
 
 logger = logging.getLogger("nexar")
 
+# Library logging contract: the package loggers carry a NullHandler, so the
+# SDK is silent unless the application configures logging. Without one, the
+# logging module's last-resort handler printed handled 4xx errors and
+# parse fallbacks to stderr with zero configuration. Child loggers
+# (nexar.cache) inherit the handler through the chain.
+logger.addHandler(logging.NullHandler())
+
 
 HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
