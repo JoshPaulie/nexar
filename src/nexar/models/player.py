@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -9,6 +10,8 @@ from nexar.enums import Queue
 from nexar.exceptions import BatchError, gather_partitioned
 
 from .match_list import MatchList
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -283,6 +286,7 @@ class Player:
         match_type: MatchType | str | None = None,
         start: int = 0,
         count: int = 20,
+        allow_partial: bool = False,
     ) -> MatchList:
         """
         Get match details for the player.
@@ -294,6 +298,10 @@ class Player:
             match_type: Match type filter (str or MatchType enum)
             start: Start index (0-based)
             count: Number of match IDs to return (0-100)
+            allow_partial: Return the matches that loaded instead of raising
+                BatchError when one id fails; the skipped ids are logged at
+                WARNING. Strict by default, so a pull either succeeds whole or
+                names every failure.
 
         Returns:
             MatchList of Match objects with detailed match information
@@ -313,8 +321,16 @@ class Player:
             lambda match_id: self.client.get_match(match_id, region=self.region),
         )
 
-        if errors:
+        if errors and not allow_partial:
             raise BatchError(errors, successful_results=matches)
+        if errors:
+            skipped = ", ".join(label for label, _ in errors)
+            logger.warning(
+                "Skipped %d of %d matches that failed to load: %s",
+                len(errors),
+                len(match_ids),
+                skipped,
+            )
 
         return MatchList(matches, self.riot_account.puuid)
 

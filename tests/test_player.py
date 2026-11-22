@@ -1,6 +1,7 @@
 """Tests for high-level Player functionality."""
 
 import copy
+import logging
 import re
 from collections.abc import AsyncGenerator
 from typing import TYPE_CHECKING, Any
@@ -463,6 +464,31 @@ class TestGetMatchesBatchErrorHandling:
         assert [label for label, _ in batch_error.errors] == ["NA1_2"]
         assert isinstance(batch_error.errors[0][1], NotFoundError)
         assert sorted(match.metadata.match_id for match in batch_error.successful_results) == ["NA1_1", "NA1_3"]
+
+    async def test_allow_partial_returns_loaded_matches_and_names_the_skip(
+        self,
+        batch_player: Player,
+        mock_aioresponse: "aioresponses",
+        mock_responses: dict[str, Any],
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """allow_partial swaps the raise for the matches that loaded plus a warning."""
+        mock_aioresponse.get(_IDS_URL, payload=["NA1_1", "NA1_2", "NA1_3"])
+        mock_aioresponse.get(
+            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_2",
+            status=404,
+            payload={"status": {"message": "Not Found", "status_code": 404}},
+        )
+        for match_id in ("NA1_1", "NA1_3"):
+            payload = copy.deepcopy(mock_responses["match"])
+            payload["metadata"]["matchId"] = match_id
+            mock_aioresponse.get(_MATCH_URL.format(match_id=match_id), payload=payload)
+
+        with caplog.at_level(logging.WARNING, logger="nexar"):
+            matches = await batch_player.get_matches(count=3, allow_partial=True)
+
+        assert sorted(match.metadata.match_id for match in matches) == ["NA1_1", "NA1_3"]
+        assert "NA1_2" in caplog.text
 
     async def test_all_matches_missing_raises_batch_error_with_no_successes(
         self,
