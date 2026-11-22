@@ -13,7 +13,7 @@ Here you set your [Riot API key](https://developer.riotgames.com/) and optionall
 --8<-- "quick_start/01_client_demo.py:declaration"
 ```
 
-The client does not validate your key at construction. A bad key surfaces as `UnauthorizedError` on your first API call.
+The client does not validate your key at construction. A bad key surfaces as `UnauthorizedError` on your first API call. Regions work the same way: a client built without `default_region` constructs fine, but the first call that also omits `region` raises a `ValueError` before any request goes out.
 
 Caching is always on unless you pass `cache_config=NO_CACHE_CONFIG`. By default every project on the machine shares one SQLite cache file, `~/.nexar/nexar_cache.sqlite`; set `cache_name` on a `CacheConfig` to give a project its own file ([Caching](client-features/caching.md)).
 
