@@ -35,6 +35,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- `Player.get_top_champions` is renamed to `Player.get_most_played_champions`: it ranks champions by games played over recent match history, and the old name read as champion mastery one name away from `NexarClient.get_top_champion_masteries`. No compatibility alias (single-user SDK); the API surface baseline was refreshed in the same commit.
+
 - `NexarClient` is assembled from per-topic mixins — `client_identity`, `client_league`, `client_platform`, `client_challenges`, `client_match`, and `client_plumbing` — over the shared declarations in `nexar.core`; `from nexar.client import NexarClient` and `CallStats` import exactly as before, with the client's internal `HTTP_*` status constants now living in `client_plumbing` and the match-id defaults in `client_match`, both pinned by the API baseline.
 
 - The lint config ignores the rules ruff's own formatter docs list as conflicting (`COM812`, `COM819`, `D206`, `D300`, `Q000`–`Q004`, `W191`, and the preview-only `E111`/`E114`/`E117`), so `ruff format` runs warning-free and the linter no longer hands back diffs the formatter reverses. Nothing in the tree violated them; the change is future-proofing the layout gate.

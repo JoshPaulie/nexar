@@ -390,7 +390,7 @@ class Player:
             return rank.rank_tuple
         return None
 
-    async def get_top_champions(
+    async def get_most_played_champions(
         self,
         top_n: int = 5,
         count: int = 20,
@@ -398,10 +398,13 @@ class Player:
         match_type: MatchType | str | None = None,
     ) -> list[ChampionStats]:
         """
-        Get top played champions.
+        Get the player's most played champions from recent match history.
+
+        Counts games played, not champion mastery points;
+        ``Player.get_champion_masteries`` is the mastery counterpart.
 
         Args:
-            top_n: Number of top champions to return (default 5)
+            top_n: Number of champions to return (default 5)
             count: Number of recent matches to analyze (default 20)
             queue: Optional queue type filter
             match_type: Optional match type filter

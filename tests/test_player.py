@@ -300,11 +300,11 @@ class TestPlayer:
             assert 0 <= stat.win_rate <= 1
 
     @pytest.mark.slow
-    async def test_player_get_top_champions(self, real_client: "NexarClient") -> None:
-        """Live canary: get_top_champions returns up to top_n stats, games-played descending."""
+    async def test_player_get_most_played_champions(self, real_client: "NexarClient") -> None:
+        """Live canary: get_most_played_champions returns up to top_n stats, games-played descending."""
         player = await real_client.get_player(game_name="bexli", tag_line="bex")
 
-        top = await player.get_top_champions(top_n=3)
+        top = await player.get_most_played_champions(top_n=3)
 
         assert isinstance(top, list)
         assert len(top) <= 3
@@ -347,8 +347,8 @@ class TestPlayer:
             assert "win_rate" in stats
 
 
-class TestTopChampionsMocked:
-    """get_top_champions ordering and truncation, pinned offline (P6: it had zero coverage)."""
+class TestMostPlayedChampionsMocked:
+    """get_most_played_champions ordering and truncation, pinned offline (P6: it had zero coverage)."""
 
     async def test_orders_by_games_played_and_truncates(
         self,
@@ -368,14 +368,14 @@ class TestTopChampionsMocked:
         )
         _register_match(mock_aioresponse, mock_responses, "NA1_3", win=True, champion_id=22, champion_name="Ashe")
 
-        top_one = await batch_player.get_top_champions(top_n=1)
+        top_one = await batch_player.get_most_played_champions(top_n=1)
 
         assert [stat.champion_name for stat in top_one] == ["Cassiopeia"]
         assert top_one[0].games_played == 2
         assert top_one[0].wins == 1
         assert top_one[0].losses == 1
 
-        top_all = await batch_player.get_top_champions(top_n=5)
+        top_all = await batch_player.get_most_played_champions(top_n=5)
 
         assert [(stat.champion_name, stat.games_played) for stat in top_all] == [
             ("Cassiopeia", 2),
