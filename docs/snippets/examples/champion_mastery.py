@@ -6,6 +6,7 @@ from nexar.enums import Region
 
 client = NexarClient(
     riot_api_key=os.getenv("RIOT_API_KEY", ""),
+    default_region=Region.NA1,
 )
 
 
