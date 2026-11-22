@@ -71,6 +71,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- The quick start's flex-rank snippet guards the unranked case. The solo block was shown with an `if solo_rank:` guard, but the flex block right below it dereferenced the entry bare, and `get_flex_rank` returns None for an unranked queue, so the pattern the page taught crashed with `AttributeError: 'NoneType' object has no attribute 'tier'` on the first unranked account it met. The flex block now mirrors the solo guard.
+
 - The quick start now says what happens when no region is set: a client built without `default_region` constructs fine, but the first call that also omits `region` raises a `ValueError` before any request goes out. The page called the default optional and stopped there, so the one error every omitted region produces was undocumented. The raise happens before any wire call and the message already names both fixes (a default or a per-call region).
 
 - The wire cost of `get_matches` is now stated where the call is documented: one request for the id list plus one per match, so a fresh default page is 21 requests. The default `count` of 20 is named on `Player.get_matches` and `get_match_ids_by_puuid`, and the bare example calls on the match-history and champion-performance pages carry the same note. A personal key allows 100 requests per 2 minutes, and two example pages spent a fifth of that on one unfiltered call with nothing in the docs saying so.

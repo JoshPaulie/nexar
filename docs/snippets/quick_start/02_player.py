@@ -62,10 +62,13 @@ async def main() -> None:
                 solo_division = solo_rank.division  # RankDivision.ONE, RankDivision.TWO, ...
                 solo_league_points = solo_rank.league_points
 
-            # Flex queue
+            # Flex queue (None when unranked, like Solo queue)
             flex_rank = await player.get_flex_rank()
 
-            # Of course, all of the same properties as Solo queue
+            if flex_rank:
+                flex_tier = flex_rank.tier
+                flex_division = flex_rank.division
+                flex_league_points = flex_rank.league_points
 
             # --8<-- [end:get-ranks]
 
