@@ -29,6 +29,7 @@ import logging
 import os
 import re
 import sys
+import textwrap
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -226,3 +227,108 @@ def test_debug_flag_name_matches_the_snippet() -> None:
     snippet = (SNIPPETS_DIR / "client-features" / "debug_responses.py").read_text()
     assert f'"{flag}"' in client_source
     assert f'"{flag}"' in snippet
+
+
+EXAMPLES_DIR = DOCS_DIR / "examples"
+
+# `--8<-- "examples/all_examples.py:section-name"` renders a slice of a snippet
+# file. Whole-file includes carry their own imports and are executed as files
+# by test_snippet_runs_under_mocks; a section is what the reader copies.
+INCLUDE = re.compile(r'--8<--\s+"([^"\n]+?)(?::([^"\n]+?))?"')
+
+# What the quick start hands every reader before an examples page: a client
+# with a default region, used inside `async with`. A section that reaches for
+# anything else must import it itself, or the page's code fails as copied.
+PAGE_BOILERPLATE = """\
+import os
+
+from nexar.client import NexarClient
+from nexar.enums import Region
+
+api_key = os.getenv("RIOT_API_KEY")
+client = NexarClient(api_key, default_region=Region.NA1)
+
+
+async def main() -> None:
+    async with client:
+"""
+
+
+def _section_include_pages() -> list[Path]:
+    """Examples pages that render one or more snippet sections."""
+    pages: list[Path] = []
+    for page in sorted(EXAMPLES_DIR.rglob("*.md")):
+        targets = INCLUDE.findall(page.read_text())
+        if any(section for _, section in targets):
+            pages.append(page)
+    return pages
+
+
+def _extract_section(snippet: Path, section: str) -> str:
+    """The named section's lines, dedented, between its --8<-- markers."""
+    pattern = re.compile(
+        rf"^[ \t]*# --8<-- \[start:{re.escape(section)}\]\n(.*?)^[ \t]*# --8<-- \[end:{re.escape(section)}\]",
+        re.DOTALL | re.MULTILINE,
+    )
+    match = pattern.search(snippet.read_text())
+    assert match is not None, f"{snippet.name} has no section {section!r}"
+    lines = match.group(1).splitlines()
+    assert any(line.strip() for line in lines), f"{snippet.name} section {section!r} is empty"
+    indent = min(len(line) - len(line.lstrip()) for line in lines if line.strip())
+    return "\n".join(line[indent:] if line.strip() else "" for line in lines) + "\n"
+
+
+@pytest.mark.parametrize(
+    "page",
+    _section_include_pages(),
+    ids=lambda path: str(path.relative_to(DOCS_DIR)),
+)
+def test_example_page_demo_runs_as_copied(
+    page: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A page's rendered demo must run pasted into the quick-start boilerplate.
+
+    The execution gate runs whole snippet files, imports included, so a
+    section that reaches for a name defined above its markers passed every
+    check while the code the page actually shows raised NameError. Two
+    shipped that way: match-history's `dt` (imported at the top of
+    all_examples.py, never rendered on the page) and sort-players-by-rank's
+    helper from nexar.utils.
+    """
+    # A scan that gates nothing is a broken scan: the two pages that shipped
+    # broken must stay inside it.
+    gated = {str(p.relative_to(DOCS_DIR)) for p in _section_include_pages()}
+    assert {"examples/match_history.md", "examples/sort_players_by_rank.md"} <= gated
+
+    body = ""
+    for target, section in INCLUDE.findall(page.read_text()):
+        if not section:
+            continue
+        snippet = SNIPPETS_DIR / target
+        assert snippet.exists(), f"{page.name} includes missing file {target}"
+        body += _extract_section(snippet, section)
+    assert body.strip(), f"{page.name} renders no section demo"
+
+    source = PAGE_BOILERPLATE + textwrap.indent(body, " " * 8)
+    synthetic = tmp_path / f"page_demo_{page.stem}.py"
+    synthetic.write_text(source)
+
+    monkeypatch.setenv("RIOT_API_KEY", DUMMY_KEY)
+    monkeypatch.setattr(sys, "dont_write_bytecode", True)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("nexar.client.DEFAULT_CACHE_CONFIG", NO_CACHE_CONFIG)
+
+    sandbox = SnippetSandbox()
+    with aioresponses() as mock, _restored_process_state():
+        sandbox.register(mock)
+        module = _load(synthetic)
+        asyncio.run(module.main())
+
+    output = capsys.readouterr().out
+    assert sandbox.requests, f"{page.name} demo ran but never reached the mocked API"
+    if "print(" in body:
+        assert output.strip(), f"{page.name} demo prints, but printed nothing"

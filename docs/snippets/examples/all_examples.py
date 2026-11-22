@@ -1,11 +1,9 @@
 import asyncio
 import os
 import sys
-import datetime as dt
 
 from nexar.client import NexarClient
-from nexar.enums import Region, Queue
-from nexar.utils import sort_players_by_rank
+from nexar.enums import Region
 
 # Get API key from environment
 api_key = os.getenv("RIOT_API_KEY")
@@ -60,6 +58,9 @@ async def main() -> None:
         # --8<-- [end:champ-performance-demo]
 
         # --8<-- [start:match-history-demo]
+        import datetime as dt
+        from nexar.enums import Queue
+
         # Get player
         player = await client.get_player(riot_id="bexli#bex")
 
@@ -97,6 +98,8 @@ async def main() -> None:
         # --8<-- [end:player-performance-demo]
 
         # --8<-- [start:sort-players-by-rank-demo]
+        from nexar.utils import sort_players_by_rank
+
         # Get players
         riot_ids = [
             "bexli#bex",
