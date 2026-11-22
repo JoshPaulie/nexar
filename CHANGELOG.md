@@ -47,6 +47,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Every enum's `str()` is now a human-readable display label, not `Class.NAME`: one shared rule (value-or-name, underscore-split, title-cased, game acronyms and digit words preserved) with honest one-liners for the classes whose wire value already is the display form (roman divisions, platform ids, uppercased region codes). `str(Queue.SOLO_QUEUE)` is `"Ranked Solo 5x5"`, `str(Region.NA1)` is `"NA1"`, and the ranks keep the README's `Gold IV` form the display promise already made.
+
 - `get_cache_info` returns a `CacheInfo` dataclass (re-exported from `nexar.client` beside `CallStats`) and `Player.get_recent_performance_by_role` returns `dict[str, RoleStats]` (re-exported from `nexar.models`), replacing the untyped dicts whose keys the docs examples indexed by hand: the keys are fields now (`info.backend`, `stats.win_rate`), the role averages are derived properties computed on access like their `ChampionStats` siblings, and the API baseline was refreshed in the same commit. The per-role example prints `stats.avg_kda` instead of hand-computing a ratio that disagreed with the SDK's zero-death rule.
 
 - The quick-start links the Riot developer portal where it tells the reader to set an API key. The docs named a key but never said where one comes from, and both cold docs-only runs stalled there and asked the operator.

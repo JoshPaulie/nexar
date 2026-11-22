@@ -20,7 +20,39 @@ __all__ = [
 ]
 
 
-class Region(Enum):
+# Display labels: `str(member)` is what a person reads, never `Class.NAME`.
+# The default rule takes the value for string-valued members and the name
+# otherwise, splits on underscores, and title-cases each word, preserving the
+# game's acronyms and any word carrying a digit. A class whose wire value
+# already is the display form (roman divisions, platform ids) or needs another
+# case (region codes) overrides `_label` with a one-liner.
+_PRESERVED_LABEL_WORDS = frozenset({"AI", "ARAM", "ARURF", "SR", "TT", "URF"})
+
+
+def _humanize_label(text: str) -> str:
+    """Title-case each underscore-separated word, keeping acronyms and digit words."""
+    words = []
+    for word in text.split("_"):
+        if word in _PRESERVED_LABEL_WORDS or any(char.isdigit() for char in word):
+            words.append(word)
+        else:
+            words.append(word.title())
+    return " ".join(words)
+
+
+class _LabelEnum(Enum):
+    """Base for enums whose ``str()`` is a human-readable display label."""
+
+    def __str__(self) -> str:
+        return self._label()
+
+    def _label(self) -> str:
+        """The value for string members, the name otherwise, humanized."""
+        text = self.value if isinstance(self.value, str) else self.name
+        return _humanize_label(text)
+
+
+class Region(_LabelEnum):
     """Represents a Riot Games API region."""
 
     BR1 = "br1"
@@ -48,6 +80,10 @@ class Region(Enum):
     def account_region(self) -> str:
         """Returns the account routing value for this region."""
         return _ACCOUNT_REGION_MAP[self]
+
+    def _label(self) -> str:
+        """Region codes display uppercased, matching the platform ids."""
+        return self.value.upper()
 
 
 # --- Private Mapping Dictionaries ---
@@ -91,7 +127,7 @@ _ACCOUNT_REGION_MAP = {
 
 
 # Alias for platform identification - same as Region but uppercase
-class PlatformId(Enum):
+class PlatformId(_LabelEnum):
     """Platform identifiers for match data."""
 
     BR1 = "BR1"
@@ -110,8 +146,12 @@ class PlatformId(Enum):
     TW2 = "TW2"
     VN2 = "VN2"
 
+    def _label(self) -> str:
+        """Platform ids are their own display form."""
+        return self.value
 
-class RankTier(Enum):
+
+class RankTier(_LabelEnum):
     """Ranked tiers (Iron, Bronze, etc.)."""
 
     IRON = "IRON"
@@ -125,11 +165,8 @@ class RankTier(Enum):
     GRANDMASTER = "GRANDMASTER"
     CHALLENGER = "CHALLENGER"
 
-    def __str__(self) -> str:
-        return self.value.title()
 
-
-class RankDivision(Enum):
+class RankDivision(_LabelEnum):
     """Ranked divisions. (I, II, etc.)."""
 
     ONE = "I"
@@ -141,11 +178,12 @@ class RankDivision(Enum):
     """Apex/decayed entries: Riot omits the ``rank`` field (or sends an empty string),
     so Master, Grandmaster and Challenger entries have no meaningful division."""
 
-    def __str__(self) -> str:
+    def _label(self) -> str:
+        """Roman numerals are their own display form, and EMPTY prints as nothing."""
         return self.value
 
 
-class Queue(Enum):
+class Queue(_LabelEnum):
     """
     Queue IDs for different game modes.
 
@@ -392,7 +430,7 @@ class Queue(Enum):
         return (cls.RANKED_SOLO_5x5, cls.RANKED_FLEX_SR)
 
 
-class MapId(Enum):
+class MapId(_LabelEnum):
     """
     Map IDs for different League of Legends maps.
 
@@ -456,7 +494,7 @@ class MapId(Enum):
         return cls.UNKNOWN
 
 
-class MatchType(Enum):
+class MatchType(_LabelEnum):
     """Match type filters for match history."""
 
     RANKED = "ranked"
@@ -469,7 +507,7 @@ class MatchType(Enum):
     """Tournament matches only"""
 
 
-class ChallengeLevel(Enum):
+class ChallengeLevel(_LabelEnum):
     """Challenge tier levels, as lol-challenges-v1 spells them.
 
     All thirteen values are the reference op block's legal set for the shared
@@ -502,7 +540,7 @@ class ChallengeLevel(Enum):
     """Meta level: the player's lowest tier across all challenges."""
 
 
-class MatchParticipantPosition(Enum):
+class MatchParticipantPosition(_LabelEnum):
     """Participant positions in League of Legends matches."""
 
     TOP = "TOP"

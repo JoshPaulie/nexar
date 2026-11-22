@@ -1,10 +1,21 @@
 """Unit tests for enum properties and methods."""
 
 import logging
+from enum import Enum
 
 import pytest
 
-from nexar.enums import MapId, MatchParticipantPosition, Queue, RankDivision, RankTier, Region
+from nexar.enums import (
+    ChallengeLevel,
+    MapId,
+    MatchParticipantPosition,
+    MatchType,
+    PlatformId,
+    Queue,
+    RankDivision,
+    RankTier,
+    Region,
+)
 
 
 class TestRegion:
@@ -110,3 +121,35 @@ class TestRankDivision:
         assert str(RankDivision.TWO) == "II"
         assert str(RankDivision.THREE) == "III"
         assert str(RankDivision.FOUR) == "IV"
+
+
+@pytest.mark.parametrize(
+    ("member", "expected"),
+    [
+        (Region.NA1, "NA1"),
+        (Region.ME1, "ME1"),
+        (PlatformId.NA1, "NA1"),
+        (Queue.SOLO_QUEUE, "Ranked Solo 5x5"),
+        (Queue.ARAM, "ARAM"),
+        (Queue.SWIFTPLAY, "Swiftplay"),
+        (Queue.RANKED_FLEX_SR, "Ranked Flex SR"),
+        (MapId.SUMMONERS_RIFT, "Summoners Rift"),
+        (MapId.HOWLING_ABYSS, "Howling Abyss"),
+        (MatchType.RANKED, "Ranked"),
+        (ChallengeLevel.GOLD, "Gold"),
+        (ChallengeLevel.HIGHEST_NOT_LEADERBOARD_ONLY, "Highest Not Leaderboard Only"),
+        (MatchParticipantPosition.TOP, "Top"),
+        (MatchParticipantPosition.MIDDLE, "Middle"),
+        (MatchParticipantPosition.INVALID, "Invalid"),
+        (MatchParticipantPosition.EMPTY, ""),
+        (RankDivision.EMPTY, ""),
+    ],
+)
+def test_enum_str_is_a_human_label(member: Enum, expected: str) -> None:
+    """Every enum prints a display label, never the default Class.NAME form."""
+    assert str(member) == expected
+
+
+def test_rank_display_promise_composes() -> None:
+    """The README's Gold IV form is tier + division str composition."""
+    assert f"{RankTier.GOLD} {RankDivision.FOUR}" == "Gold IV"
