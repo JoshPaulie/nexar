@@ -73,6 +73,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Cached rows no longer persist the API key. Since aiohttp-client-cache 0.14 the stored row copies the request headers, and every nexar request sends the key as X-Riot-Token, so each live call wrote the credential in plaintext into the sqlite cache file; on a fresh git install resolving the newer library, the default file carried dozens of copies. The save path now hands the library a read-through response proxy whose request_info carries no token (a live response's request_info is a read-only cached property, so it cannot be removed in place), cookies are still cleared, and rows in tests/test_cache.py pin the proxy, the row bytes, and the replay; a probe against the newer library confirmed the key no longer reaches the file.
+
 - The quick start's flex-rank snippet guards the unranked case. The solo block was shown with an `if solo_rank:` guard, but the flex block right below it dereferenced the entry bare, and `get_flex_rank` returns None for an unranked queue, so the pattern the page taught crashed with `AttributeError: 'NoneType' object has no attribute 'tier'` on the first unranked account it met. The flex block now mirrors the solo guard.
 
 - The quick start now says what happens when no region is set: a client built without `default_region` constructs fine, but the first call that also omits `region` raises a `ValueError` before any request goes out. The page called the default optional and stopped there, so the one error every omitted region produces was undocumented. The raise happens before any wire call and the message already names both fixes (a default or a per-call region).

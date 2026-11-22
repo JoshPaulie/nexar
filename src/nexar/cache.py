@@ -9,10 +9,12 @@ import sqlite3
 from dataclasses import dataclass
 from http.cookies import CookieError
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, cast
 
+from aiohttp import RequestInfo
 from aiohttp_client_cache.backends.base import CacheBackend
 from aiohttp_client_cache.backends.sqlite import SQLiteBackend
+from multidict import CIMultiDict, CIMultiDictProxy
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -117,8 +119,42 @@ class _KeyNamespacedBackend(CacheBackend):
         return f"{self.key_namespace}:{super().create_key(method, url, **kwargs)}"
 
 
+_AUTH_HEADER_NAME = "X-Riot-Token"
+
+
+class _TokenStrippedResponse:
+    """Read-through response proxy whose request headers carry no credential.
+
+    Every nexar request sends the API key as ``X-Riot-Token``, and since
+    aiohttp-client-cache 0.14 the stored row copies ``request_info.headers``
+    into ``request_raw_headers``, so the key would persist in plaintext in
+    the sqlite file for as long as the row lives. A live response's
+    ``request_info`` is a read-only cached property, so the token cannot be
+    removed in place: this proxy rebuilds the named tuple without the
+    header, and the library's row conversion reads the cleaned copy. On
+    library versions that store no request headers the proxy is a
+    pass-through with no effect.
+    """
+
+    def __init__(self, response: ClientResponse) -> None:
+        self._response = response
+
+    def __getattr__(self, name: str) -> object:
+        return getattr(self._response, name)
+
+    @property
+    def request_info(self) -> RequestInfo:
+        """The response's request_info with the token header removed."""
+        info = self._response.request_info
+        if _AUTH_HEADER_NAME not in info.headers:
+            return info
+        token = _AUTH_HEADER_NAME.lower()
+        cleaned = CIMultiDict(header for header in info.headers.items() if header[0].lower() != token)
+        return RequestInfo(url=info.url, method=info.method, headers=CIMultiDictProxy(cleaned), real_url=info.real_url)
+
+
 class NexarSQLiteBackend(SQLiteBackend, _KeyNamespacedBackend):
-    """SQLite backend that never caches cookies and drops rows it cannot load.
+    """SQLite backend that never caches cookies or the auth token, and drops rows it cannot load.
 
     Riot's API responses carry a Cloudflare ``__cf_bm`` Set-Cookie whose ``Partitioned``
     attribute ``http.cookies`` rejects when a cached row is unpickled. aiohttp-client-cache
@@ -135,15 +171,20 @@ class NexarSQLiteBackend(SQLiteBackend, _KeyNamespacedBackend):
         cache_key: str | None = None,
         expires: datetime | None = None,
     ) -> None:
-        """Save a response with its cookie jar emptied.
+        """Save a response with its cookie jar emptied and its credential stripped.
 
         The jar on the live response is a parsed copy nobody consumes — the session's
         cookie jar was already updated when the response arrived, so nothing is lost.
+        The token proxy keeps the API key out of the stored row: newer
+        aiohttp-client-cache copies request headers into the row it writes.
         """
         response.cookies.clear()
         for redirected in response.history:
             redirected.cookies.clear()
-        await super().save_response(response, cache_key, expires)
+        # The library declares ClientResponse but reads it structurally; the
+        # proxy answers every attribute it reads, with a clean request_info.
+        stripped = cast("ClientResponse", _TokenStrippedResponse(response))
+        await super().save_response(stripped, cache_key, expires)
 
     async def get_response(self, key: str) -> CachedResponse | None:
         """Read a cached response, treating an unreadable row as a cache miss."""
