@@ -38,11 +38,19 @@ class NotFoundError(RiotAPIError):
 
 
 class UnauthorizedError(RiotAPIError):
-    """Raised when API key is invalid or missing."""
+    """Raised when the API key is invalid or missing (HTTP 401).
+
+    The message is Riot's own wording, and a 401 body can say
+    'Forbidden'. Catch this type; the text can mislead.
+    """
 
 
 class ForbiddenError(RiotAPIError):
-    """Raised when access is forbidden."""
+    """Raised when access is forbidden (HTTP 403).
+
+    A 401 is UnauthorizedError even when Riot's message says
+    'Forbidden'. Catch the type; the text can mislead.
+    """
 
 
 class BatchError(NexarError):
