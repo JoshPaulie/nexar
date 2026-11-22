@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `nexar.champions` has a reference page. The module is public surface, the Data Dragon ID-to-name snapshot behind `ChampionMastery.champion_name`, but no docs page mentioned it: it was reachable only through `dir(nexar)`, and nothing documented that `scripts/regen_champion_names.py` refreshes the snapshot on a patch bump or that an id newer than the snapshot resolves to `None` instead of raising. The page states both.
+
 - `from nexar.models import MatchList` works. The return type of `get_matches()` was the one model absent from the facade's re-exports: it imported only through the deep `nexar.models.match_list` path, so an annotation copied from the reference page (`def report(matches: MatchList)`) raised ImportError while every sibling model imported cleanly. The API baseline refresh records the new surface name.
 
 - `ParticipantList.team_of` takes `include_self`, defaulting to True so existing calls are unchanged. `include_self=False` returns the four teammates, which is the list a per-player report wants; the audit reached for the method and got the player back in their own team.

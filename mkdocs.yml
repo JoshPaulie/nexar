@@ -76,6 +76,7 @@ nav:
       - Exceptions: reference/exceptions.md
       - Cache: reference/cache.md
       - Rate limiting: reference/rate-limiting.md
+      - Champions: reference/champions.md
       - Models:
           - Account: reference/models/account.md
           - Champion Mastery: reference/models/champion-mastery.md
