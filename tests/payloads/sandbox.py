@@ -59,7 +59,7 @@ _ROSTER: tuple[tuple[str, str, str, int], ...] = (
 
 # The two ids the batch example documents as not-found. Everything else
 # synthesizes, so a new snippet id cannot quietly 404 the whole gate.
-_MISSING_ACCOUNTS = frozenset({("nonexistent", "user"), ("alsobad", "user")})
+MISSING_ACCOUNTS = frozenset({("nonexistent", "user"), ("alsobad", "user")})
 
 _RECORDED_PUUID = "0wKS4sQQTcA6mAmu_oW5rVhyxmWAXV9hZrraXnDdh8GvelgGWYM5tM7fcHw0kalBVgCl6MxOZe0bLA"
 """bexli's puuid from ``mock_responses.json``: one persona matches the recording."""
@@ -476,7 +476,7 @@ class SnippetSandbox:
     def identity_for(self, game_name: str, tag_line: str) -> Identity | None:
         """Resolve a Riot id to its roster persona, or None when the fixture says it is missing."""
         key = (unquote(game_name).casefold(), unquote(tag_line).casefold())
-        if key in _MISSING_ACCOUNTS:
+        if key in MISSING_ACCOUNTS:
             return None
         identity = self.identities.get(key)
         if identity is None:
@@ -522,6 +522,10 @@ class SnippetSandbox:
             (rf"{BASE_URL}/lol/challenges/v1/player-data/[^/?]+", self._challenge_player_data),
             (rf"{BASE_URL}/lol/platform/v3/champion-rotations", self._rotations),
             (rf"{BASE_URL}/lol/status/v4/platform-data", self._platform_status),
+            # Registered last, so it only serves URLs nothing above matched. A 400
+            # names the endpoint in the exception instead of the five connection
+            # retries an unmatched URL costs through the client's retry loop.
+            (rf"{BASE_URL}/.*", self._unmodelled),
         )
         for pattern, callback in routes:
             mock.get(re.compile(pattern), callback=callback, repeat=True)
@@ -567,6 +571,9 @@ class SnippetSandbox:
 
     def _match_ids(self, url: object, **_: object) -> CallbackResult:
         self.requests.append(str(url))
+        found = re.search(r"/matches/by-puuid/([^/?]+)/ids", str(url))
+        if found is None or self.identity_by_puuid(found[1]) is None:
+            return self._missing()
         return _result(payload=list(_MATCH_IDS))
 
     def _match(self, url: object, **_: object) -> CallbackResult:
@@ -659,3 +666,10 @@ class SnippetSandbox:
     def _platform_status(self, url: object, **_: object) -> CallbackResult:
         self.requests.append(str(url))
         return _result(payload=platform_status_payload())
+
+    def _unmodelled(self, url: object, **_: object) -> CallbackResult:
+        self.requests.append(str(url))
+        return _result(
+            {"status": {"status_code": 400, "message": f"no sandbox route for {url}"}},
+            status=400,
+        )

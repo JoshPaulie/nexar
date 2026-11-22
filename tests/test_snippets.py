@@ -3,23 +3,34 @@
 An import-only gate let a snippet whose ``main()`` crashes at runtime ship in
 the docs: a missing ``default_region``, an error label parsed as a number, a
 lookup that silently returns an empty list. This gate executes each snippet's
-``main()`` (module body where there is no ``main``) against
-``tests/payloads/sandbox.py``, so runtime-only breakage is red before publish.
+``main()`` (every top-level coroutine where there is no ``main``, module body
+otherwise) against ``tests/payloads/sandbox.py``, so runtime-only breakage is
+red before publish.
 
 The gate owns the sandbox, not the snippets: the snippet files stay verbatim,
 while ``HOME`` is redirected, the process chdirs into a temp dir, and the
 construction-time cache default is replaced -- a no-arg client must never read
 or write the real ``~/.nexar`` cache, where a warm row would answer the snippet
 without ever reaching the mock.
+
+Green means the example demonstrated something, not merely that it did not
+raise: a row that makes no mocked request, and a row whose example prints
+nothing while its source contains a ``print``, both fail. Those two checks are
+what catch the silent-empty class -- a fixture that stops carrying the data a
+snippet reads sends the example through its ``if not data: return`` guard and
+out the back door without an exception.
 """
 
 import asyncio
 import contextlib
 import importlib.util
+import inspect
 import logging
+import re
 import sys
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
 from aioresponses import aioresponses
@@ -28,6 +39,7 @@ from nexar.cache import NO_CACHE_CONFIG
 from tests.payloads.sandbox import (
     DUMMY_KEY,
     FAILURE_MARKER,
+    MISSING_ACCOUNTS,
     SnippetSandbox,
     match_payload,
     timeline_payload,
@@ -35,6 +47,12 @@ from tests.payloads.sandbox import (
 
 SNIPPETS_DIR = Path(__file__).parent.parent / "docs" / "snippets"
 SNIPPETS = sorted(SNIPPETS_DIR.rglob("*.py"))
+
+# Snippets that demonstrate construction or configuration and reach no endpoint.
+# Everything else must produce at least one mocked request.
+CONSTRUCTION_ONLY = frozenset({"caching/demo.py", "quick_start/01_client_demo.py"})
+
+RIOT_ID_LITERAL = re.compile(r'"([A-Za-z0-9_.\-]+#[A-Za-z0-9_.\-]+)"')
 
 
 def _load(snippet: Path) -> ModuleType:
@@ -48,6 +66,31 @@ def _load(snippet: Path) -> ModuleType:
     return module
 
 
+def _executables(module: ModuleType) -> list[Any]:
+    """The snippet's entry points: ``main()``, or every coroutine the module defines.
+
+    ``client-features/production_rate_limits.py`` is the reason for the second
+    branch: it has no ``main()``, and its only API-calling example would
+    otherwise never run.
+    """
+    main = getattr(module, "main", None)
+    if main is not None:
+        return [main]
+    return [
+        value
+        for value in vars(module).values()
+        if inspect.iscoroutinefunction(value) and getattr(value, "__module__", None) == module.__name__
+    ]
+
+
+def _restore_logger(logger: logging.Logger, level: int, handlers: list[logging.Handler]) -> None:
+    for handler in logger.handlers:
+        if handler not in handlers:
+            handler.close()
+    logger.handlers[:] = handlers
+    logger.setLevel(level)
+
+
 @contextlib.contextmanager
 def _restored_logging():
     """Undo a snippet's logging configuration so the gate leaks no handlers or levels."""
@@ -58,10 +101,8 @@ def _restored_logging():
     try:
         yield
     finally:
-        root.setLevel(root_level)
-        root.handlers[:] = root_handlers
-        nexar.setLevel(nexar_level)
-        nexar.handlers[:] = nexar_handlers
+        _restore_logger(root, root_level, root_handlers)
+        _restore_logger(nexar, nexar_level, nexar_handlers)
 
 
 @pytest.mark.parametrize("snippet", SNIPPETS, ids=lambda path: str(path.relative_to(SNIPPETS_DIR)))
@@ -71,6 +112,7 @@ def test_snippet_runs_under_mocks(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
+    relative = snippet.relative_to(SNIPPETS_DIR).as_posix()
     # A dummy key keeps module-level client construction and runtime key guards happy.
     monkeypatch.setenv("RIOT_API_KEY", DUMMY_KEY)
     # Import without leaving __pycache__ dirs in the docs tree.
@@ -88,15 +130,18 @@ def test_snippet_runs_under_mocks(
     with aioresponses() as mock, _restored_logging():
         sandbox.register(mock)
         module = _load(snippet)
-        main = getattr(module, "main", None)
-        if main is not None:
-            asyncio.run(main())
+        for entry_point in _executables(module):
+            asyncio.run(entry_point())
 
     output = capsys.readouterr().out
     # Two snippets wrap their body in `except Exception` for keyless readers. Under
     # mocks that banner means an exception was swallowed, which is the silent green
     # this gate exists to stop.
-    assert FAILURE_MARKER not in output, f"{snippet.relative_to(SNIPPETS_DIR)} swallowed an exception:\n{output}"
+    assert FAILURE_MARKER not in output, f"{relative} swallowed an exception:\n{output}"
+    if relative not in CONSTRUCTION_ONLY:
+        assert sandbox.requests, f"{relative} ran but never reached the mocked API: its body did nothing"
+    if "print(" in snippet.read_text():
+        assert output.strip(), f"{relative} prints, but printed nothing: the example's data path was empty"
 
 
 def test_match_payload_carries_every_roster_identity() -> None:
@@ -115,25 +160,19 @@ def test_match_payload_carries_every_roster_identity() -> None:
     assert puuids == timeline_puuids
 
 
-def test_sandbox_resolves_every_riot_id_the_snippets_request() -> None:
-    """Every hardcoded Riot ID in the docs must resolve, apart from the documented misses."""
+def test_every_riot_id_in_the_docs_resolves() -> None:
+    """Every Riot ID the snippets hardcode must resolve, apart from the documented misses."""
     sandbox = SnippetSandbox()
-    requested = {
-        "bexli#bex",
-        "mltsimpleton#na1",
-        "roninalex#na1",
-        "poydok#na1",
-        "boxrog#na1",
-        "vynle#na1",
-        "Doublelift#NA1",
-        "Thebausffs#COOL",
-        "Agurin#EUW",
-        "PlayerName#NA1",
-        "PlayerName#EUW1",
-    }
-    for riot_id in requested:
-        game_name, tag_line = riot_id.split("#", 1)
-        assert sandbox.identity_for(game_name, tag_line) is not None, riot_id
+    literals: set[str] = set()
+    for snippet in SNIPPETS:
+        literals |= set(RIOT_ID_LITERAL.findall(snippet.read_text()))
 
-    assert sandbox.identity_for("nonexistent", "user") is None
-    assert sandbox.identity_for("alsobad", "user") is None
+    # A scan that finds nothing is a broken scan, not a clean bill of health.
+    assert {"bexli#bex", "nonexistent#user"} <= literals
+    for riot_id in sorted(literals):
+        game_name, tag_line = riot_id.split("#", 1)
+        missing = (game_name.casefold(), tag_line.casefold()) in MISSING_ACCOUNTS
+        resolved = sandbox.identity_for(game_name, tag_line)
+        assert (resolved is None) == missing, riot_id
+        if resolved is not None:
+            assert resolved.puuid in {identity.puuid for identity in sandbox.roster}
