@@ -181,6 +181,34 @@ async def test_get_match(client: NexarClient, mock_aioresponse: MagicMock) -> No
     await client.close()
 
 
+@pytest.mark.asyncio
+async def test_api_key_rides_the_wire_as_the_riot_token_header(
+    client: NexarClient,
+    mock_aioresponse: "aioresponses",
+) -> None:
+    """Every wire request carries the caller's key as X-Riot-Token.
+
+    No other row inspects outbound headers, so a dropped token would pass the
+    whole mocked suite and only fail live, as 401s on every call.
+    """
+    sent_headers: dict[str, str] = {}
+
+    def record_headers(_url: object, *, headers: dict[str, str], **_kwargs: object) -> None:
+        sent_headers.update(headers)
+
+    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/token_check"
+    mock_aioresponse.get(
+        url,
+        payload={"id": "t", "puuid": "token_check", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30},
+        callback=record_headers,
+    )
+
+    await client.get_summoner_by_puuid("token_check")
+
+    assert sent_headers["X-Riot-Token"] == "test-key"
+    await client.close()
+
+
 # ---------------------------------------------------------------------------
 # Session and cache lifecycle
 # ---------------------------------------------------------------------------
@@ -363,9 +391,11 @@ def test_parse_retry_after_falls_back_to_default(header: str | None) -> None:
     """A missing, garbled, or non-finite Retry-After all block for the conservative default.
 
     ``block(region, nan)`` would never block at all, so the parser clamps the
-    non-finite spellings to the default instead of passing them through.
+    non-finite spellings to the default instead of passing them through. The
+    5s value is published behavior (CHANGELOG: the conservative 5s default),
+    so it is pinned literally, not just by name.
     """
-    assert NexarClient._parse_retry_after(header) == DEFAULT_RETRY_AFTER_SECONDS
+    assert NexarClient._parse_retry_after(header) == DEFAULT_RETRY_AFTER_SECONDS == 5.0
 
 
 # ---------------------------------------------------------------------------
@@ -477,7 +507,7 @@ async def test_502_exhaustion_retries_then_raises_typed_error_without_the_html_p
 )
 async def test_transport_error_exhaustion_retries_then_raises_typed_error(
     client: NexarClient,
-    mock_aioresponse: MagicMock,
+    mock_aioresponse: "aioresponses",
     failure: Exception,
 ) -> None:
     """Five transport failures retry on the doubling ladder, then raise a typed error.
