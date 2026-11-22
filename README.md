@@ -14,7 +14,7 @@ It's built for single-node, single-client projects and not intended for use at s
 - In-memory sliding-window rate limiting that mirrors Riot's documented enforcement, plus disk caching.
 - Packed with helpful doc strings and tips.
 
-Check out [Why not Nexar?](docs/why-not-nexar.md) for scope, expectations, and the recommended alternative.
+Check out [Why not Nexar?](https://bexli.dev/nexar/why-not-nexar/) for scope, expectations, and the recommended alternative.
 
 ## Installation
 
@@ -144,13 +144,7 @@ Recent Match History (5 matches):
 
 ## Docs
 
-The full docs are hosted at [bexli.dev/nexar](https://bexli.dev/nexar), or browse them in the repo:
-
-- [Quick start](docs/quick_start.md)
-- [API surface](docs/reference/api-surface.md): every wrapped op, its method, and what it returns
-- [Worked examples](docs/examples/): every snippet import-checked by the test suite
-- [Reference](docs/reference/): client, models, cache, rate limiting, exceptions
-- [FAQ](docs/FAQ.md): PUUIDs and region routing
+Read the docs at [bexli.dev/nexar](https://bexli.dev/nexar): quick start, worked examples, the API surface (every wrapped op with its method and return model), and the full reference. The raw markdown under `docs/` doesn't render its snippet includes on GitHub, so read it from the site.
 
 Development and contributing moved to [CONTRIBUTORS.md](CONTRIBUTORS.md).
 
