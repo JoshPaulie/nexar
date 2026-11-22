@@ -82,7 +82,7 @@ async def main() -> None:
         # Get player
         player = await client.get_player(riot_id="bexli#bex")
 
-        # Get recent matches
+        # Get recent matches (count=20: one id-list request, then one per match)
         matches = await player.get_matches(count=20)
 
         # Get recent performance stats
