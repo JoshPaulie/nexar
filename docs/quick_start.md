@@ -4,28 +4,16 @@
 
 The primary object for Nexar is the `NexarClient`.
 
-Here you set your Riot API key, pick a cache type (if any), and optionally set default regions(1) for your lookups.
+Here you set your Riot API key and optionally set a default region(1) for your lookups.
 { .annotate }
 
 1. Helpful for personal projects, where you're only pulling stats for yourself and friends.
 
-=== "Standard"
+```py
+--8<-- "quick_start/01_client_demo.py:declaration"
+```
 
-    ```py
-    --8<-- "quick_start/01_client_demo.py:declaration"
-    ```
-
-=== "With default regions"
-
-    ```py
-    --8<-- "quick_start/01_client_demo.py:declaration-default-region"
-    ```
-
-=== "With smart cache"
-
-    ```py
-    --8<-- "quick_start/01_client_demo.py:declaration-smart-cache"
-    ```
+The client does not validate your key at construction. A bad key surfaces as `UnauthorizedError` on your first API call.
 
 You can use the client in a couple of ways, but the recommended pattern is using the `async with` context manager. This ensures connections are properly closed and resources managed.
 
