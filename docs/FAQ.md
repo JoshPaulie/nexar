@@ -12,6 +12,8 @@ With the introduction of Riot IDs, Summoner IDs were deprecated. The PUUID is no
     
     This means the same user will have different PUUIDs depending on which API key is used to retrieve them.
 
+    Refreshing (rolling) a key returns the same PUUIDs: only switching between a development key and a production key re-keys them. Riot's API docs state that all IDs are encrypted with keys unique to each project.
+
     Generally, this does not affect typical usage. However, you cannot look up a user's PUUID with one API key and then use that PUUID as input with a different API key.
 
 ## What's up with regions?

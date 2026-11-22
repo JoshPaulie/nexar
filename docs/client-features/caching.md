@@ -35,6 +35,8 @@ Caching is always on unless you pass `cache_config=NO_CACHE_CONFIG`. The default
 --8<-- "caching/default.py"
 ```
 
+Rows are namespaced by a hash of the API key, so a wrong or rotated key never reads another key's rows. Rotating a key therefore starts cold and re-fetches once.
+
 ## Cache Backends
 
 Two cache backends are supported, both of which respect the smart TTL overrides:
