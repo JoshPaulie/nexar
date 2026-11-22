@@ -1,13 +1,13 @@
 import asyncio
 import os
 
-from nexar.cache import DEFAULT_CACHE_CONFIG
 from nexar.client import NexarClient
+from nexar.enums import Region
 from nexar.exceptions import BatchError
 
 client = NexarClient(
     riot_api_key=os.getenv("RIOT_API_KEY", ""),
-    cache_config=DEFAULT_CACHE_CONFIG,
+    default_region=Region.NA1,
 )
 
 
@@ -26,9 +26,9 @@ async def main() -> None:
             print(f"{len(exc.successful_results)} players fetched successfully")
             print(f"{len(exc.errors)} errors occurred\n")
 
-            for idx_key, error in exc.errors:
-                idx = int(idx_key.replace("item[", "").replace("]", ""))
-                print(f"  [{idx}] {riot_ids[idx]}: {type(error).__name__}: {error}")
+            # errors are labeled by the Riot ID that was passed in
+            for riot_id, error in exc.errors:
+                print(f"  {riot_id}: {type(error).__name__}: {error}")
 
             # successful_results contains the players that were fetched
             for player in exc.successful_results:
