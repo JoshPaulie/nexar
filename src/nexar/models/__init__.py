@@ -40,6 +40,7 @@ from .match import (
     TimelinePosition,
     TimelineVictimDamage,
 )
+from .match_list import MatchList
 from .platform_status import PlatformStatus, StatusContent, StatusEntry, StatusUpdate
 from .player import Player
 from .stats import ChampionStats, PerformanceStats
@@ -61,6 +62,7 @@ __all__ = [
     "LocalizedChallengeNames",
     "Match",
     "MatchInfo",
+    "MatchList",
     "MatchMetadata",
     "MiniSeries",
     "Missions",

@@ -432,6 +432,7 @@
     "LocalizedChallengeNames",
     "Match",
     "MatchInfo",
+    "MatchList",
     "MatchMetadata",
     "MiniSeries",
     "Missions",

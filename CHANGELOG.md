@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `from nexar.models import MatchList` works. The return type of `get_matches()` was the one model absent from the facade's re-exports: it imported only through the deep `nexar.models.match_list` path, so an annotation copied from the reference page (`def report(matches: MatchList)`) raised ImportError while every sibling model imported cleanly. The API baseline refresh records the new surface name.
+
 - `ParticipantList.team_of` takes `include_self`, defaulting to True so existing calls are unchanged. `include_self=False` returns the four teammates, which is the list a per-player report wants; the audit reached for the method and got the player back in their own team.
 
 - `Player.get_matches` takes `allow_partial`: one failed match id no longer fails the whole pull, and the skipped ids are logged at WARNING. Strict by default, so a pull either succeeds whole or names every failure, and the raising path still carries `successful_results` for callers that catch it. When every id fails the call raises anyway: there is no partial result to return.
