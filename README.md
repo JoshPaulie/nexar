@@ -104,7 +104,7 @@ async def main() -> None:
                 continue
 
             result = "Victory!" if participant.win else "Defeat."
-            kda = participant.kda(as_str=True)
+            kda = participant.kda_string()
             kda_ratio = f"{participant.kda():.2f}"
 
             # Calculate time ago
@@ -148,11 +148,11 @@ Solo Queue rank: Gold IV
 Fetching recent matches...
 Recent Match History (5 matches):
 
-10 days ago  Defeat.   Jinx       Bottom   15/8/6 (2.62)
-10 days ago  Defeat.   Draven     Bottom   6/12/5 (0.92)
-10 days ago  Defeat.   Warwick    Jungle   15/8/9 (3.00)
-10 days ago  Victory!  Warwick    Jungle   11/2/8 (9.50)
-10 days ago  Defeat.   Shaco      Jungle   2/5/5 (1.40)
+Today        Defeat.   Jinx       Bottom   12/7/6 (2.57)
+Today        Defeat.   Jinx       Bottom   6/5/9 (3.00)
+Today        Victory!  Jinx       Bottom   9/5/14 (4.60)
+14 days ago  Defeat.   Jinx       Bottom   15/8/6 (2.62)
+14 days ago  Defeat.   Draven     Bottom   6/12/5 (0.92)
 ```
 <!-- example-output-block-end -->
 
