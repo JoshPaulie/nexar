@@ -1,12 +1,10 @@
 import asyncio
 import os
 
-from nexar.cache import DEFAULT_CACHE_CONFIG
 from nexar.client import NexarClient
 
 client = NexarClient(
     riot_api_key=os.getenv("RIOT_API_KEY", ""),
-    cache_config=DEFAULT_CACHE_CONFIG,
 )
 
 

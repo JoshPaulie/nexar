@@ -15,6 +15,8 @@ Here you set your Riot API key and optionally set a default region(1) for your l
 
 The client does not validate your key at construction. A bad key surfaces as `UnauthorizedError` on your first API call.
 
+Caching is always on unless you pass `cache_config=NO_CACHE_CONFIG`. By default every project on the machine shares one SQLite cache file, `~/.nexar/nexar_cache.sqlite`; set `cache_name` on a `CacheConfig` to give a project its own file ([Caching](client-features/caching.md)).
+
 You can use the client in a couple of ways, but the recommended pattern is using the `async with` context manager. This ensures connections are properly closed and resources managed.
 
 ```py

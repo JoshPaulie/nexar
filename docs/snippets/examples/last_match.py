@@ -1,14 +1,12 @@
 import asyncio
 import os
 
-from nexar.cache import DEFAULT_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import Region
 from nexar.utils import team_total_percentage
 
 client = NexarClient(
     riot_api_key=os.getenv("RIOT_API_KEY", ""),
-    cache_config=DEFAULT_CACHE_CONFIG,
 )
 
 

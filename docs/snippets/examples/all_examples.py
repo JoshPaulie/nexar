@@ -3,7 +3,6 @@ import os
 import sys
 import datetime as dt
 
-from nexar.cache import DEFAULT_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import Region, Queue
 from nexar.utils import sort_players_by_rank
@@ -16,7 +15,6 @@ if api_key is None:
 client = NexarClient(
     riot_api_key=api_key,
     default_region=Region.NA1,
-    cache_config=DEFAULT_CACHE_CONFIG,
 )
 
 

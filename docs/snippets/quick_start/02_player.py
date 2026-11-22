@@ -1,7 +1,6 @@
 import asyncio
 import os
 
-from nexar.cache import DEFAULT_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import Region
 
@@ -14,7 +13,6 @@ if riot_api is None:
 client = NexarClient(
     riot_api_key=riot_api,
     default_region=Region.NA1,
-    cache_config=DEFAULT_CACHE_CONFIG,
 )
 
 

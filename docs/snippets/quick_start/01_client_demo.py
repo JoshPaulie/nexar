@@ -8,16 +8,6 @@ client = NexarClient(
 )
 # --8<-- [end:declaration]
 
-# --8<-- [start:declaration-smart-cache]
-from nexar.cache import DEFAULT_CACHE_CONFIG
-from nexar.client import NexarClient
-
-client = NexarClient(
-    riot_api_key="your_api_key",
-    cache_config=DEFAULT_CACHE_CONFIG,
-)
-# --8<-- [end:declaration-smart-cache]
-
 # --8<-- [start:usage]
 import asyncio
 import os

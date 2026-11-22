@@ -2,10 +2,10 @@
 
 !!! Tip
 
-    TLDR: Simply use the default caching for most projects:
+    TLDR: Caching is on by default. Construct the client and you already have it:
 
     ```python
-    --8<-- "quick_start/01_client_demo.py:declaration-smart-cache"
+    --8<-- "quick_start/01_client_demo.py:declaration"
     ```
 
 Caching is "smart" by using varying TTLs (time-to-live) for each endpoint:
@@ -29,7 +29,7 @@ Use `CacheConfig` to specify a default cache time, pick a storage backend, and c
 
 ## Quick Start
 
-By default, caching uses a 1-hour TTL and stores responses to a SQLite file in `~/.nexar/`:
+Caching is always on unless you pass `cache_config=NO_CACHE_CONFIG`. The default uses a 1-hour TTL and stores responses to a SQLite file in `~/.nexar/`:
 
 ```python
 --8<-- "caching/default.py"
@@ -71,7 +71,7 @@ Create custom configurations for specific expiration times:
 ## Predefined Configurations
 
 ### DEFAULT_CACHE_CONFIG
-Uses the SQLite backend with a 1-hour default TTL. The smart endpoint overrides (Matches, Accounts, etc.) are active by default.
+Uses the SQLite backend with a 1-hour default TTL. The smart endpoint overrides (Matches, Accounts, etc.) are active by default. A client built without a `cache_config` gets exactly this configuration.
 
 ### NO_CACHE_CONFIG
 Disables caching entirely, every request hits the API.
