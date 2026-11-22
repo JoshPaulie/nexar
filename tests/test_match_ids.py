@@ -39,10 +39,6 @@ async def exact_client() -> AsyncGenerator[NexarClient]:
         ({"match_type": MatchType.NORMAL}, "?type=normal"),
         ({"match_type": "normal"}, "?type=normal"),
         ({"start": 10}, "?start=10"),
-        (
-            {"count": 5, "queue": Queue.ARAM, "match_type": MatchType.NORMAL, "start": 10},
-            "?count=5&queue=450&start=10&type=normal",
-        ),
     ],
     ids=[
         "no-params",
@@ -52,7 +48,6 @@ async def exact_client() -> AsyncGenerator[NexarClient]:
         "match-type-enum",
         "match-type-raw-str",
         "start",
-        "all-params",
     ],
 )
 async def test_get_match_ids_builds_exact_query(

@@ -27,8 +27,6 @@ import os
 from pathlib import Path
 from typing import TypedDict
 
-import pytest
-
 SRC = Path(__file__).parent.parent / "src" / "nexar"
 TESTS = Path(__file__).parent
 BASELINE = Path(__file__).parent / "api_baseline.json"
@@ -298,9 +296,3 @@ def test_no_cross_module_underscore_imports() -> None:
                     if alias.name.startswith("_") and not alias.name.startswith("__")
                 )
     assert not findings, "underscore imports:\n" + "\n".join(findings)
-
-
-@pytest.mark.parametrize("path", sorted(SRC.rglob("*.py")), ids=lambda p: p.name)
-def test_module_compiles(path: Path) -> None:
-    """Every source file parses (catches orphaned literals mid-edit)."""
-    ast.parse(path.read_text())

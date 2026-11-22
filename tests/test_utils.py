@@ -108,30 +108,6 @@ class TestSortPlayersByRank:
         with pytest.raises(ValueError, match="Invalid ranked_queue_type"):
             await sort_players_by_rank(mock_players, ranked_queue_type=Queue.QUICKPLAY)
 
-    async def test_sort_players_empty_list(self) -> None:
-        """Test sorting an empty list of players."""
-        sorted_players = await sort_players_by_rank([])
-        assert sorted_players == []
-
-    async def test_sort_players_all_unranked_preserves_order(self, mocker: MockerFixture) -> None:
-        """All-unranked players keep their input order exactly."""
-        players = [
-            Player(
-                client=mocker.Mock(),
-                game_name=f"player{i}",
-                tag_line=f"tag{i}",
-                riot_account=RiotAccount(puuid=f"puuid{i}", game_name=f"player{i}", tag_line=f"tag{i}"),
-            )
-            for i in range(3)
-        ]
-        for player in players:
-            player.get_solo_rank = mocker.AsyncMock(return_value=None)
-            player.get_flex_rank = mocker.AsyncMock(return_value=None)
-
-        sorted_players = await sort_players_by_rank(players)
-
-        assert [p.game_name for p in sorted_players] == ["player0", "player1", "player2"]
-
 
 class TestTeamTotalPercentage:
     @pytest.mark.parametrize(

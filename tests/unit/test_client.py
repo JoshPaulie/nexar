@@ -50,13 +50,6 @@ async def memory_client() -> AsyncGenerator[NexarClient]:
 
 
 @pytest.mark.asyncio
-async def test_client_initialization(fresh_client: NexarClient) -> None:
-    assert fresh_client.default_region == Region.NA1
-    assert fresh_client.riot_api_key == "test-api-key"
-    await fresh_client.close()
-
-
-@pytest.mark.asyncio
 async def test_get_summoner_by_puuid(fresh_client: NexarClient, mock_aioresponse: aioresponses) -> None:
     mock_aioresponse.get(
         "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/789",

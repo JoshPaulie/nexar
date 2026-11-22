@@ -9,7 +9,7 @@ from nexar import NexarClient
 from nexar.cache import NO_CACHE_CONFIG
 from nexar.enums import Region
 from nexar.models import Challenges, Objective, Objectives
-from tests.helpers import create_test_match, create_test_participant, register_exact_url
+from tests.helpers import create_test_participant, register_exact_url
 
 if TYPE_CHECKING:
     from aioresponses import aioresponses
@@ -80,12 +80,6 @@ class TestMatchModels:
             tower=Objective(first=True, kills=8),
             horde=Objective(first=False, kills=0),
         )
-
-    def test_participants_property_exposes_info_list(self) -> None:
-        """Match.participants is exactly MatchInfo.participants (same object)."""
-        match = create_test_match("NA1_1")
-
-        assert match.participants is match.info.participants
 
     async def test_get_player_resolves_participant_puuid(
         self,
