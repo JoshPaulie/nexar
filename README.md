@@ -22,9 +22,7 @@ Check out [Why not Nexar?](docs/why-not-nexar.md) for scope, expectations, and t
 ## Installation
 
 >[!tip]
-> Considering I will likely be the only user of this library for the time being, Nexar is not published on PyPI. Install with `uv` or `pip` directly from the GitHub repo.
->
-> If you are using or considering using Nexar, please reach out or star the repo. This would indicate to me an interest from the community, and I'd be happy to publish to PyPI and maintain a proper release cycle.
+> Nexar isn't on PyPI. Install from GitHub with `uv` or `pip`, and star the repo or reach out if you use it. If there's enough interest from the community, I'll happily publish to PyPI and maintain a proper release cycle.
 
 Requires **Python 3.13 or newer** (`requires-python = ">=3.13"` in `pyproject.toml`).
 
