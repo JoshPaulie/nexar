@@ -590,3 +590,62 @@ class TestRolePerformanceKda:
         assert role_stats
         for stats in role_stats.values():
             assert stats["avg_kda"] == stats["kills"] + stats["assists"]
+
+
+class TestGetLastMatchNoHistory:
+    """get_last_match with no ids at all: the answer is None, not an IndexError."""
+
+    async def test_no_match_ids_returns_none(self, batch_player: Player, mock_aioresponse: "aioresponses") -> None:
+        mock_aioresponse.get(_IDS_URL, payload=[])
+
+        assert await batch_player.get_last_match() is None
+
+
+class TestSoloFlexRankLookup:
+    """The real queue-matching loops: solo falls through for a flex-only player, flex finds its entry."""
+
+    @staticmethod
+    def _register_flex_only_entries(mock: "aioresponses") -> None:
+        mock.get(
+            "https://na1.api.riotgames.com/lol/league/v4/entries/by-puuid/test-puuid",
+            payload=[
+                {
+                    "leagueId": "test-league-flex",
+                    "puuid": "test-puuid",
+                    "queueType": "RANKED_FLEX_SR",
+                    "tier": "GOLD",
+                    "rank": "II",
+                    "leaguePoints": 40,
+                    "wins": 30,
+                    "losses": 20,
+                    "hotStreak": False,
+                    "veteran": False,
+                    "freshBlood": False,
+                    "inactive": False,
+                },
+            ],
+        )
+
+    async def test_solo_rank_returns_none_for_flex_only_player(
+        self,
+        batch_player: Player,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """The solo loop walks every entry, matches none, and falls through to None."""
+        self._register_flex_only_entries(mock_aioresponse)
+
+        assert await batch_player.get_solo_rank() is None
+
+    async def test_flex_rank_returns_the_flex_entry(
+        self,
+        batch_player: Player,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """The flex loop finds the RANKED_FLEX_SR entry and returns it whole."""
+        self._register_flex_only_entries(mock_aioresponse)
+
+        entry = await batch_player.get_flex_rank()
+
+        assert entry is not None
+        assert entry.queue_type == Queue.RANKED_FLEX_SR
+        assert entry.league_points == 40

@@ -1,6 +1,6 @@
 """Tests for league-related functionality."""
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from typing import TYPE_CHECKING
 
 import pytest
@@ -178,6 +178,59 @@ class TestLeagueModels:
         assert entry.win_rate == expected_win_rate
         assert entry.total_games == expected_total_games
 
+    @pytest.mark.parametrize(
+        "compare",
+        [
+            lambda entry, other: entry < other,
+            lambda entry, other: entry <= other,
+            lambda entry, other: entry > other,
+            lambda entry, other: entry >= other,
+        ],
+        ids=["lt", "le", "gt", "ge"],
+    )
+    def test_ordering_dunders_reject_non_league_entry(self, compare: Callable[[LeagueEntry, object], bool]) -> None:
+        """Every ordering dunder raises TypeError against a non-LeagueEntry, never a guessed order."""
+        entry = LeagueEntry.from_api_response(
+            payload(tier="GOLD", rank="III", leaguePoints=75, wins=50, losses=30),
+        )
+
+        with pytest.raises(TypeError):
+            compare(entry, "not-a-league-entry")
+
+    @pytest.mark.parametrize(
+        ("compare", "expected"),
+        [
+            (lambda higher, lower: higher < lower, False),
+            (lambda higher, lower: higher <= lower, False),
+            (lambda higher, lower: higher > lower, True),
+            (lambda higher, lower: higher >= lower, True),
+        ],
+        ids=["lt", "le", "gt", "ge"],
+    )
+    def test_ordering_dunders_order_entries_by_rank(
+        self,
+        compare: Callable[[LeagueEntry, LeagueEntry], bool],
+        *,
+        expected: bool,
+    ) -> None:
+        """Against another entry the dunders compare by rank_tuple, tier before league points."""
+        higher = LeagueEntry.from_api_response(
+            payload(tier="DIAMOND", rank="I", leaguePoints=0, wins=10, losses=10),
+        )
+        lower = LeagueEntry.from_api_response(
+            payload(tier="GOLD", rank="I", leaguePoints=100, wins=10, losses=10),
+        )
+
+        assert compare(higher, lower) is expected
+
+    def test_unknown_division_string_falls_back_to_empty(self) -> None:
+        """A rank string Riot added degrades to EMPTY, the sentinel apex entries already carry."""
+        entry = LeagueEntry.from_api_response(
+            payload(tier="GOLD", rank="LEGENDARY", leaguePoints=75, wins=50, losses=30),
+        )
+
+        assert entry.division is RankDivision.EMPTY
+
 
 class TestLeagueEntryOmittedFields:
     """Riot omits empty values from responses, so apex/decayed entries lose fields."""
@@ -249,6 +302,17 @@ class TestLeagueEntryOmittedFields:
         assert apex.rank_tuple[1] == 0
         assert apex.rank_tuple > diamond.rank_tuple
         assert apex.is_higher_rank_than(diamond)
+
+    def test_non_apex_empty_division_scores_as_the_bottom_division(self) -> None:
+        """An EMPTY division on a tier that has divisions scores as division IV, the tier's bottom."""
+        decayed = LeagueEntry.from_api_response(payload(tier="GOLD", rank="", leaguePoints=27, wins=10, losses=10))
+        bottom = LeagueEntry.from_api_response(payload(tier="GOLD", rank="IV", leaguePoints=27, wins=10, losses=10))
+        above_bottom = LeagueEntry.from_api_response(
+            payload(tier="GOLD", rank="III", leaguePoints=27, wins=10, losses=10),
+        )
+
+        assert decayed.rank_tuple == bottom.rank_tuple
+        assert decayed.rank_tuple < above_bottom.rank_tuple
 
     def test_rank_tuple_scores_unchanged_for_standard_entries(self) -> None:
         """Adding RankDivision.EMPTY must not renumber existing rank scores."""

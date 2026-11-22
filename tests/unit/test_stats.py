@@ -2,7 +2,7 @@
 
 import pytest
 
-from nexar.models.stats import ChampionStats
+from nexar.models.stats import ChampionStats, PerformanceStats
 
 
 @pytest.mark.parametrize(
@@ -68,3 +68,43 @@ def test_champion_stats_derived_values(record: dict, expected: dict) -> None:
     stats = ChampionStats(**record)
     for field, value in expected.items():
         assert getattr(stats, field) == value
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["win_rate", "avg_kda", "avg_kills", "avg_deaths", "avg_assists"],
+)
+def test_zero_games_properties_report_zero_not_a_division(field: str) -> None:
+    """A zero-games record reads 0.0 off every derived property, never a ZeroDivisionError.
+
+    The numerators are nonzero on purpose: a guard that only held for all-zero
+    inputs would pass here while an avg_kda of 5.0 leaked through.
+    """
+    stats = ChampionStats(
+        champion_id=1,
+        champion_name="Annie",
+        games_played=0,
+        wins=0,
+        losses=0,
+        total_kills=10,
+        total_deaths=3,
+        total_assists=5,
+    )
+
+    assert getattr(stats, field) == 0.0
+
+
+def test_performance_stats_empty_is_all_zero() -> None:
+    """The empty factory reports zero games and zero averages for the no-match case."""
+    assert PerformanceStats.empty() == PerformanceStats(
+        total_games=0,
+        wins=0,
+        losses=0,
+        win_rate=0.0,
+        avg_kills=0.0,
+        avg_deaths=0.0,
+        avg_assists=0.0,
+        avg_kda=0.0,
+        avg_cs=0.0,
+        avg_game_duration_minutes=0.0,
+    )

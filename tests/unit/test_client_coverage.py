@@ -21,6 +21,7 @@ from aiohttp_client_cache.session import CachedSession
 
 from nexar.cache import NO_CACHE_CONFIG, CacheConfig
 from nexar.client import NexarClient
+from nexar.client_plumbing import DEFAULT_RETRY_AFTER_SECONDS
 from nexar.enums import MatchType, Queue, Region
 from nexar.exceptions import RateLimitError, RiotAPIError
 from tests.helpers import match_response_payload
@@ -353,6 +354,20 @@ async def test_max_retries_exceeded(client: NexarClient, mock_aioresponse: Magic
     await client.close()
 
 
+@pytest.mark.parametrize(
+    "header",
+    [None, "not-a-number", "nan", "inf"],
+    ids=["missing", "non-numeric", "nan", "infinite"],
+)
+def test_parse_retry_after_falls_back_to_default(header: str | None) -> None:
+    """A missing, garbled, or non-finite Retry-After all block for the conservative default.
+
+    ``block(region, nan)`` would never block at all, so the parser clamps the
+    non-finite spellings to the default instead of passing them through.
+    """
+    assert NexarClient._parse_retry_after(header) == DEFAULT_RETRY_AFTER_SECONDS
+
+
 # ---------------------------------------------------------------------------
 # 5xx retry pacing
 # ---------------------------------------------------------------------------
@@ -446,6 +461,54 @@ async def test_502_exhaustion_retries_then_raises_typed_error_without_the_html_p
     # Per-call backoff doubling from the 0.5s base; the region ledger is never
     # blocked, so no pacing sleeps appear between the backoffs.
     assert sleeps == [0.5, 1.0, 2.0, 4.0]
+    await client.close()
+
+
+# ---------------------------------------------------------------------------
+# Transport-error retry pacing
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure",
+    [aiohttp.ClientConnectionError("Connection refused"), TimeoutError()],
+    ids=["connection-error", "timeout"],
+)
+async def test_transport_error_exhaustion_retries_then_raises_typed_error(
+    client: NexarClient,
+    mock_aioresponse: MagicMock,
+    failure: Exception,
+) -> None:
+    """Five transport failures retry on the doubling ladder, then raise a typed error.
+
+    Mirrors the 502 exhaustion row: retries counted in CallStats, no pacing
+    sleeps between backoffs, and the raised error is RiotAPIError, never the
+    raw transport exception.
+    """
+    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/transport_down"
+    for _ in range(5):
+        mock_aioresponse.get(url, exception=failure)
+
+    sleeps: list[float] = []
+    real_sleep = asyncio.sleep
+
+    async def record_and_skip(seconds: float) -> None:
+        sleeps.append(seconds)
+        await real_sleep(0)
+
+    with (
+        patch.object(asyncio, "sleep", record_and_skip),
+        pytest.raises(RiotAPIError, match="Request failed after 5 attempts"),
+    ):
+        await client.get_summoner_by_puuid("transport_down")
+
+    stats = client.get_api_call_stats()
+    assert stats.retries == 4
+    assert stats.errors == 0
+    # The transport ladder doubles from a 1s base; the region ledger is never
+    # blocked, so no pacing sleeps join the backoffs.
+    assert sleeps == [1, 2, 4, 8]
     await client.close()
 
 
