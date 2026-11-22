@@ -250,20 +250,19 @@ class Participant:
     assists: int
     """Number of assists on enemy champion kills."""
 
-    def kda(self, *, as_str: bool = False) -> float | str:
+    def kda(self) -> float:
         """
-        KDA ratio or formatted KDA string.
-
-        By default returns the KDA ratio as (kills + assists) / max(1, deaths).
-        If as_str=True, returns a formatted string like '5/2/10'.
+        KDA ratio as (kills + assists) / max(1, deaths).
 
         This is always available since kills, deaths, and assists are present
         for all game modes. For the challenge-specific KDA, use `Participant.challenges.kda`
         (only available when challenges are included in the API response).
         """
-        if as_str:
-            return f"{self.kills}/{self.deaths}/{self.assists}"
         return (self.kills + self.assists) / max(self.deaths, 1)
+
+    def kda_string(self) -> str:
+        """Formatted KDA string like '5/2/10'."""
+        return f"{self.kills}/{self.deaths}/{self.assists}"
 
     async def get_player(
         self,

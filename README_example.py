@@ -55,7 +55,7 @@ async def main() -> None:
                 continue
 
             result = "Victory!" if participant.win else "Defeat."
-            kda = participant.kda(as_str=True)
+            kda = participant.kda_string()
             kda_ratio = f"{participant.kda():.2f}"
 
             # Calculate time ago

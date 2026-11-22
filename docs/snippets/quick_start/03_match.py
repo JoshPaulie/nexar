@@ -46,7 +46,7 @@ async def main() -> None:
             for p in participants:
                 name = p.game_name
                 champ_name = p.champion_name
-                kda = p.kda(as_str=True)
+                kda = p.kda_string()
                 print(f"{name} ({champ_name}) went {kda}")
 
             # --8<-- [end:participants]
