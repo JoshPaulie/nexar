@@ -69,6 +69,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- README: the install section covers the commands a bare environment needs: `uv pip install` or `pip install` into any virtual environment, and `uv init` plus `uv add` for a uv project. The only published command was `uv add`, which fails outside a uv project with `No pyproject.toml found`, so the first install stalled before any SDK code ran.
+
 - Every python block on a docs page is a snippet include, and the gate enforces it. Five hand-written blocks ran under no test: rate-limiting's production and per-region examples, caching's cache-management and cache-location examples, and debug-responses' environment block. They are now snippet files or section includes of `production_rate_limits.py`, which the gate already executed but no page showed, so the displayed code and the executed code are one file. `tests/test_snippets.py` fails on any `py` or `python` fence, attributes and all, whose body is not `--8<--` (the two example pages that used a `py` fence for a field listing now use `text`), the snippet context restores `os.environ` so `NEXAR_DEBUG_RESPONSES` set by one row cannot turn every later row's output into a response dump, and the flag name is pinned against the one the client reads.
 
 - `_KeyNamespacedBackend`'s docstring matches what the cache does with a rotated key: rows for a finite-TTL endpoint age out, while match and timeline rows never expire and stay in the file until `clear_cache()`, which clears every key's rows. It previously said all orphaned rows age out by TTL, which the never-expire match glob makes false.

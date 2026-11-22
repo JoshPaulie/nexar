@@ -26,6 +26,18 @@ Check out [Why not Nexar?](https://bexli.dev/nexar/why-not-nexar/) for scope, ex
 Requires **Python 3.13 or newer** (`requires-python = ">=3.13"` in `pyproject.toml`).
 
 ```bash
+uv pip install "git+https://github.com/joshpaulie/nexar"
+```
+
+or with plain pip:
+
+```bash
+pip install "git+https://github.com/joshpaulie/nexar"
+```
+
+Both work in any virtual environment. In a uv project, use `uv add` so the dependency lands in `pyproject.toml` instead (run `uv init` first in a new folder):
+
+```bash
 uv add "git+https://github.com/joshpaulie/nexar"
 ```
 
