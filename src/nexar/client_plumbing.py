@@ -149,21 +149,21 @@ class PlumbingMixin(NexarCore):
         return CallStats(**self._call_stats)
 
     def print_api_call_summary(self) -> None:
-        """Log a one-line summary of the call counters at INFO level."""
+        """Print a one-line summary of the call counters to stdout.
+
+        A print, not a log record: the name promises output a script sees
+        with zero logging configuration.
+        """
         stats = self.get_api_call_stats()
         if stats.total_calls > 0:
             cache_hit_rate = (stats.cache_hits / stats.total_calls) * 100
-            logger.info(
-                "API Stats: %d calls total, %d fresh, %d cached (%.1f%% cache hit rate), %d retries, %d errors",
-                stats.total_calls,
-                stats.fresh_calls,
-                stats.cache_hits,
-                cache_hit_rate,
-                stats.retries,
-                stats.errors,
+            print(
+                f"API Stats: {stats.total_calls} calls total, {stats.fresh_calls} fresh, "
+                f"{stats.cache_hits} cached ({cache_hit_rate:.1f}% cache hit rate), "
+                f"{stats.retries} retries, {stats.errors} errors",
             )
         else:
-            logger.info("No API calls made yet.")
+            print("No API calls made yet.")
 
     # --------------------------------------------------------------------------
     # Internal Methods

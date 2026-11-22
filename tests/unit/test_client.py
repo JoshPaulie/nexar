@@ -101,6 +101,39 @@ async def test_unauthorized_and_forbidden_count_as_errors(
 
 
 @pytest.mark.asyncio
+async def test_print_api_call_summary_writes_to_stdout(
+    stats_client: NexarClient,
+    mock_aioresponse: aioresponses,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """The summary is a print to stdout, not an INFO log: visible with zero logging config.
+
+    Pre-fix, a script with no logging configuration (the default) saw nothing
+    from a method named print_api_call_summary.
+    """
+    stats_client.print_api_call_summary()
+    assert "No API calls made yet." in capsys.readouterr().out
+
+    mock_aioresponse.get(
+        "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/789",
+        payload={
+            "id": "123",
+            "accountId": "456",
+            "puuid": "789",
+            "name": "TestUser",
+            "profileIconId": 1,
+            "revisionDate": 123456789,
+            "summonerLevel": 30,
+        },
+    )
+    await stats_client.get_summoner_by_puuid("789")
+
+    stats_client.print_api_call_summary()
+    out = capsys.readouterr().out
+    assert "API Stats: 1 calls total, 1 fresh, 0 cached (0.0% cache hit rate), 0 retries, 0 errors" in out
+
+
+@pytest.mark.asyncio
 async def test_cache_info_empty(fresh_client: NexarClient) -> None:
     """An enabled cache wires a CachedSession and reports zero rows before any call."""
     await fresh_client._ensure_session()
