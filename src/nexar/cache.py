@@ -162,8 +162,7 @@ class _TokenStrippedResponse:
         the guarantee true on the day it does.
         """
         return tuple(
-            cast("ClientResponse", _TokenStrippedResponse(redirected))
-            for redirected in self._response.history
+            cast("ClientResponse", _TokenStrippedResponse(redirected)) for redirected in self._response.history
         )
 
 
