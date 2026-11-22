@@ -83,6 +83,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- `get_all_challenge_percentiles` says its keys are strings: JSON object keys always are, so lookups go through `str(config.id)` instead of silently missing.
 - The match-timeline page says to pass the dissected match's own id: the filtered timeline example composed with the unfiltered last-match example reported one game's events under another game's result with every check green.
 - The 401/403 distinction is stated where the errors render: a 401 body can carry Riot's word `Forbidden`, so `UnauthorizedError` and `ForbiddenError` name their status codes and the exceptions page says to match on the type or the code, since the message text can mislead.
 - The batch error-handling page and the `get_players` docstring name the error keys: each entry in `BatchError.errors` is keyed by the Riot ID string that failed, so reading a key as a positional `item[N]` label raises `ValueError` inside the handler.

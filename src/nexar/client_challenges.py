@@ -47,8 +47,10 @@ class ChallengesMixin(NexarCore):
     async def get_all_challenge_percentiles(self, region: Region | None = None) -> dict[str, dict[str, float]]:
         """Get percentile maps for every challenge, keyed by challenge id.
 
-        The wire is a flat challengeId -> level -> percentile map; the
-        reference DTO's extra ``Map[Integer, ...>`` layer does not exist.
+        Keys are strings, as JSON object keys always are, so look them up
+        with ``str(config.id)``. The wire is a flat challengeId -> level
+        -> percentile map; the reference DTO's extra ``Map[Integer, ...>``
+        layer does not exist.
         """
         resolved_region = self._resolve_region(region)
         endpoint = "/lol/challenges/v1/challenges/percentiles"
