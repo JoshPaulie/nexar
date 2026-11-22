@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 from nexar.enums import MatchParticipantPosition
 
-from .match import BLUE_TEAM_ID, RED_TEAM_ID
+from .team import BLUE_TEAM_ID, RED_TEAM_ID
 
 
 class ParticipantList(list["Participant"]):

@@ -3,6 +3,10 @@
 from dataclasses import dataclass
 from typing import Any
 
+# Team identity constants: the numeric teamId values Riot marks blue and red by.
+BLUE_TEAM_ID: int = 100
+RED_TEAM_ID: int = 200
+
 
 @dataclass(frozen=True)
 class Ban:

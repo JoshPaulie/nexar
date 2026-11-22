@@ -125,6 +125,12 @@ ignore = [
     "SLF001",  # Allow private member access
     "W293",    # Blank line contains whitespace
 ]
+"src/nexar/models/player.py" = [
+    # Player's model-field annotations are resolved at runtime by
+    # typing.get_type_hints (pinned by tests/unit/test_annotation_resolution.py),
+    # so the imports behind them are deliberately NOT type-checking-only.
+    "TC001",
+]
 
 [tool.ruff]
 line-length = 120

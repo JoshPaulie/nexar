@@ -6,9 +6,13 @@ import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from nexar.enums import Queue
+from nexar.enums import Queue, Region
 from nexar.exceptions import BatchError, gather_partitioned
 
+from .account import RiotAccount, Summoner
+from .challenge import PlayerChallengeData
+from .champion_mastery import ChampionMastery
+from .league import LeagueEntry
 from .match_list import MatchList
 from .stats import RoleStats
 
@@ -18,12 +22,8 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from nexar.client import NexarClient
-    from nexar.enums import MatchType, Region
+    from nexar.enums import MatchType
 
-    from .account import RiotAccount, Summoner
-    from .challenge import PlayerChallengeData
-    from .champion_mastery import ChampionMastery
-    from .league import LeagueEntry
     from .match.match import Match
     from .stats import ChampionStats
 

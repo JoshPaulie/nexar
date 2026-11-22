@@ -6,15 +6,14 @@ from typing import TYPE_CHECKING, Any
 
 from nexar.enums import MatchParticipantPosition
 
-from .match import BLUE_TEAM_ID
+from .challenges import Challenges, Missions
+from .perks import Perks
+from .team import BLUE_TEAM_ID
 
 if TYPE_CHECKING:
     from nexar.client import NexarClient
     from nexar.enums import Region
     from nexar.models.player import Player
-
-    from .challenges import Challenges, Missions
-    from .perks import Perks
 
 # (api_name, python_name, default) for every field Riot may omit from a participant.
 # Riot includes only non-empty values, so every stat field carries an explicit
@@ -707,13 +706,13 @@ class Participant:
     """Whether the participant's team early surrendered."""
 
     # Complex nested objects (optionally included by Riot)
-    perks: "Perks | None"
+    perks: Perks | None
     """Rune and perk information. May be None if not included in the API response."""
 
-    challenges: "Challenges | None"
+    challenges: Challenges | None
     """Challenge completion data. May be None if not included in the API response."""
 
-    missions: "Missions | None"
+    missions: Missions | None
     """Mission completion data. May be None if not included in the API response."""
 
     # Riot ID

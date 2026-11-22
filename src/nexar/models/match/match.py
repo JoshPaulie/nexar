@@ -2,17 +2,12 @@
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from .participant_list import ParticipantList
-    from .team import Team
+from typing import Any
 
 from nexar.enums import MapId, PlatformId, Queue
 
-# Team ID constants
-BLUE_TEAM_ID: int = 100
-RED_TEAM_ID: int = 200
+from .participant_list import ParticipantList
+from .team import Team
 
 # Patch in which ``gameDuration`` switched from milliseconds to seconds.
 GAME_DURATION_SECONDS_SINCE: tuple[int, int] = (11, 20)
@@ -115,10 +110,10 @@ class MatchInfo:
     queue_id: Queue
     """Queue identifier."""
 
-    participants: "ParticipantList"
+    participants: ParticipantList
     """List of all participants in the match."""
 
-    teams: list["Team"]
+    teams: list[Team]
     """List of team data (usually 2 teams)."""
 
     # Optional fields
