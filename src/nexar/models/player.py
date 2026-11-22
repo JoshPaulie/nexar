@@ -394,23 +394,6 @@ class Player:
                 return entry
         return None
 
-    async def get_solo_rank_value(self) -> tuple[int, int] | None:
-        """
-        Combined tier/rank value for the player's solo queue rank.
-
-        Returns None if the player is unranked in solo queue.
-
-        Useful for comparing or sorting players by solo queue rank.
-
-        Returns:
-            Tuple of (rank_value, league_points), or None if unranked
-
-        """
-        rank = await self.get_solo_rank()
-        if rank is not None:
-            return rank.rank_tuple
-        return None
-
     async def get_most_played_champions(
         self,
         top_n: int = 5,

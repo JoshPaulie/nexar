@@ -256,7 +256,6 @@
    "get_most_played_champions",
    "get_recent_performance_by_role",
    "get_solo_rank",
-   "get_solo_rank_value",
    "get_summoner",
    "is_on_win_streak",
    "puuid",

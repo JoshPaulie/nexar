@@ -171,23 +171,6 @@ class TestPlayer:
         assert match is not None
         assert match.metadata.match_id == "NA1_5320484860"
 
-    async def test_get_solo_rank_value_matches_fixture_entry(self, client: "NexarClient") -> None:
-        """The recorded SILVER IV 54 LP entry parses to its exact sort tuple."""
-        player = await client.get_player(game_name="bexli", tag_line="bex")
-
-        assert await player.get_solo_rank_value() == (10, 54)
-
-    async def test_get_solo_rank_value_unranked_is_none(
-        self,
-        client: "NexarClient",
-        mocker: "pytest_mock.MockerFixture",
-    ) -> None:
-        """No solo-queue entry propagates None instead of raising."""
-        player = await client.get_player(game_name="bexli", tag_line="bex")
-        mocker.patch.object(player, "get_solo_rank", return_value=None)
-
-        assert await player.get_solo_rank_value() is None
-
     # --- get_player / Player.create overload tests ---
 
     async def test_get_player_by_puuid(self, client: "NexarClient") -> None:

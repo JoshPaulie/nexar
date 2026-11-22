@@ -38,11 +38,11 @@ async def main() -> None:
         for entry in sorted(league_entries, reverse=True):
             print(f"  {entry}  winrate: {entry.win_rate:.0%}")
 
-        # get_solo_rank_value on a Player directly
+        # rank_tuple off the entry directly
         for player in players:
-            rank_val = await player.get_solo_rank_value()
-            if rank_val:
-                tier_score, lp = rank_val
+            solo = await player.get_solo_rank()
+            if solo is not None:
+                tier_score, lp = solo.rank_tuple
                 print(f"  {player} -> tier_score={tier_score}, LP={lp}")
             else:
                 print(f"  {player} -> unranked")
