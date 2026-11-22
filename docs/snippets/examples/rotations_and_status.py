@@ -1,6 +1,7 @@
 import asyncio
 import os
 
+from nexar.champions import champion_name
 from nexar.client import NexarClient
 from nexar.enums import Region
 
@@ -12,8 +13,12 @@ client = NexarClient(
 async def main() -> None:
     async with client:
         # Both pools in one call; not player-centric, so no puuid is involved.
+        # The pools carry champion ids; champion_name resolves them offline
+        # through the pinned Data Dragon snapshot.
         rotations = await client.get_champion_rotations(Region.NA1)
         print(f"{len(rotations.sr)} champions free on Summoner's Rift this rotation")
+        names = ", ".join(champion_name(champion_id) or f"id {champion_id}" for champion_id in rotations.sr[:5])
+        print(f"First five: {names}")
         print(f"{len(rotations.newplayer)} extra champions for players under level 11")
 
         # Near-realtime service status for the platform.

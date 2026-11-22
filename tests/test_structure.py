@@ -41,6 +41,7 @@ SURFACE_MODULES = [
     "nexar/client_match.py",
     "nexar/client_plumbing.py",
     "nexar/cache.py",
+    "nexar/champions.py",
     "nexar/enums.py",
     "nexar/exceptions.py",
     "nexar/rate_limiter.py",

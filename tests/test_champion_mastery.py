@@ -193,6 +193,19 @@ class TestChampionMasteryModels:
         assert mastery.next_season_milestone is not None
         assert mastery.next_season_milestone.reward_config is None
 
+    def test_champion_name_resolves_from_the_snapshot(self) -> None:
+        """The fixture mastery entry (champion id 7) resolves its real name: LeBlanc."""
+        mastery = ChampionMastery.from_api_response(champion_mastery_payload())
+
+        assert mastery.champion_name == "LeBlanc"
+
+    def test_champion_name_unknown_id_is_none_not_a_raise(self) -> None:
+        """A champion id newer than the snapshot parses; the name degrades to None."""
+        mastery = ChampionMastery.from_api_response(champion_mastery_payload(championId=999_999))
+
+        assert mastery.champion_id == 999_999
+        assert mastery.champion_name is None
+
 
 class TestPlayerChampionMasteries:
     """Player.get_champion_masteries lazily fetches and caches (conftest catch-alls)."""

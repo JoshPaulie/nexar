@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from nexar.champions import CHAMPION_NAMES
+
 
 @dataclass(frozen=True)
 class RewardConfig:
@@ -98,6 +100,19 @@ class ChampionMastery:
 
     next_season_milestone: NextSeasonMilestone | None
     """Next milestone requirements and reward, or None when Riot omits it."""
+
+    @property
+    def champion_name(self) -> str | None:
+        """Champion display name resolved offline from the pinned Data Dragon snapshot.
+
+        Mastery responses carry champion ids only (unlike match payloads, which
+        carry names from the wire), so this resolves through
+        :data:`nexar.champions.CHAMPION_NAMES`. None when the id is absent
+        from the snapshot: a champion released after it, or a game-mode id
+        Data Dragon does not list. Refresh the snapshot with
+        ``scripts/regen_champion_names.py``.
+        """
+        return CHAMPION_NAMES.get(self.champion_id)
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "ChampionMastery":

@@ -325,6 +325,15 @@
     "ttl"
    ]
   },
+  "nexar/champions.py": {
+   "all": [
+    "CHAMPION_NAMES",
+    "champion_name"
+   ],
+   "defs": [
+    "champion_name"
+   ]
+  },
   "nexar/client.py": {
    "all": [
     "CallStats",

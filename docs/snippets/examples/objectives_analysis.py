@@ -1,6 +1,7 @@
 import asyncio
 import os
 
+from nexar.champions import champion_name
 from nexar.client import NexarClient
 from nexar.enums import Region
 
@@ -23,7 +24,8 @@ async def main() -> None:
             if team.bans:
                 print("  Bans:")
                 for ban in team.bans:
-                    print(f"    Champion {ban.champion_id} (pick turn {ban.pick_turn})")
+                    name = champion_name(ban.champion_id) or f"id {ban.champion_id}"
+                    print(f"    Champion {name} (pick turn {ban.pick_turn})")
 
             # Objectives
             if team.objectives:

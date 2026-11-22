@@ -17,9 +17,9 @@ async def main() -> None:
         # All masteries, highest points first
         masteries = await player.get_champion_masteries()
         for mastery in masteries[:3]:
-            print(
-                f"Champion {mastery.champion_id}: level {mastery.champion_level}, {mastery.champion_points:,} points",
-            )
+            # champion_name resolves offline; the id covers a champion newer than the snapshot
+            name = mastery.champion_name or f"champion {mastery.champion_id}"
+            print(f"Champion {name}: level {mastery.champion_level}, {mastery.champion_points:,} points")
 
         # Single-champion lookup (skipped when the account has no masteries yet)
         if masteries:
