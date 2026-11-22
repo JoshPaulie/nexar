@@ -30,13 +30,13 @@ async def main() -> None:
         # is_higher_rank_than: compare two entries
         if len(league_entries) >= 2:
             a, b = league_entries[0], league_entries[1]
-            print(f"{a.tier} {a.division} ({a.league_points} LP) vs {b.tier} {b.division} ({b.league_points} LP)")
+            print(f"{a} vs {b}")
             print(f"First is higher? {a.is_higher_rank_than(b)}")
 
         # rank_tuple: (tier_division_score, LP) for custom sorting
         print("\nSorted by rank:")
         for entry in sorted(league_entries, reverse=True):
-            print(f"  {entry.tier} {entry.division} ({entry.league_points} LP)  winrate: {entry.win_rate:.0%}")
+            print(f"  {entry}  winrate: {entry.win_rate:.0%}")
 
         # get_solo_rank_value on a Player directly
         for player in players:

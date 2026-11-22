@@ -175,6 +175,21 @@ class LeagueEntry:
             return NotImplemented
         return self.rank_tuple >= other.rank_tuple
 
+    def __str__(self) -> str:
+        """Compact rank display, e.g. ``Gold IV 27LP``.
+
+        Apex and decayed entries carry :attr:`RankDivision.EMPTY` and print
+        without a division: ``Master 512LP``. An unranked queue never
+        reaches this method at all: the by-puuid wire sends entries only
+        for queues the player is ranked in (there is no UNRANKED tier), so
+        an unranked player has no entry for the queue,
+        :meth:`Player.get_solo_rank` returns None, and the caller prints
+        its own unranked label.
+        """
+        if self.division is RankDivision.EMPTY:
+            return f"{self.tier} {self.league_points}LP"
+        return f"{self.tier} {self.division} {self.league_points}LP"
+
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "LeagueEntry":
         """Create LeagueEntry from API response."""

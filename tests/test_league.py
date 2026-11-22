@@ -268,6 +268,44 @@ class TestLeagueEntryOmittedFields:
         assert sorted([high, low]) == [low, high]
 
 
+class TestLeagueEntryStr:
+    """__str__ prints the compact rank; its edge forms follow the wire shapes."""
+
+    def test_str_prints_tier_division_and_lp(self) -> None:
+        entry = LeagueEntry.from_api_response(
+            payload(tier="GOLD", rank="IV", leaguePoints=27, wins=30, losses=20),
+        )
+
+        assert str(entry) == "Gold IV 27LP"
+
+    def test_str_apex_entry_omits_the_empty_division(self) -> None:
+        """Master+ entries carry RankDivision.EMPTY: no division in the output."""
+        apex = LeagueEntry.from_api_response(
+            payload(tier="MASTER", leaguePoints=512, wins=120, losses=90),
+        )
+
+        assert str(apex) == "Master 512LP"
+
+    def test_str_decayed_entry_omits_rank_and_zero_lp(self) -> None:
+        """The decayed wire shape sends an empty rank string and omits LP."""
+        decayed = LeagueEntry.from_api_response(
+            payload(tier="MASTER", rank="", leaguePoints=0),
+        )
+
+        assert str(decayed) == "Master 0LP"
+
+    def test_unranked_queue_is_an_absent_entry_not_a_tier(self) -> None:
+        """There is no unranked form to print, by fixture shape.
+
+        The by-puuid wire sends entries only for queues the player is ranked
+        in (no UNRANKED tier exists on it, and RankTier deliberately carries
+        no such member), so an unranked player has no solo row at all:
+        Player.get_solo_rank scans the entries, finds none, and returns
+        None, and the caller prints its own unranked label.
+        """
+        assert "UNRANKED" not in {tier.value for tier in RankTier}
+
+
 def apex_league_payload(tier: str = "CHALLENGER", queue: str = "RANKED_SOLO_5x5") -> dict[str, object]:
     """Apex league list in the recorded live shape (2026-11-21 NA1 challenger).
 
