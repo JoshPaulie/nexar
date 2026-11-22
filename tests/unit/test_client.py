@@ -147,8 +147,8 @@ async def test_cache_info_empty(fresh_client: NexarClient) -> None:
     await fresh_client._ensure_session()
     assert isinstance(fresh_client._session, CachedSession)
     info = await fresh_client.get_cache_info()
-    assert info["enabled"] is True
-    assert info["cached_responses"] == 0
+    assert info.enabled is True
+    assert info.cached_responses == 0
     await fresh_client.close()
 
 

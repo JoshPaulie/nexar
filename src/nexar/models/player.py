@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from nexar.enums import Queue
 from nexar.exceptions import BatchError, gather_partitioned
 
 from .match_list import MatchList
+from .stats import RoleStats
 
 logger = logging.getLogger(__name__)
 
@@ -445,7 +446,7 @@ class Player:
         self,
         count: int = 50,
         queue: Queue | int | None = None,
-    ) -> dict[str, dict[str, Any]]:
+    ) -> dict[str, RoleStats]:
         """
         Get performance statistics grouped by role.
 
@@ -454,45 +455,36 @@ class Player:
             queue: Optional queue type filter
 
         Returns:
-            Dictionary with role names as keys and performance stats as values
+            A ``RoleStats`` per position played, keyed by role name.
 
         """
         matches = await self.get_matches(queue=queue, count=count)
 
-        role_stats: dict[str, dict[str, Any]] = {}
+        tallies: dict[str, dict[str, int]] = {}
 
         for participant in matches.each_participant():
             # team_position is never None (EMPTY is the sentinel), so no guard:
             # an empty value falls through to the UNKNOWN bucket.
             role = participant.team_position.value or "UNKNOWN"
-
-            if role not in role_stats:
-                role_stats[role] = {
-                    "games": 0,
-                    "wins": 0,
-                    "kills": 0,
-                    "deaths": 0,
-                    "assists": 0,
-                }
-
-            role_stats[role]["games"] += 1
+            bucket = tallies.setdefault(role, {"games": 0, "wins": 0, "kills": 0, "deaths": 0, "assists": 0})
+            bucket["games"] += 1
             if participant.win:
-                role_stats[role]["wins"] += 1
-            role_stats[role]["kills"] += participant.kills
-            role_stats[role]["deaths"] += participant.deaths
-            role_stats[role]["assists"] += participant.assists
+                bucket["wins"] += 1
+            bucket["kills"] += participant.kills
+            bucket["deaths"] += participant.deaths
+            bucket["assists"] += participant.assists
 
-        # Calculate averages and percentages
-        for stats in role_stats.values():
-            games = stats["games"]
-            if games > 0:
-                stats["win_rate"] = stats["wins"] / games
-                stats["avg_kills"] = stats["kills"] / games
-                stats["avg_deaths"] = stats["deaths"] / games
-                stats["avg_assists"] = stats["assists"] / games
-                stats["avg_kda"] = (stats["kills"] + stats["assists"]) / max(stats["deaths"], 1)
-
-        return role_stats
+        return {
+            role: RoleStats(
+                role=role,
+                games_played=bucket["games"],
+                wins=bucket["wins"],
+                total_kills=bucket["kills"],
+                total_deaths=bucket["deaths"],
+                total_assists=bucket["assists"],
+            )
+            for role, bucket in tallies.items()
+        }
 
     async def is_on_win_streak(self, min_games: int = 3) -> bool:
         """

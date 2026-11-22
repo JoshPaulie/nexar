@@ -8,7 +8,7 @@ import os
 import re
 import sqlite3
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import aiohttp
 from aiohttp_client_cache.session import CachedSession
@@ -86,6 +86,17 @@ async def _response_body_preview(response: aiohttp.ClientResponse) -> str:
 
 
 @dataclass(frozen=True)
+class CacheInfo:
+    """Snapshot of the cache configuration and its stored row count."""
+
+    enabled: bool
+    backend: Literal["sqlite", "memory"]
+    cache_name: str
+    default_expire_after: int | None
+    cached_responses: int
+
+
+@dataclass(frozen=True)
 class CallStats:
     """Statistics about API calls made by the client."""
 
@@ -125,19 +136,13 @@ class PlumbingMixin(NexarCore):
             await self._session.cache.clear()
             logger.info("Cache cleared")
 
-    async def get_cache_info(self) -> dict[str, Any]:
+    async def get_cache_info(self) -> CacheInfo:
         """Report the cache configuration and the number of stored rows.
 
         ``cached_responses`` is a best-effort count: a storage that cannot be
         counted (e.g. a locked sqlite file) reports 0 rather than raising.
         """
-        info: dict[str, Any] = {
-            "enabled": self.cache_config.enabled,
-            "backend": self.cache_config.backend,
-            "cache_name": self.cache_config.cache_name,
-            "default_expire_after": self.cache_config.expire_after,
-            "cached_responses": 0,
-        }
+        cached_responses = 0
 
         session = self._session
         if isinstance(session, CachedSession) and session.cache:
@@ -145,11 +150,17 @@ class PlumbingMixin(NexarCore):
                 # Row count via the storage's size(): every BaseCache implements
                 # it, while CacheBackend itself defines no __len__ in this
                 # aiohttp-client-cache version.
-                info["cached_responses"] = await session.cache.responses.size()
+                cached_responses = await session.cache.responses.size()
             except (OSError, sqlite3.Error) as exc:
                 logger.debug("Cache row count failed: %s", exc)
 
-        return info
+        return CacheInfo(
+            enabled=self.cache_config.enabled,
+            backend=self.cache_config.backend,
+            cache_name=self.cache_config.cache_name,
+            default_expire_after=self.cache_config.expire_after,
+            cached_responses=cached_responses,
+        )
 
     def get_api_call_stats(self) -> CallStats:
         """Snapshot the call counters as a ``CallStats`` instance."""

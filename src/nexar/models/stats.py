@@ -105,3 +105,60 @@ class PerformanceStats:
             avg_cs=0.0,
             avg_game_duration_minutes=0.0,
         )
+
+
+@dataclass(frozen=True)
+class RoleStats:
+    """Performance statistics for one position across recent matches."""
+
+    role: str
+    games_played: int
+    wins: int
+    total_kills: int
+    total_deaths: int
+    total_assists: int
+
+    @property
+    def losses(self) -> int:
+        """Games played that were not wins."""
+        return self.games_played - self.wins
+
+    @property
+    def win_rate(self) -> float:
+        """Win rate as a ratio (0.0 to 1.0)."""
+        if self.games_played == 0:
+            return 0.0
+        return self.wins / self.games_played
+
+    @property
+    def avg_kills(self) -> float:
+        """Average kills per game."""
+        if self.games_played == 0:
+            return 0.0
+        return self.total_kills / self.games_played
+
+    @property
+    def avg_deaths(self) -> float:
+        """Average deaths per game."""
+        if self.games_played == 0:
+            return 0.0
+        return self.total_deaths / self.games_played
+
+    @property
+    def avg_assists(self) -> float:
+        """Average assists per game."""
+        if self.games_played == 0:
+            return 0.0
+        return self.total_assists / self.games_played
+
+    @property
+    def avg_kda(self) -> float:
+        """
+        Average KDA ratio, as (total kills + total assists) / max(total deaths, 1).
+
+        Mirrors `ChampionStats.avg_kda`: a zero-death record is a perfect KDA
+        rather than 0.0.
+        """
+        if self.games_played == 0:
+            return 0.0
+        return (self.total_kills + self.total_assists) / max(self.total_deaths, 1)

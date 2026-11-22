@@ -247,9 +247,9 @@ async def test_get_cache_info_details(client: NexarClient) -> None:
     await session.cache.responses.write("row-1", "v1")
     await session.cache.responses.write("row-2", "v2")
     info = await client.get_cache_info()
-    assert info["cached_responses"] == 2
-    assert info["backend"] == "sqlite"
-    assert "cache_size" not in info
+    assert info.cached_responses == 2
+    assert info.backend == "sqlite"
+    assert not hasattr(info, "cache_size")
     await client.close()
 
 
@@ -263,7 +263,7 @@ async def test_cache_info_exception(client: NexarClient) -> None:
     assert client._session is not None
     client._session.cache = mock_cache
     info = await client.get_cache_info()
-    assert info["cached_responses"] == 0
+    assert info.cached_responses == 0
     await client.close()
 
 

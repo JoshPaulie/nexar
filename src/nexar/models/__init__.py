@@ -43,7 +43,7 @@ from .match import (
 from .match_list import MatchList
 from .platform_status import PlatformStatus, StatusContent, StatusEntry, StatusUpdate
 from .player import Player
-from .stats import ChampionStats, PerformanceStats
+from .stats import ChampionStats, PerformanceStats, RoleStats
 
 __all__ = [
     "Ban",
@@ -81,6 +81,7 @@ __all__ = [
     "PlayerChallengeData",
     "RewardConfig",
     "RiotAccount",
+    "RoleStats",
     "StatusContent",
     "StatusEntry",
     "StatusUpdate",

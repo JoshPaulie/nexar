@@ -336,6 +336,7 @@
   },
   "nexar/client.py": {
    "all": [
+    "CacheInfo",
     "CallStats",
     "NexarClient"
    ],
@@ -354,6 +355,7 @@
   "nexar/client_plumbing.py": {
    "all": null,
    "defs": [
+    "CacheInfo",
     "CallStats",
     "DEFAULT_RETRY_AFTER_SECONDS",
     "HTTP_BAD_GATEWAY",
@@ -451,6 +453,7 @@
     "PlayerChallengeData",
     "RewardConfig",
     "RiotAccount",
+    "RoleStats",
     "StatusContent",
     "StatusEntry",
     "StatusUpdate",

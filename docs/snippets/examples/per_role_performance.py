@@ -20,12 +20,11 @@ async def main() -> None:
         )
 
         for role, stats in role_perf.items():
-            kda = (stats["kills"] + stats["assists"]) / stats["deaths"] if stats["deaths"] > 0 else 0.0
             print(f"{role}:")
-            print(f"  Games:  {stats['games']}")
-            print(f"  Winrate:{stats['win_rate']:.0%}")
+            print(f"  Games:  {stats.games_played}")
+            print(f"  Winrate:{stats.win_rate:.0%}")
             print(
-                f"  KDA:    {stats['avg_kills']:.1f}/{stats['avg_deaths']:.1f}/{stats['avg_assists']:.1f} ({kda:.2f})",
+                f"  KDA:    {stats.avg_kills:.1f}/{stats.avg_deaths:.1f}/{stats.avg_assists:.1f} ({stats.avg_kda:.2f})",
             )
             print()
 

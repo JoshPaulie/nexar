@@ -14,7 +14,7 @@ from .client_identity import IdentityMixin
 from .client_league import LeagueMixin
 from .client_match import MatchMixin
 from .client_platform import PlatformMixin
-from .client_plumbing import CallStats, PlumbingMixin
+from .client_plumbing import CacheInfo, CallStats, PlumbingMixin
 from .enums import Region
 from .exceptions import BatchError, gather_partitioned
 from .models import Player
@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from aiohttp_client_cache.session import CachedSession
 
 __all__ = [
+    "CacheInfo",
     "CallStats",
     "NexarClient",
 ]

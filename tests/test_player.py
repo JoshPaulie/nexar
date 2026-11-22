@@ -343,9 +343,8 @@ class TestPlayer:
         assert isinstance(role_performance, dict)
 
         for stats in role_performance.values():
-            assert "games" in stats
-            assert "wins" in stats
-            assert "win_rate" in stats
+            assert stats.games_played >= 1
+            assert 0.0 <= stats.win_rate <= 1.0
 
 
 class TestMostPlayedChampionsMocked:
@@ -558,7 +557,7 @@ class TestRoleFallback:
         role_performance = await batch_player.get_recent_performance_by_role(count=1)
 
         assert list(role_performance) == ["UNKNOWN"]
-        assert role_performance["UNKNOWN"]["games"] == 1
+        assert role_performance["UNKNOWN"].games_played == 1
 
 
 class TestRolePerformanceKda:
@@ -589,7 +588,7 @@ class TestRolePerformanceKda:
 
         assert role_stats
         for stats in role_stats.values():
-            assert stats["avg_kda"] == stats["kills"] + stats["assists"]
+            assert stats.avg_kda == stats.total_kills + stats.total_assists
 
 
 class TestGetLastMatchNoHistory:

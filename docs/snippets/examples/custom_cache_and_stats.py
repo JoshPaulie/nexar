@@ -23,10 +23,10 @@ async def main() -> None:
 
         # Inspect cache state
         cache_info = await client.get_cache_info()
-        print(f"Backend:       {cache_info['backend']}")
-        print(f"Cache name:    {cache_info['cache_name']}")
-        print(f"Default TTL:   {cache_info['default_expire_after']}s")
-        print(f"Cached items:  {cache_info['cached_responses']}")
+        print(f"Backend:       {cache_info.backend}")
+        print(f"Cache name:    {cache_info.cache_name}")
+        print(f"Default TTL:   {cache_info.default_expire_after}s")
+        print(f"Cached items:  {cache_info.cached_responses}")
 
         # API call stats
         stats = client.get_api_call_stats()
