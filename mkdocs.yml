@@ -69,6 +69,7 @@ nav:
       - Infrastructure:
           - Custom Cache & Stats: examples/custom_cache_and_stats.md
   - Reference:
+      - Overview: reference/index.md
       - Architecture: architecture.md
       - API Surface: reference/api-surface.md
       - Client: reference/client.md
