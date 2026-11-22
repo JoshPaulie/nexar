@@ -1,5 +1,7 @@
 """Nexar: A simple, Pythonic SDK for Riot's League of Legends API."""
 
+import logging
+
 from .cache import DEFAULT_CACHE_CONFIG, NO_CACHE_CONFIG, CacheConfig
 from .client import CallStats, NexarClient
 from .enums import (
@@ -38,6 +40,13 @@ from .models import (
     Timeline,
 )
 from .rate_limiter import PERSONAL_LIMITS, PRODUCTION_LIMITS
+
+# Library logging contract: the package loggers carry a NullHandler, so the
+# SDK is silent unless the application configures logging. Without one, the
+# logging module's last-resort handler printed handled 4xx errors and
+# parse fallbacks to stderr with zero configuration. Child loggers
+# (nexar.cache) inherit the handler through the chain.
+logging.getLogger("nexar").addHandler(logging.NullHandler())
 
 __version__ = "2.0.0"
 

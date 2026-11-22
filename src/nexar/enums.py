@@ -376,8 +376,9 @@ class Queue(Enum):
 
     @classmethod
     def _missing_(cls, value: object) -> Queue:
-        """Handle unknown queue IDs gracefully by returning UNKNOWN."""
-        logger.warning("Unknown queue ID encountered: %s", value)
+        """Handle unknown queue IDs gracefully by returning UNKNOWN, quietly."""
+        # A new queue ID from Riot is expected forward drift, not an anomaly.
+        logger.debug("Unknown queue ID encountered: %s", value)
         return cls.UNKNOWN
 
     @property

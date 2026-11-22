@@ -20,7 +20,8 @@ _QUEUE_TYPE_MAP = {
 def _queue_from_string(queue_str: str) -> Queue:
     """Map an API queue string to a Queue enum, degrading unknown strings to UNKNOWN."""
     if queue_str not in _QUEUE_TYPE_MAP:
-        logger.warning("Unknown queue type '%s' in league payload. Defaulting to UNKNOWN.", queue_str)
+        # A new queue string from Riot is expected forward drift, not an anomaly.
+        logger.debug("Unknown queue type '%s' in league payload. Defaulting to UNKNOWN.", queue_str)
         return Queue.UNKNOWN
     return _QUEUE_TYPE_MAP[queue_str]
 

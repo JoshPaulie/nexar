@@ -1,5 +1,7 @@
 """Unit tests for enum properties and methods."""
 
+import logging
+
 import pytest
 
 from nexar.enums import MapId, MatchParticipantPosition, Queue, RankDivision, RankTier, Region
@@ -74,10 +76,16 @@ def test_rank_tier_str(tier: RankTier, expected: str) -> None:
 
 class TestUnknownQueue:
     def test_unknown_queue_returns_unknown_sentinel(self, caplog: pytest.LogCaptureFixture) -> None:
-        """Queue(1750) should return Queue.UNKNOWN instead of raising."""
+        """Queue(1750) should return Queue.UNKNOWN instead of raising, at DEBUG."""
+        # The fallback record is expected noise, so it logs at DEBUG — below
+        # the default WARNING root level, hence the explicit set_level here.
+        # The level is part of the pin: at WARNING this test must fail.
+        caplog.set_level(logging.DEBUG, logger="nexar")
         result = Queue(1750)
         assert result is Queue.UNKNOWN
-        assert "Unknown queue ID encountered: 1750" in caplog.text
+        records = [r for r in caplog.records if r.name == "nexar" and "Unknown queue ID" in r.getMessage()]
+        assert records
+        assert all(r.levelname == "DEBUG" for r in records)
 
 
 class TestUnknownMapId:

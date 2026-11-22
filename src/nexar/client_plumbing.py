@@ -345,8 +345,9 @@ class PlumbingMixin(NexarCore):
                 logger.exception("Request failed")
                 raise RiotAPIError(0, f"Request failed: {e}") from e
             except RiotAPIError as e:
-                # 4xx responses are routine control flow: log without a traceback.
-                logger.warning("API error: %s", e)
+                # 4xx responses are routine control flow: debug-level, no
+                # traceback. The typed exception carries everything.
+                logger.debug("API error: %s", e)
                 raise
 
         msg = f"Max attempts ({max_retries}) exceeded for rate-limited requests."
