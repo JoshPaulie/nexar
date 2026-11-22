@@ -192,7 +192,7 @@ class TestCreateCacheBackend:
             cache_dir=str(tmp_path),
             expire_after=60,
         )
-        backend = create_cache_backend(config)
+        backend = create_cache_backend(config, "test-api-key")
 
         assert isinstance(backend, CacheBackend)
         if backend_name == "sqlite":
@@ -212,7 +212,7 @@ class TestCreateCacheBackend:
     def test_invalid_backend_raises(self) -> None:
         config = CacheConfig(backend="invalid")  # ty: ignore[invalid-argument-type]
         with pytest.raises(ValueError, match="Unsupported cache backend"):
-            create_cache_backend(config)
+            create_cache_backend(config, "test-api-key")
 
 
 class TestCacheSessionWiring:
@@ -234,12 +234,68 @@ class TestCacheSessionWiring:
             await client.close()
 
 
+class TestApiKeyNamespacing:
+    async def test_two_keys_never_read_each_others_rows(
+        self,
+        tmp_path: Path,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """Two clients, different keys, one sqlite file and URL.
+
+        The second client's call is fresh, the first still hits its own row.
+        The dogfood audit measured the defect live: a dummy key with the
+        default cache returned the previous key's rows (fresh=0, hits=1),
+        while the same call uncached raised UnauthorizedError. Cache keys
+        are built from method+URL alone — the key travels in a header the
+        library ignores — so isolation has to come from a per-key namespace.
+        """
+        config = CacheConfig(cache_name="shared", cache_dir=str(tmp_path))
+        url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/isolated"
+        mock_aioresponse.get(
+            url,
+            payload={
+                "id": "s1",
+                "puuid": "isolated",
+                "profileIconId": 1,
+                "revisionDate": 1,
+                "summonerLevel": 30,
+            },
+            repeat=True,
+        )
+
+        client_alpha = NexarClient(riot_api_key="key-alpha", default_region=Region.NA1, cache_config=config)
+        client_beta = NexarClient(riot_api_key="key-beta", default_region=Region.NA1, cache_config=config)
+        try:
+            # Warm alpha's row the way the live stack lands it: aioresponses'
+            # lowercase method blocks the session's own save, so the save is
+            # driven manually with the method fixed.
+            session = await client_alpha._ensure_session()
+            assert isinstance(session, CachedSession)
+            response = await session.get(url)
+            response.method = "GET"
+            await session.cache.save_response(response)
+
+            summoner = await client_alpha.get_summoner_by_puuid("isolated")
+            assert summoner.puuid == "isolated"
+            alpha_stats = client_alpha.get_api_call_stats()
+            assert alpha_stats.cache_hits == 1
+            assert alpha_stats.fresh_calls == 0
+
+            await client_beta.get_summoner_by_puuid("isolated")
+            beta_stats = client_beta.get_api_call_stats()
+            assert beta_stats.cache_hits == 0
+            assert beta_stats.fresh_calls == 1
+        finally:
+            await client_alpha.close()
+            await client_beta.close()
+
+
 class TestSQLiteCookieHygiene:
     """Cached cookies poison sqlite rows: never store them, heal rows that have them."""
 
     async def test_unreadable_row_is_a_miss_and_is_deleted(self, tmp_path: Path) -> None:
         """A row written by an older version reads as a cache miss and is dropped."""
-        backend = create_cache_backend(CacheConfig(cache_name="test", cache_dir=str(tmp_path)))
+        backend = create_cache_backend(CacheConfig(cache_name="test", cache_dir=str(tmp_path)), "test-api-key")
         db_path = tmp_path / "test.sqlite"
 
         assert await backend.get_response("warmup") is None  # forces sqlite schema creation
@@ -264,7 +320,7 @@ class TestSQLiteCookieHygiene:
         url = "https://na1.api.riotgames.com/lol/test/cookie"
         mock_aioresponse.get(url, headers={"Set-Cookie": "__cf_bm=abc; Partitioned"}, payload={"ok": True})
 
-        backend = create_cache_backend(CacheConfig(cache_name="test", cache_dir=str(tmp_path)))
+        backend = create_cache_backend(CacheConfig(cache_name="test", cache_dir=str(tmp_path)), "test-api-key")
         async with CachedSession(cache=backend) as session:
             response = await session.get(url)
             assert "set-cookie" in response.headers
@@ -283,7 +339,7 @@ class TestSQLiteCookieHygiene:
         stored = pickle.loads(blob)  # noqa: S301 - fixture data this test wrote itself
         assert not stored.cookies
 
-        backend2 = create_cache_backend(CacheConfig(cache_name="test", cache_dir=str(tmp_path)))
+        backend2 = create_cache_backend(CacheConfig(cache_name="test", cache_dir=str(tmp_path)), "test-api-key")
         replayed = await backend2.get_response(backend2.create_key("GET", url))
         await backend2.close()
         assert replayed is not None

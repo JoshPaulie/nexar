@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import pickle
 import sqlite3
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from aiohttp import ClientResponse
+    from aiohttp.typedefs import StrOrURL
     from aiohttp_client_cache.cache_control import ExpirationTime
     from aiohttp_client_cache.response import CachedResponse
 
@@ -87,7 +89,32 @@ _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
 }
 
 
-class NexarSQLiteBackend(SQLiteBackend):
+def _api_key_fingerprint(api_key: str) -> str:
+    """A stable one-way namespace tag for an API key. Never the key itself."""
+    return hashlib.sha256(api_key.encode()).hexdigest()[:16]
+
+
+class _KeyNamespacedBackend(CacheBackend):
+    """CacheBackend whose rows are namespaced by the API key that fetched them.
+
+    Riot auth travels in a header the library's cache keys ignore, so two
+    clients with different keys reading one sqlite file would serve each
+    other's rows — a wrong or rotated key would silently read the previous
+    key's data. Every key this backend builds (the client's manual read and
+    the session's own interception alike) is prefixed with a fingerprint of
+    the API key, so rows never cross keys; rows orphaned by a key rotation
+    stay unread in the same file and age out by TTL.
+    """
+
+    key_namespace: str
+    """Fingerprint prefix on every cache key, assigned by ``create_cache_backend``."""
+
+    def create_key(self, method: str, url: StrOrURL, **kwargs: object) -> str:
+        """The library's cache key, prefixed with the API key fingerprint."""
+        return f"{self.key_namespace}:{super().create_key(method, url, **kwargs)}"
+
+
+class NexarSQLiteBackend(SQLiteBackend, _KeyNamespacedBackend):
     """SQLite backend that never caches cookies and drops rows it cannot load.
 
     Riot's API responses carry a Cloudflare ``__cf_bm`` Set-Cookie whose ``Partitioned``
@@ -127,28 +154,40 @@ class NexarSQLiteBackend(SQLiteBackend):
             return None
 
 
-def create_cache_backend(config: CacheConfig) -> CacheBackend:
-    """Create an aiohttp-client-cache backend based on the provided configuration."""
+def create_cache_backend(config: CacheConfig, api_key: str) -> CacheBackend:
+    """Create an aiohttp-client-cache backend based on the provided configuration.
+
+    Rows are namespaced by a fingerprint of ``api_key`` (hashed, never the
+    key itself), so two keys sharing one sqlite file never read each other's
+    cached responses.
+    """
+    key_namespace = _api_key_fingerprint(api_key)
     if config.backend == "sqlite":
         cache_dir = Path(config.cache_dir) if config.cache_dir else (Path.home() / ".nexar")
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_path = cache_dir / f"{config.cache_name}.sqlite"
-        return NexarSQLiteBackend(
+        backend = NexarSQLiteBackend(
             cache_name=str(cache_path.with_suffix("")),
             expire_after=config.expire_after,
             urls_expire_after=_SMART_ENDPOINT_TTLS,
             allowed_codes=(200,),
         )
+        backend.key_namespace = key_namespace
+        return backend
 
     if config.backend == "memory":
-        # CacheBackend with its default in-memory DictCache storage. Passing a bare
-        # DictCache here does not work: it is a storage, not a backend, and CachedSession
-        # silently swaps out a falsy cache for a default one, dropping the TTL wiring.
-        return CacheBackend(
+        # A CacheBackend subclass with its default in-memory DictCache storage
+        # (namespaced like the sqlite backend, though a memory backend is
+        # private to its client anyway). Passing a bare DictCache here does not
+        # work: it is a storage, not a backend, and CachedSession silently
+        # swaps out a falsy cache for a default one, dropping the TTL wiring.
+        backend = _KeyNamespacedBackend(
             expire_after=config.expire_after,
             urls_expire_after=_SMART_ENDPOINT_TTLS,
             allowed_codes=(200,),
         )
+        backend.key_namespace = key_namespace
+        return backend
 
     msg = f"Unsupported cache backend: {config.backend}"
     raise ValueError(msg)

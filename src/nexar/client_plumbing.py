@@ -135,7 +135,7 @@ class PlumbingMixin(NexarCore):
 
         if self.cache_config.enabled:
             self._session = CachedSession(
-                cache=create_cache_backend(self.cache_config),
+                cache=create_cache_backend(self.cache_config, self.riot_api_key),
                 timeout=timeout,
             )
         else:
