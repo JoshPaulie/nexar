@@ -99,11 +99,14 @@ class _KeyNamespacedBackend(CacheBackend):
 
     Riot auth travels in a header the library's cache keys ignore, so two
     clients with different keys reading one sqlite file would serve each
-    other's rows — a wrong or rotated key would silently read the previous
-    key's data. Every key this backend builds (the client's manual read and
-    the session's own interception alike) is prefixed with a fingerprint of
-    the API key, so rows never cross keys; rows orphaned by a key rotation
-    stay unread in the same file and age out by TTL.
+    other's rows: a wrong or rotated key would silently read the previous
+    key's data, and because Riot encrypts PUUIDs per project, a row carrying
+    PUUIDs is unusable to the other key rather than merely stale. Every key
+    this backend builds (the client's manual read and the session's own
+    interception alike) is prefixed with a fingerprint of the API key, so rows
+    never cross keys. Rows orphaned by a rotation stay unread in the same file:
+    rows on a finite TTL age out, while match and timeline rows never expire
+    and remain until ``clear_cache()``, which clears the file for every key.
     """
 
     key_namespace: str

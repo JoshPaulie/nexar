@@ -59,6 +59,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- `_KeyNamespacedBackend`'s docstring matches what the cache does with a rotated key: rows for a finite-TTL endpoint age out, while match and timeline rows never expire and stay in the file until `clear_cache()`, which clears every key's rows. It previously said all orphaned rows age out by TTL, which the never-expire match glob makes false.
+
 - The docs state the PUUID encryption boundary and the cache namespace. PUUIDs are encrypted per project: two live keys returned different PUUIDs for the same account, while Riot's docs say refreshing a key keeps them and only a dev-to-production switch re-keys (Riot's API-library docs: IDs are encrypted with keys unique to each project). The FAQ said only "depending on which API key", which reads as every rotation re-keying; it now separates the dev/production case from the refresh case. The caching page states that rows are namespaced by an API-key fingerprint, so two keys sharing the SQLite file never read each other's rows, and a rotation starts from a cold cache.
 
 - Two example snippets the import-only gate could not see are fixed: `champion_mastery.py` and `league_comparison.py` built their clients with no `default_region`, so the first `Player` lookup raised the region `ValueError` before any request, the same defect class the batch example carried. Both construct the client with `Region.NA1`, and the execution gate goes red on either when the argument is removed.
