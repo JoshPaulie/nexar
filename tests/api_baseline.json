@@ -347,11 +347,16 @@
    "defs": [
     "CallStats",
     "DEFAULT_RETRY_AFTER_SECONDS",
+    "HTTP_BAD_GATEWAY",
     "HTTP_FORBIDDEN",
+    "HTTP_GATEWAY_TIMEOUT",
     "HTTP_NOT_FOUND",
+    "HTTP_SERVICE_UNAVAILABLE",
     "HTTP_TOO_MANY_REQUESTS",
     "HTTP_UNAUTHORIZED",
-    "PlumbingMixin"
+    "PlumbingMixin",
+    "RETRYABLE_SERVER_ERRORS",
+    "SERVER_ERROR_BACKOFF_SECONDS"
    ]
   },
   "nexar/enums.py": {

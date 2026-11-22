@@ -8,9 +8,8 @@ Three gates, each failing for a reason:
   baseline in the same commit: set ``UPDATE_BASELINE=1`` to regenerate.
 - file/function budget tests — tripwires against the next god-file, not style
   police. The budgets cover src and tests alike. Current src maxima:
-  participant.py 816 lines, ``_make_api_call`` 76 (client_plumbing.py since
-  the topic split); the two over-cap test functions are recorded fixture
-  payloads pinned in ``KNOWN_LONG`` at their measured size.
+  participant.py 816 lines; the two over-cap test functions are recorded
+  fixture payloads pinned in ``KNOWN_LONG`` at their measured size.
   Caps sit above them with headroom; a file crossing 1000 lines or a function
   crossing 100 gets split before it lands, by decision.
 - seam tests — no underscore attribute access off ``self``/``cls`` anywhere in

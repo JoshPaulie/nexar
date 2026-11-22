@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import os
+import re
 import sqlite3
 from dataclasses import dataclass
 from typing import Any
@@ -30,10 +31,51 @@ HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
 HTTP_NOT_FOUND = 404
 HTTP_TOO_MANY_REQUESTS = 429
+HTTP_BAD_GATEWAY = 502
+HTTP_SERVICE_UNAVAILABLE = 503
+HTTP_GATEWAY_TIMEOUT = 504
 
 
 # Fallback 429 block duration when Riot omits or garbles Retry-After.
 DEFAULT_RETRY_AFTER_SECONDS = 5.0
+
+# Riot's edge serves 502/503/504 as transient Cloudflare pages: retried
+# per call with backoff, never through the region ledger — no Retry-After
+# exists on 5xx, and blocking the region would stall every other call for
+# a blip the next attempt clears.
+RETRYABLE_SERVER_ERRORS = (HTTP_BAD_GATEWAY, HTTP_SERVICE_UNAVAILABLE, HTTP_GATEWAY_TIMEOUT)
+
+# First-attempt backoff for a retried 5xx; doubles per attempt within the
+# call's max_retries budget.
+SERVER_ERROR_BACKOFF_SECONDS = 0.5
+
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+_ERROR_BODY_PREVIEW_CHARS = 200
+
+
+def _body_preview(body: str) -> str:
+    """A bounded, structure-free preview of a non-JSON error body.
+
+    Riot's 5xx responses are Cloudflare HTML pages: the tags carry nothing a
+    caller needs, so they are stripped and whitespace collapsed before
+    truncating — the exception text and the log line stay readable and
+    small instead of carrying the whole page.
+    """
+    text = " ".join(_HTML_TAG_RE.sub(" ", body).split())
+    if len(text) <= _ERROR_BODY_PREVIEW_CHARS:
+        return text
+    return f"{text[:_ERROR_BODY_PREVIEW_CHARS]} [truncated]"
+
+
+async def _response_body_preview(response: aiohttp.ClientResponse) -> str:
+    """Preview of a response body that survives undecodable bytes.
+
+    ``response.text()`` raises UnicodeDecodeError on a garbled body, which
+    would escape a retryable 5xx (and the error-mapping path) as a raw
+    untyped exception with nothing in the stats; reading the bytes and
+    decoding with replacement keeps the call typed and the preview bounded.
+    """
+    return _body_preview((await response.read()).decode(errors="replace"))
 
 
 @dataclass(frozen=True)
@@ -259,6 +301,23 @@ class PlumbingMixin(NexarCore):
                         self.rate_limiter.block(platform_region, retry_after)
                         continue
 
+                    if response.status in RETRYABLE_SERVER_ERRORS and _attempt < max_retries - 1:
+                        body = await _response_body_preview(response)
+                        self._call_stats["retries"] += 1
+                        backoff = SERVER_ERROR_BACKOFF_SECONDS * 2**_attempt
+                        logger.warning(
+                            "HTTP %d on attempt %d/%d for %s (region: %s). Retrying in %.1fs. Body: %s",
+                            response.status,
+                            _attempt + 1,
+                            max_retries,
+                            endpoint,
+                            platform_region,
+                            backoff,
+                            body,
+                        )
+                        await asyncio.sleep(backoff)
+                        continue
+
                     return await self._record_fresh_response(
                         response,
                         platform_region,
@@ -301,7 +360,10 @@ class PlumbingMixin(NexarCore):
             error_data = await response.json()
             message = error_data.get("status", {}).get("message", "Unknown error")
         except (ValueError, aiohttp.ContentTypeError):
-            message = await response.text() or f"HTTP {response.status}"
+            # Non-JSON body (a Cloudflare HTML page on 5xx, plain text on
+            # garbled 4xx): keep a bounded, decode-safe preview, never the
+            # whole body.
+            message = await _response_body_preview(response) or f"HTTP {response.status}"
 
         error_map = {
             HTTP_UNAUTHORIZED: UnauthorizedError,

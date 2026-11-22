@@ -1,9 +1,10 @@
 """NexarClient behavior tests, grouped by contract.
 
 Sections: parameter wiring (match-ids), batch fetches, session and cache
-lifecycle, error mapping, 429 retry pacing, debug output.
+lifecycle, error mapping, 429 retry pacing, 5xx retry pacing, debug output.
 """
 
+import asyncio
 import os
 import re
 import sqlite3
@@ -280,6 +281,23 @@ async def test_resolve_region_error() -> None:
         await client.close()
 
 
+@pytest.mark.asyncio
+async def test_binary_400_body_raises_typed_error(client: NexarClient, mock_aioresponse: MagicMock) -> None:
+    """An undecodable error body maps to a typed RiotAPIError, not UnicodeDecodeError."""
+    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/binary_fail"
+    mock_aioresponse.get(url, status=400, body=b"\xff\xfe\x00binary\x01\x02")
+
+    with pytest.raises(RiotAPIError) as excinfo:
+        await client.get_summoner_by_puuid("binary_fail")
+
+    # Replacement characters stand in for the undecodable bytes; the
+    # decodable tail survives in the bounded preview.
+    assert "binary" in str(excinfo.value)
+    stats = client.get_api_call_stats()
+    assert stats.errors == 1
+    await client.close()
+
+
 # ---------------------------------------------------------------------------
 # 429 retry pacing
 # ---------------------------------------------------------------------------
@@ -324,6 +342,102 @@ async def test_max_retries_exceeded(client: NexarClient, mock_aioresponse: Magic
     elapsed = time.monotonic() - t0
     # 5 blocked retries at 0.1s each must actually wait.
     assert elapsed >= 0.4, f"retries did not honor Retry-After: {elapsed:.2f}s"
+    await client.close()
+
+
+# ---------------------------------------------------------------------------
+# 5xx retry pacing
+# ---------------------------------------------------------------------------
+
+# A Cloudflare-style error page, like the live Riot 502 that surfaced whole
+# in a RiotAPIError during the dogfood audit: HTML, doctype first, well past
+# 200 characters.
+CLOUDFLARE_ERROR_PAGE = (
+    "<!DOCTYPE html>\n"
+    '<html lang="en-US">\n<head><title>502 Bad Gateway</title></head>\n'
+    "<body>Cloudflare edge error page boilerplate.\n</body>\n</html>\n" * 20
+)
+
+
+@pytest.mark.asyncio
+async def test_503_then_200_succeeds_after_one_retry(client: NexarClient, mock_aioresponse: MagicMock) -> None:
+    """A Cloudflare-style 503 is retried with a per-call backoff, then the real row lands."""
+    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/blip"
+    mock_aioresponse.get(url, status=503, body=CLOUDFLARE_ERROR_PAGE)
+    mock_aioresponse.get(
+        url,
+        status=200,
+        payload={"id": "b", "puuid": "blip", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30},
+    )
+    t0 = time.monotonic()
+    summoner = await client.get_summoner_by_puuid("blip")
+    elapsed = time.monotonic() - t0
+    assert summoner.puuid == "blip"
+    stats = client.get_api_call_stats()
+    assert stats.retries == 1
+    assert stats.fresh_calls == 1
+    # The first backoff (0.5s base) actually sleeps, in real time.
+    assert elapsed >= 0.4, f"expected ~0.5s backoff, got {elapsed:.2f}s"
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_binary_503_body_still_retries(client: NexarClient, mock_aioresponse: MagicMock) -> None:
+    """An undecodable 5xx body does not escape the retry machinery untyped.
+
+    ``response.text()`` raises UnicodeDecodeError on garbled bytes; without
+    the decode-safe read the raw exception surfaced with no retry, no typed
+    error, and no stats.
+    """
+    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/binary_blip"
+    mock_aioresponse.get(url, status=503, body=b"\xff\xfe\x00binary\x01\x02")
+    mock_aioresponse.get(
+        url,
+        status=200,
+        payload={"id": "b", "puuid": "binary_blip", "profileIconId": 1, "revisionDate": 1, "summonerLevel": 30},
+    )
+    summoner = await client.get_summoner_by_puuid("binary_blip")
+    assert summoner.puuid == "binary_blip"
+    stats = client.get_api_call_stats()
+    assert stats.retries == 1
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_502_exhaustion_retries_then_raises_typed_error_without_the_html_page(
+    client: NexarClient,
+    mock_aioresponse: MagicMock,
+) -> None:
+    """Five 502s: retries counted in CallStats, region ledger never blocked, typed error.
+
+    The final error carries a bounded, tag-stripped preview of the HTML
+    page, not the page — the dogfood audit measured a live Riot 502 landing
+    whole in the exception text.
+    """
+    url = "https://na1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/server_error"
+    for _ in range(5):
+        mock_aioresponse.get(url, status=502, body=CLOUDFLARE_ERROR_PAGE)
+
+    sleeps: list[float] = []
+    real_sleep = asyncio.sleep
+
+    async def record_and_skip(seconds: float) -> None:
+        sleeps.append(seconds)
+        await real_sleep(0)
+
+    with patch.object(asyncio, "sleep", record_and_skip), pytest.raises(RiotAPIError) as excinfo:
+        await client.get_summoner_by_puuid("server_error")
+
+    error_text = str(excinfo.value)
+    assert "<!DOCTYPE" not in error_text
+    assert "502 Bad Gateway" in error_text
+    assert len(error_text) < 500
+    stats = client.get_api_call_stats()
+    assert stats.retries == 4
+    assert stats.errors == 1
+    # Per-call backoff doubling from the 0.5s base; the region ledger is never
+    # blocked, so no pacing sleeps appear between the backoffs.
+    assert sleeps == [0.5, 1.0, 2.0, 4.0]
     await client.close()
 
 
