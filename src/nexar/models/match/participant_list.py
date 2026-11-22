@@ -122,7 +122,8 @@ class ParticipantList(list["Participant"]):
                 almost always wants.
 
         Returns:
-            A ParticipantList containing all participants on the same team as the specified PUUID.
+            A ParticipantList containing the team's participants, including the
+            player unless ``include_self`` is False.
 
         Raises:
             ValueError: If no participant with the given PUUID is found.

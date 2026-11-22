@@ -8,9 +8,9 @@ All notable changes to this project will be documented in this file.
 
 - `ParticipantList.team_of` takes `include_self`, defaulting to True so existing calls are unchanged. `include_self=False` returns the four teammates, which is the list a per-player report wants; the audit reached for the method and got the player back in their own team.
 
-- `Player.get_matches` takes `allow_partial`: one failed match id no longer fails the whole pull, and the skipped ids are logged at WARNING. Strict by default, so a pull either succeeds whole or names every failure, and the raising path still carries `successful_results` for callers that catch it.
+- `Player.get_matches` takes `allow_partial`: one failed match id no longer fails the whole pull, and the skipped ids are logged at WARNING. Strict by default, so a pull either succeeds whole or names every failure, and the raising path still carries `successful_results` for callers that catch it. When every id fails the call raises anyway: there is no partial result to return.
 
-- CI builds the docs site with `mkdocs build --strict` on every push and pull request, and the `gh-deploy` job is gated to pushes on `main`. It previously ran on pull requests too, so a same-repo PR published its own branch's docs.
+- CI builds the docs site with `mkdocs build --strict` on pull requests and on pushes to `main`, and the `gh-deploy` job is gated to pushes on `main` and depends on that job. It previously ran on pull requests too, so a same-repo PR published its own branch's docs.
 
 - A nightly `live` workflow runs the slow live canaries when the `RIOT_API_KEY` secret is set, and reports a notice instead of failing when it is absent. Live behavior had no CI coverage, so parser drift against Riot's wire was only found by a person running the live suite; the last audit's live-only defects were all found that way.
 
@@ -69,7 +69,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
-- Every python block on a docs page is a snippet include, and the gate enforces it. Five hand-written blocks ran under no test: rate-limiting's production and per-region examples, caching's cache-management and cache-location examples, and debug-responses' environment block. They are now snippet files or section includes of `production_rate_limits.py`, which the gate already executed but no page showed, so the displayed code and the executed code are one file. `tests/test_snippets.py` fails on any `py` or `python` fence whose body is not `--8<--` (the two example pages that used a `py` fence for a field listing now use `text`), and the snippet context restores `os.environ` so `NEXAR_DEBUG_RESPONSES` set by one row cannot turn every later row's output into a response dump.
+- Every python block on a docs page is a snippet include, and the gate enforces it. Five hand-written blocks ran under no test: rate-limiting's production and per-region examples, caching's cache-management and cache-location examples, and debug-responses' environment block. They are now snippet files or section includes of `production_rate_limits.py`, which the gate already executed but no page showed, so the displayed code and the executed code are one file. `tests/test_snippets.py` fails on any `py` or `python` fence, attributes and all, whose body is not `--8<--` (the two example pages that used a `py` fence for a field listing now use `text`), the snippet context restores `os.environ` so `NEXAR_DEBUG_RESPONSES` set by one row cannot turn every later row's output into a response dump, and the flag name is pinned against the one the client reads.
 
 - `_KeyNamespacedBackend`'s docstring matches what the cache does with a rotated key: rows for a finite-TTL endpoint age out, while match and timeline rows never expire and stay in the file until `clear_cache()`, which clears every key's rows. It previously said all orphaned rows age out by TTL, which the never-expire match glob makes false.
 

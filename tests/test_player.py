@@ -490,6 +490,25 @@ class TestGetMatchesBatchErrorHandling:
         assert sorted(match.metadata.match_id for match in matches) == ["NA1_1", "NA1_3"]
         assert "NA1_2" in caplog.text
 
+    async def test_allow_partial_still_raises_when_every_id_fails(
+        self,
+        batch_player: Player,
+        mock_aioresponse: "aioresponses",
+    ) -> None:
+        """There is no partial result when nothing loaded, so the call still fails."""
+        mock_aioresponse.get(_IDS_URL, payload=["NA1_404"])
+        mock_aioresponse.get(
+            "https://americas.api.riotgames.com/lol/match/v5/matches/NA1_404",
+            status=404,
+            payload={"status": {"message": "Not Found", "status_code": 404}},
+        )
+
+        with pytest.raises(BatchError) as exc_info:
+            await batch_player.get_matches(count=1, allow_partial=True)
+
+        assert [label for label, _ in exc_info.value.errors] == ["NA1_404"]
+        assert exc_info.value.successful_results == []
+
     async def test_all_matches_missing_raises_batch_error_with_no_successes(
         self,
         batch_player: Player,

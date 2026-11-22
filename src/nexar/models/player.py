@@ -301,7 +301,8 @@ class Player:
             allow_partial: Return the matches that loaded instead of raising
                 BatchError when one id fails; the skipped ids are logged at
                 WARNING. Strict by default, so a pull either succeeds whole or
-                names every failure.
+                names every failure. When every id fails, BatchError is raised
+                even with allow_partial: there is no partial result to return.
 
         Returns:
             MatchList of Match objects with detailed match information
@@ -321,7 +322,7 @@ class Player:
             lambda match_id: self.client.get_match(match_id, region=self.region),
         )
 
-        if errors and not allow_partial:
+        if errors and (not allow_partial or not matches):
             raise BatchError(errors, successful_results=matches)
         if errors:
             skipped = ", ".join(label for label, _ in errors)

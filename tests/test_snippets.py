@@ -51,7 +51,7 @@ SNIPPETS_DIR = DOCS_DIR / "snippets"
 SNIPPETS = sorted(SNIPPETS_DIR.rglob("*.py"))
 
 # A python fence whose body is not a snippet include: code the gate cannot run.
-PYTHON_BLOCK = re.compile(r"^[ \t]*```(?:py|python)[ \t]*\n(.*?)^[ \t]*```", re.DOTALL | re.MULTILINE)
+PYTHON_BLOCK = re.compile(r"^[ \t]*```(?:py|python)(?![A-Za-z])[^\n]*\n(.*?)^[ \t]*```", re.DOTALL | re.MULTILINE)
 
 # Snippets that demonstrate construction or configuration and reach no endpoint.
 # Everything else must produce at least one mocked request.
@@ -212,3 +212,17 @@ def test_every_python_block_is_a_snippet_include() -> None:
                 line_no = text[: match.start()].count("\n") + 1
                 offenders.append(f"{page.relative_to(DOCS_DIR)}:{line_no}")
     assert not offenders, "Python blocks outside a snippet include: " + ", ".join(offenders)
+
+
+def test_debug_flag_name_matches_the_snippet() -> None:
+    """The env var the docs set is the one the client reads.
+
+    The debug snippet has no entry point, so execution alone proves only that
+    ``os.environ`` accepted the assignment. Pinning both literals catches a
+    rename on either side.
+    """
+    flag = "NEXAR_DEBUG_RESPONSES"
+    client_source = (Path(__file__).parent.parent / "src" / "nexar" / "client_plumbing.py").read_text()
+    snippet = (SNIPPETS_DIR / "client-features" / "debug_responses.py").read_text()
+    assert f'"{flag}"' in client_source
+    assert f'"{flag}"' in snippet

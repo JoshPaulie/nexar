@@ -2,7 +2,7 @@ name: live
 
 on:
   schedule:
-    # 09:17 UTC daily, 03:17 America/Chicago.
+    # 09:17 UTC daily: 03:17 CST, 04:17 CDT.
     - cron: "17 9 * * *"
   workflow_dispatch:
 
@@ -23,4 +23,4 @@ jobs:
             echo "::notice::RIOT_API_KEY is not set; skipping the live suite."
             exit 0
           fi
-          uv run python -m pytest tests -m slow -q
+          uv run python -m pytest tests -m slow -q --no-cov

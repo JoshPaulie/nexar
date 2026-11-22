@@ -42,7 +42,7 @@ jobs:
       - run: pip install .
       - run: mkdocs build --strict
   deploy:
-    needs: test
+    needs: [test, docs]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
