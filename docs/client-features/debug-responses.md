@@ -13,8 +13,7 @@ export NEXAR_DEBUG_RESPONSES=1
 Or in Python:
 
 ```python
-import os
-os.environ["NEXAR_DEBUG_RESPONSES"] = "1"
+--8<-- "client-features/debug_responses.py"
 ```
 
 ## Debug Output Format

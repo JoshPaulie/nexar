@@ -36,10 +36,7 @@ Configure custom app rate limits when creating the client:
 If you have a Production API Key or can obtain higher limits, pass them directly:
 
 ```python
-client = NexarClient(
-    riot_api_key="your-prod-key",
-    app_rate_limits=((500, 10), (30000, 600)), # 500/10s and 30,000/10m
-)
+--8<-- "client-features/production_rate_limits.py:production-limits"
 ```
 
 ### Rate Limits per Region
@@ -47,9 +44,7 @@ client = NexarClient(
 Rate limits are enforced per region. Each region can simultaneously use its full quota:
 
 ```python
-# With production limits (500 req/10s per region)
-await client.get_riot_account("Doublelift", "NA1", region=Region.NA1)  # Uses NA1 budget
-await client.get_riot_account("G2 Wunder", "EUW", region=Region.EUW1)  # Uses EUW1 budget
+--8<-- "client-features/production_rate_limits.py:per-region-limits"
 ```
 
 ## How It Works

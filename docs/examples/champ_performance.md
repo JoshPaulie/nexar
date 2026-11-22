@@ -8,7 +8,7 @@
 
 ## Available stats
 
-```py
+```text
 champion_id: int
 champion_name: str
 games_played: int

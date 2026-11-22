@@ -7,10 +7,12 @@ from nexar.enums import Region
 
 async def example_production_key() -> None:
     """Initialize client with production API key limits."""
+    # --8<-- [start:production-limits]
     client = NexarClient(
         riot_api_key="your-production-api-key",
         app_rate_limits=((500, 10), (30000, 600)),
     )
+    # --8<-- [end:production-limits]
 
     # Now the client uses production rate limits:
     # - 500 requests per 10 seconds (per region)
@@ -39,6 +41,7 @@ async def example_per_region_limits() -> None:
     # Production limits: 500 req/10s per region
     # Both NA1 and EUW1 can use their full 500/10s quota simultaneously
 
+    # --8<-- [start:per-region-limits]
     # This uses 500/10s budget for NA1
     await client.get_riot_account("PlayerName", "NA1", Region.NA1)
 
@@ -46,6 +49,7 @@ async def example_per_region_limits() -> None:
     await client.get_riot_account("PlayerName", "EUW1", Region.EUW1)
 
     # Each region can independently support 500 requests per 10 seconds
+    # --8<-- [end:per-region-limits]
 
     await client.close()
 

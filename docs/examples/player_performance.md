@@ -6,7 +6,7 @@
 
 ## Available stats
 
-```py
+```text
 total_games: int
 wins: int
 losses: int

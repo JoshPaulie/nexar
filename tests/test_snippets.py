@@ -26,6 +26,7 @@ import contextlib
 import importlib.util
 import inspect
 import logging
+import os
 import re
 import sys
 from pathlib import Path
@@ -45,12 +46,24 @@ from tests.payloads.sandbox import (
     timeline_payload,
 )
 
-SNIPPETS_DIR = Path(__file__).parent.parent / "docs" / "snippets"
+DOCS_DIR = Path(__file__).parent.parent / "docs"
+SNIPPETS_DIR = DOCS_DIR / "snippets"
 SNIPPETS = sorted(SNIPPETS_DIR.rglob("*.py"))
+
+# A python fence whose body is not a snippet include: code the gate cannot run.
+PYTHON_BLOCK = re.compile(r"^[ \t]*```(?:py|python)[ \t]*\n(.*?)^[ \t]*```", re.DOTALL | re.MULTILINE)
 
 # Snippets that demonstrate construction or configuration and reach no endpoint.
 # Everything else must produce at least one mocked request.
-CONSTRUCTION_ONLY = frozenset({"caching/demo.py", "quick_start/01_client_demo.py"})
+CONSTRUCTION_ONLY = frozenset(
+    {
+        "caching/demo.py",
+        "caching/location.py",
+        "caching/manage.py",
+        "client-features/debug_responses.py",
+        "quick_start/01_client_demo.py",
+    }
+)
 
 RIOT_ID_LITERAL = re.compile(r'"([A-Za-z0-9_.\-]+#[A-Za-z0-9_.\-]+)"')
 
@@ -92,17 +105,22 @@ def _restore_logger(logger: logging.Logger, level: int, handlers: list[logging.H
 
 
 @contextlib.contextmanager
-def _restored_logging():
-    """Undo a snippet's logging configuration so the gate leaks no handlers or levels."""
+def _restored_process_state():
+    """Undo a snippet's logging and environment changes so no row changes the next."""
     root = logging.getLogger()
     root_level, root_handlers = root.level, list(root.handlers)
     nexar = logging.getLogger("nexar")
     nexar_level, nexar_handlers = nexar.level, list(nexar.handlers)
+    environ = dict(os.environ)
     try:
         yield
     finally:
         _restore_logger(root, root_level, root_handlers)
         _restore_logger(nexar, nexar_level, nexar_handlers)
+        # NEXAR_DEBUG_RESPONSES set by one snippet would otherwise turn every
+        # later row's output into a full response dump.
+        os.environ.clear()
+        os.environ.update(environ)
 
 
 @pytest.mark.parametrize("snippet", SNIPPETS, ids=lambda path: str(path.relative_to(SNIPPETS_DIR)))
@@ -127,7 +145,7 @@ def test_snippet_runs_under_mocks(
     monkeypatch.setattr("nexar.client.DEFAULT_CACHE_CONFIG", NO_CACHE_CONFIG)
 
     sandbox = SnippetSandbox()
-    with aioresponses() as mock, _restored_logging():
+    with aioresponses() as mock, _restored_process_state():
         sandbox.register(mock)
         module = _load(snippet)
         for entry_point in _executables(module):
@@ -176,3 +194,21 @@ def test_every_riot_id_in_the_docs_resolves() -> None:
         assert (resolved is None) == missing, riot_id
         if resolved is not None:
             assert resolved.puuid in {identity.puuid for identity in sandbox.roster}
+
+
+def test_every_python_block_is_a_snippet_include() -> None:
+    """Hand-written python blocks are the class that shipped twice-crashed code.
+
+    The execution gate only sees ``docs/snippets``; a fenced block on a page was
+    run by no one. A page block is now a snippet include, so the file it shows is
+    the file the gate executes.
+    """
+    offenders: list[str] = []
+    for page in sorted(DOCS_DIR.rglob("*.md")):
+        text = page.read_text()
+        for match in PYTHON_BLOCK.finditer(text):
+            body = [line.strip() for line in match.group(1).splitlines() if line.strip()]
+            if not body or not body[0].startswith("--8<--"):
+                line_no = text[: match.start()].count("\n") + 1
+                offenders.append(f"{page.relative_to(DOCS_DIR)}:{line_no}")
+    assert not offenders, "Python blocks outside a snippet include: " + ", ".join(offenders)
