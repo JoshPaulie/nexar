@@ -83,6 +83,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- The batch error-handling page and the `get_players` docstring name the error keys: each entry in `BatchError.errors` is keyed by the Riot ID string that failed, so reading a key as a positional `item[N]` label raises `ValueError` inside the handler.
 - The boilerplate example sets `default_region=Region.NA1`: it was the last snippet constructing a regionless client, so the first regionless call off a fresh copy raised the region `ValueError`.
 - The stdlib logging module no longer leaks into the package namespace. `__init__` imported logging at module level for the NullHandler attach, so `dir(nexar)` offered a `nexar.logging` that raises ModuleNotFoundError when imported, and `from nexar import logging` silently returned the stdlib module: a trap that lived only in editor completion. The attach moved to client_plumbing, which owns the package logger, and a row in tests/test_structure.py pins both the clean namespace and the still-attached NullHandler.
 

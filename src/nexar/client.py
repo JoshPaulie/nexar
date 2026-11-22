@@ -137,7 +137,8 @@ class NexarClient(
         """Fetch several Players at once.
 
         Raises ``BatchError`` carrying the successful players when any
-        lookup fails.
+        lookup fails. Each error entry is keyed by the Riot ID string
+        that failed; no entry uses a positional label.
         """
         resolved_region = self._resolve_region(region)
 
