@@ -83,6 +83,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- The rate-limiting page names `get_api_call_stats()` for run totals (fresh, cached, retries, errors), with the caching page kept as the worked example under Cache Management.
 - The challenges example notes that leaderboard positions run across the challenge's tiers, so an apex board starts above #1.
 - `get_all_challenge_percentiles` says its keys are strings: JSON object keys always are, so lookups go through `str(config.id)` instead of silently missing.
 - The match-timeline page says to pass the dissected match's own id: the filtered timeline example composed with the unfiltered last-match example reported one game's events under another game's result with every check green.
