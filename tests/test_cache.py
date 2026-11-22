@@ -94,3 +94,41 @@ async def test_saved_row_carries_no_riot_token(
     assert replay is not None
     assert replay.status == 200
     assert "X-Riot-Token" not in replay.request_info.headers
+
+
+async def test_token_strip_proxy_wraps_redirect_history() -> None:
+    response = _armed_response()
+    # history is a reify property over the plain _history slot, so arming
+    # writes the slot the way a live redirect chain would leave it.
+    response._history = (_armed_response(),)
+
+    wrapped = _TokenStrippedResponse(response)
+
+    assert len(wrapped.history) == 1
+    member = wrapped.history[0]
+    assert "X-Riot-Token" not in member.request_info.headers
+    assert member.status == 200
+
+
+async def test_redirect_history_rows_carry_no_riot_token(
+    row_backend: CacheBackend,
+    tmp_path: Path,
+) -> None:
+    # Tables exist only after the first awaited call.
+    assert await row_backend.get_response("warmup") is None
+    response = _armed_response()
+    response._history = (_armed_response(),)
+
+    await row_backend.save_response(response, cache_key="with-history")
+
+    raw = (tmp_path / "rowcheck.sqlite").read_bytes()
+    # A row that never wrote would pass the token check vacuously.
+    assert b"bexli" in raw
+    # Same tripwire shape as the main row: the locked library stores no
+    # request headers, a newer one stores them from the history members too.
+    assert FAKE_API_KEY.encode() not in raw
+
+    replay = await row_backend.get_response("with-history")
+    assert replay is not None
+    assert replay.status == 200
+    assert "X-Riot-Token" not in replay.request_info.headers

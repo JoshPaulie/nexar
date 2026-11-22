@@ -152,6 +152,20 @@ class _TokenStrippedResponse:
         cleaned = CIMultiDict(header for header in info.headers.items() if header[0].lower() != token)
         return RequestInfo(url=info.url, method=info.method, headers=CIMultiDictProxy(cleaned), real_url=info.real_url)
 
+    @property
+    def history(self) -> tuple[ClientResponse, ...]:
+        """Redirect members wrapped the same way, so their rows stay clean too.
+
+        The library recurses into history when it stores a response, so an
+        unwrapped member would carry the token into the row even with the
+        top-level headers stripped. Riot does not redirect today; this keeps
+        the guarantee true on the day it does.
+        """
+        return tuple(
+            cast("ClientResponse", _TokenStrippedResponse(redirected))
+            for redirected in self._response.history
+        )
+
 
 class NexarSQLiteBackend(SQLiteBackend, _KeyNamespacedBackend):
     """SQLite backend that never caches cookies or the auth token, and drops rows it cannot load.
