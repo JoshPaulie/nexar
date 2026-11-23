@@ -29,10 +29,13 @@ async def main() -> None:
     # --8<-- [end:basic-logging]
 
     # --8<-- [start:verbose-logging]
-    # Enable debug-level logging for detailed output
+    # Enable debug-level logging for detailed output.
+    # force=True: basicConfig is a one-shot — without it this second call
+    # would silently keep the root logger's earlier configuration.
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        force=True,
     )
     logger = logging.getLogger("nexar")
     logger.setLevel(logging.DEBUG)

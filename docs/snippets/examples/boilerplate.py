@@ -12,10 +12,7 @@ client = NexarClient(
 
 async def main() -> None:
     async with client:
-        player = await client.get_player(
-            riot_id="bexli#bex",
-            region=Region.NA1,
-        )
+        player = await client.get_player(riot_id="bexli#bex")
 
 
 if __name__ == "__main__":

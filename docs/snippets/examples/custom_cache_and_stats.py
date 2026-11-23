@@ -41,11 +41,13 @@ async def main() -> None:
         # Clear the cache
         await client.clear_cache()
 
-        # Disable caching entirely
-        no_cache_client = NexarClient(
+        # Disable caching entirely: every request hits the API
+        async with NexarClient(
             riot_api_key=os.getenv("RIOT_API_KEY", ""),
             cache_config=NO_CACHE_CONFIG,
-        )
+        ) as no_cache_client:
+            player = await no_cache_client.get_player(riot_id="bexli#bex", region=Region.NA1)
+            print(f"Got player (no cache): {player.game_name}#{player.tag_line}")
 
 
 if __name__ == "__main__":

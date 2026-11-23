@@ -145,6 +145,7 @@ All notable changes to this project will be documented in this file.
 - Snippet fixes surfaced by the new gates: the two client-features snippets that fetched `RIOT_API_KEY` at module level now guard inside `main()` (module-level narrowing does not survive into function bodies, so the old pattern failed strict mypy), `match_list_stats.py` guards `participant.challenges` before reading `gold_per_minute` (the same pre-2022 `AttributeError` class the `get_average_stat` docstring guards against), and `league_comparison.py` dropped an unused `Region` import.
 
 - `get_cache_info()` now reports a real `cached_responses` row count via the cache storage's `size()` instead of a structurally-zero `hasattr` probe; the never-present `cache_size` key was dropped.
+- Idiom fixes across the examples: the boilerplate and champion-mastery snippets dropped the explicit `region=Region.NA1` on calls their `default_region` already covers, the no-cache snippet actually uses its `NO_CACHE_CONFIG` client (it previously constructed one, made no call with it, and never closed it), the verbose-logging snippet passes `force=True` (a second `basicConfig` without it is a silent no-op), and the quick-start team snippet shows `include_self=False` for the four teammates alongside the default that keeps the player in their own team.
 
 ## [2.0.0] - 2026-11-19
 

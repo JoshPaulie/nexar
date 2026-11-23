@@ -71,8 +71,11 @@ async def main() -> None:
             # Get red team
             red_team = participants.red_team()
 
-            # Get team of particular player
+            # Get team of particular player (includes the player themself)
             team_of_player = participants.team_of(player.puuid)
+
+            # Just the four teammates, without the player themself
+            teammates = participants.team_of(player.puuid, include_self=False)
             # --8<-- [end:get-team]
 
             # Reset participant
