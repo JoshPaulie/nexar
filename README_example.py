@@ -6,7 +6,6 @@ import os
 import sys
 from datetime import UTC, datetime
 
-from nexar.cache import DEFAULT_CACHE_CONFIG
 from nexar.client import NexarClient
 from nexar.enums import Region
 
@@ -18,12 +17,10 @@ async def main() -> None:
     if not api_key:
         sys.exit("Please set RIOT_API_KEY environment variable")
 
-    # Create async client
-    # Note: Using SQLite cache (default) persists API responses to disk while rate limits stay in-memory
+    # Create async client (SQLite disk cache is on by default)
     client = NexarClient(
         riot_api_key=api_key,
         default_region=Region.NA1,
-        cache_config=DEFAULT_CACHE_CONFIG,
     )
 
     async with client:
@@ -58,12 +55,8 @@ async def main() -> None:
             kda = participant.kda_string()
             kda_ratio = f"{participant.kda():.2f}"
 
-            # Calculate time ago
+            # Timestamps arrive timezone-aware (UTC), so no tz fixup is needed
             game_start = match.info.game_start_timestamp
-            # Ensure game_start is timezone-aware
-            if game_start.tzinfo is None:
-                game_start = game_start.replace(tzinfo=UTC)
-
             days_ago = (datetime.now(tz=UTC) - game_start).days
 
             if days_ago == 0:
