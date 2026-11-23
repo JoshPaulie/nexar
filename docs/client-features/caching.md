@@ -25,11 +25,11 @@ Caching is "smart" by using varying TTLs (time-to-live) for each endpoint:
 
 All other requests use the default expiration time (1 hour).
 
-Use `CacheConfig` to specify a default cache time, pick a storage backend, and configure the cache location.
+Use [`CacheConfig`][nexar.cache.CacheConfig] to specify a default cache time, pick a storage backend, and configure the cache location.
 
 ## Quick Start
 
-Caching is always on unless you pass `cache_config=NO_CACHE_CONFIG`. The default uses a 1-hour TTL and stores responses to a SQLite file in `~/.nexar/`:
+Caching is always on unless you pass [`cache_config=NO_CACHE_CONFIG`][nexar.cache.NO_CACHE_CONFIG]. The default uses a 1-hour TTL and stores responses to a SQLite file in `~/.nexar/`:
 
 ```python
 --8<-- "caching/default.py"
@@ -44,7 +44,7 @@ Two cache backends are supported, both of which respect the smart TTL overrides:
 - SQLite (default): Persistent cache stored in a file. Best for long-running applications and CLI tools.
 - Memory: Ephemeral in-memory cache. Best for one-off scripts, tests, and environments without write access.
 
-Configure the backend using `CacheConfig`:
+Configure the backend using [`CacheConfig`][nexar.cache.CacheConfig]:
 
 ```python
 --8<-- "caching/custom_backend.py"
@@ -84,7 +84,7 @@ Manage the cache and view statistics through the client:
 
 ### Manual Refresh
 
-Models like `Player` provide a `refresh_cache()` method to clear their internal state and force fresh API calls on the next access.
+Models like [`Player`][nexar.models.player.Player] provide a [`refresh_cache()`][nexar.models.player.Player.refresh_cache] method to clear their internal state and force fresh API calls on the next access.
 
 ## Best Practices
 

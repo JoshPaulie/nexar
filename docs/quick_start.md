@@ -2,7 +2,7 @@
 
 ## The client
 
-The primary object for Nexar is the `NexarClient`.
+The primary object for Nexar is the [`NexarClient`][nexar.client.NexarClient].
 
 Here you set your [Riot API key](https://developer.riotgames.com/) and optionally set a default region(1) for your lookups.
 { .annotate }
@@ -13,9 +13,9 @@ Here you set your [Riot API key](https://developer.riotgames.com/) and optionall
 --8<-- "quick_start/01_client_demo.py:declaration"
 ```
 
-The client does not validate your key at construction. A bad key surfaces as `UnauthorizedError` on your first API call. Regions work the same way: a client built without `default_region` constructs fine, but the first call that also omits `region` raises a `ValueError` before any request goes out.
+The client does not validate your key at construction. A bad key surfaces as [`UnauthorizedError`][nexar.exceptions.UnauthorizedError] on your first API call. Regions work the same way: a client built without `default_region` constructs fine, but the first call that also omits `region` raises a `ValueError` before any request goes out.
 
-Caching is always on unless you pass `cache_config=NO_CACHE_CONFIG`. By default every project on the machine shares one SQLite cache file, `~/.nexar/nexar_cache.sqlite`; set `cache_name` on a `CacheConfig` to give a project its own file ([Caching](client-features/caching.md)).
+Caching is always on unless you pass [`cache_config=NO_CACHE_CONFIG`][nexar.cache.NO_CACHE_CONFIG]. By default every project on the machine shares one SQLite cache file, `~/.nexar/nexar_cache.sqlite`; set `cache_name` on a [`CacheConfig`][nexar.cache.CacheConfig] to give a project its own file ([Caching](client-features/caching.md)).
 
 You can use the client in a couple of ways, but the recommended pattern is using the `async with` context manager. This ensures connections are properly closed and resources managed.
 
@@ -29,15 +29,15 @@ You can use the client in a couple of ways, but the recommended pattern is using
 
      Snippets will also be de-indented for easier reading.
 
-## `Player`
+## [`Player`][nexar.models.player.Player]
 
-The "heavylifter" model is `Player`. `Player` encapsulates multiple endpoints and allows you to elegantly make API calls and derive values without having to combine the output of many datapoints.
+The "heavylifter" model is [`Player`][nexar.models.player.Player]. [`Player`][nexar.models.player.Player] encapsulates multiple endpoints and allows you to elegantly make API calls and derive values without having to combine the output of many datapoints.
 
 [Read the full `Player` docs here](reference/models/player.md)
 
 ### Getting players
 
-To start, either import Player and pass it the client, or use `NexarClient.get_player()`.
+To start, either import Player and pass it the client, or use [`NexarClient.get_player()`][nexar.client.NexarClient.get_player].
 
 ```py
 --8<-- "quick_start/02_player.py:get-player"
@@ -52,9 +52,9 @@ You can even get multiple Players at a time(1):
 --8<-- "quick_start/02_player.py:get-players"
 ```
 
-### Using `Player`
+### Using [`Player`][nexar.models.player.Player]
 
-`Player` has quite a few convenience methods, like:
+[`Player`][nexar.models.player.Player] has quite a few convenience methods, like:
 
 ```py title="Current ranked standings"
 --8<-- "quick_start/02_player.py:get-ranks"
@@ -79,19 +79,19 @@ You can even get multiple Players at a time(1):
     Average KDA with Ashe: 2.50
     ```
 
-## `Match`
+## [`Match`][nexar.models.match.Match]
 
-Another powerful model is `Match`, particularly in combination with `Participant` & `ParticipantList`.
+Another powerful model is [`Match`][nexar.models.match.Match], particularly in combination with [`Participant`][nexar.models.match.participant.Participant] & [`ParticipantList`][nexar.models.match.participant_list.ParticipantList].
 
 ```py
 --8<-- "quick_start/03_match.py:get-match"
 ```
 
-### `Participant`
+### [`Participant`][nexar.models.match.participant.Participant]
 
-The difference between `Player` and `Participant` might be confusing.
+The difference between [`Player`][nexar.models.player.Player] and [`Participant`][nexar.models.match.participant.Participant] might be confusing.
 
-A "participant" is 1 of 10 players (in a Summoner's Rift game, more or less for other modes). Attached to the `Participant` is all of the stats related to that player over the duration of the game.
+A "participant" is 1 of 10 players (in a Summoner's Rift game, more or less for other modes). Attached to the [`Participant`][nexar.models.match.participant.Participant] is all of the stats related to that player over the duration of the game.
 
 ```py
 --8<-- "quick_start/03_match.py:participants"
@@ -114,9 +114,9 @@ A "participant" is 1 of 10 players (in a Summoner's Rift game, more or less for 
     MltSimpleton (Senna) went 4/4/19
     ```
 
-### `ParticipantList`
+### [`ParticipantList`][nexar.models.match.participant_list.ParticipantList]
 
-The easiest way to get a particular participant from a `Match` is using the very helpful `ParticipantList`, which is what is returned by `Match.participants`.
+The easiest way to get a particular participant from a [`Match`][nexar.models.match.Match] is using the very helpful [`ParticipantList`][nexar.models.match.participant_list.ParticipantList], which is what is returned by [`Match.participants`][nexar.models.match.Match.participants].
 
 #### Get participant(s)
 

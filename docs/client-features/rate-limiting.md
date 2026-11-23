@@ -63,7 +63,7 @@ The seed cannot know the *age* of the counted requests, so each one is placed at
 
 ## Debugging Rate Limits
 
-Rate limiter pacing decisions are logged at `DEBUG` level; 429s are logged at `WARNING`. See the [Logging](./logging.md) page to enable and configure Nexar's logging. For totals instead of log lines, `client.get_api_call_stats()` reports fresh, cached, retries, and errors; the [Caching](./caching.md) page shows it under Cache Management.
+Rate limiter pacing decisions are logged at `DEBUG` level; 429s are logged at `WARNING`. See the [Logging](./logging.md) page to enable and configure Nexar's logging. For totals instead of log lines, [`client.get_api_call_stats()`][nexar.client.NexarClient.get_api_call_stats] reports fresh, cached, retries, and errors; the [Caching](./caching.md) page shows it under Cache Management.
 
 When the client is pacing, you'll see at `DEBUG`:
 

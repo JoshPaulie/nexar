@@ -1,6 +1,6 @@
 # Exceptions
 
-All exceptions derive from `NexarError`. HTTP-status errors derive from `RiotAPIError`,
+All exceptions derive from [`NexarError`][nexar.exceptions.NexarError]. HTTP-status errors derive from [`RiotAPIError`][nexar.exceptions.RiotAPIError],
 which carries the status code and the server's message; `str(error)` renders as
 `HTTP {status}: {message}`. The message is Riot's wording, so a 401 can arrive
 saying `Forbidden`. Match on the exception type or the status code; the message text can mislead.

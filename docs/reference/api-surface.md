@@ -1,6 +1,6 @@
 # API Surface
 
-Every Riot op Nexar wraps, with the method that wraps it and what you get back. [`get_player`][nexar.client.NexarClient.get_player] is the front door: it resolves an account by Riot ID or PUUID and hands back a [`Player`][nexar.models.player.Player] that lazily fetches the rest (`player.get_summoner()`, `player.get_solo_rank()`, `player.get_matches()`). [`get_players`][nexar.client.NexarClient.get_players] does the same for a batch.
+Every Riot op Nexar wraps, with the method that wraps it and what you get back. [`get_player`][nexar.client.NexarClient.get_player] is the front door: it resolves an account by Riot ID or PUUID and hands back a [`Player`][nexar.models.player.Player] that lazily fetches the rest ([`player.get_summoner()`][nexar.models.player.Player.get_summoner], [`player.get_solo_rank()`][nexar.models.player.Player.get_solo_rank], [`player.get_matches()`][nexar.models.player.Player.get_matches]). [`get_players`][nexar.client.NexarClient.get_players] does the same for a batch.
 
 ## Account & Summoner
 
