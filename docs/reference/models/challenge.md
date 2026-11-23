@@ -3,7 +3,7 @@
 The account-wide challenge system, via the lol-challenges-v1 ops — all six
 route per-platform (`na1.api.riotgames.com`, like summoner and mastery; the
 regional hosts answer 403 for this family, measured 2026-11-21). Distinct from
-the [match Challenges model](challenges.md), which is the per-match challenge
+the [match Challenges model][nexar.models.match.challenges.Challenges], which is the per-match challenge
 stats inside a match payload.
 
 - `NexarClient.get_all_challenge_configs()` / `get_challenge_config(id)` —
