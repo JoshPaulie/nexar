@@ -709,7 +709,10 @@ class Participant:
     """Rune and perk information. May be None if not included in the API response."""
 
     challenges: Challenges | None
-    """Challenge completion data. May be None if not included in the API response."""
+    """Challenge completion data. May be None if not included in the API response.
+
+    See [Challenges][nexar.models.match.challenges.Challenges] for the full attribute list.
+    """
 
     missions: Missions | None
     """Mission completion data. May be None if not included in the API response."""
