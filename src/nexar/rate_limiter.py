@@ -8,7 +8,7 @@ process using one key this is exactly the rule the server applies, so the
 full documented quota is usable (20 requests may fire in the first
 second) while no window is ever exceeded.
 
-On a 429 the client blocks the region for the Retry-After duration —
+On a 429 the client blocks the region for the Retry-After duration.
 Riot's documented remedy. Method and service rate limits are deliberately
 not tracked: the application window always binds first at every key tier
 (personal: 100/120s app vs. method limits like 2000/10s; production:
@@ -54,7 +54,7 @@ class RateLimiter:
 
     The check-and-claim block is synchronous (no ``await`` between reading
     and appending the admission timestamp), which makes it atomic on a
-    single event loop — no locks are needed. The only ``await`` is the
+    single event loop; no locks are needed. The only ``await`` is the
     final sleep, held while nothing is locked, so concurrent callers never
     starve each other's progress.
     """
@@ -119,7 +119,7 @@ class RateLimiter:
         Later calls are no-ops. Assumes the current request was just admitted
         (it is already in the log and counted by the server).
 
-        Riot's windows are nested — the calls counted in a shorter window
+        Riot's windows are nested; the calls counted in a shorter window
         are a subset of a longer window's count. Each counted request becomes
         one synthetic admission, banded by age at the *newest* timestamp
         consistent with the counts: the innermost band (shortest window) is
@@ -145,7 +145,7 @@ class RateLimiter:
         # append oldest-first, then restore chronological order (the real
         # current entry was appended before the seed). Mutate the deque in
         # place so any concurrent acquire holding a reference to it sees the
-        # same log — a rebind could orphan a parked admission mid-check.
+        # same log; a rebind could orphan a parked admission mid-check.
         for placed_at, n in reversed(bands):
             dq.extend([placed_at] * n)
         ordered = sorted(dq)

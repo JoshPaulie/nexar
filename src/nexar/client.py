@@ -1,7 +1,7 @@
 """Main client for the Nexar SDK.
 
-``NexarClient`` is assembled from topic mixins — identity, league, platform,
-challenges, match, plumbing — over the shared seam declared in ``core.py``.
+``NexarClient`` is assembled from topic mixins, identity, league, platform,
+challenges, match, plumbing, over the shared seam declared in ``core.py``.
 """
 
 from dataclasses import fields
@@ -101,7 +101,7 @@ class NexarClient(
 
         The identification precedence lives on ``Player.create``, which this
         forwards to: ``game_name`` + ``tag_line``, then ``puuid``, then
-        ``riot_id`` — the first complete pattern wins. The region is resolved
+        ``riot_id``, the first complete pattern wins. The region is resolved
         against the client default here, so the returned ``Player.region`` is
         always concrete.
 

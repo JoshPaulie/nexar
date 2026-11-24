@@ -271,7 +271,7 @@ class TimelineParticipantFrame:
 
     time_enemy_spent_controlled: int
     """Crowd-control time inflicted by this frame, in milliseconds (the wire
-    carries raw ms — 70337 near the end of a 26-minute match; the reference
+    carries raw ms, 70337 near the end of a 26-minute match; the reference
     lists no unit, and this is not seconds like ``timeCCingOthers``)."""
 
     position: TimelinePosition | None

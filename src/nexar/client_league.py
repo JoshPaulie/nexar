@@ -6,7 +6,7 @@ from .core import NexarCore
 from .enums import Queue, RankDivision, RankTier, Region
 from .models import LeagueEntry, LeagueList
 
-# Ranked ladder queues as Riot's league paths spell them — Queue enum values are
+# Ranked ladder queues as Riot's league paths spell them. Queue enum values are
 # numeric queue IDs, not the strings these endpoints take. The reference also
 # lists RANKED_FLEX_TT, dead since the 2019 Twisted Treeline removal; passing
 # it would only buy a 404, so non-ranked and legacy queues raise ValueError.
@@ -29,7 +29,7 @@ class LeagueMixin(NexarCore):
         puuid: str,
         region: Region | None = None,
     ) -> list[LeagueEntry]:
-        """Get a player's current ranked entries — one per queue they hold a rank in."""
+        """Get a player's current ranked entries, one per queue they hold a rank in."""
         resolved_region = self._resolve_region(region)
         endpoint = f"/lol/league/v4/entries/by-puuid/{puuid}"
         data = await self._make_api_call(endpoint, resolved_region.value)
@@ -43,7 +43,7 @@ class LeagueMixin(NexarCore):
     ) -> LeagueList:
         """Get the challenger ladder for a ranked queue.
 
-        The full ladder arrives in one response — challenger is capped at 300
+        The full ladder arrives in one response; challenger is capped at 300
         players, and there is no page parameter. Entries are pre-sorted by LP.
         """
         resolved_region = self._resolve_region(region)
@@ -58,7 +58,7 @@ class LeagueMixin(NexarCore):
     ) -> LeagueList:
         """Get the grandmaster ladder for a ranked queue.
 
-        The full ladder arrives in one response — grandmaster is capped at 700
+        The full ladder arrives in one response; grandmaster is capped at 700
         players, and there is no page parameter. Entries are pre-sorted by LP.
         """
         resolved_region = self._resolve_region(region)
@@ -74,7 +74,7 @@ class LeagueMixin(NexarCore):
         """Get the master ladder for a ranked queue.
 
         The full ladder arrives in one response: every master-tier player the
-        platform serves (exactly 10,000 entries on NA when measured — the entry
+        platform serves (exactly 10,000 entries on NA when measured, the entry
         count, not an LP threshold), with no page parameter. Entries are
         pre-sorted by LP.
         """
@@ -94,11 +94,11 @@ class LeagueMixin(NexarCore):
     ) -> list[LeagueEntry]:
         """Get one page of a ranked division ladder.
 
-        Each page holds 205 players (measured from the live wire — the current
+        Each page holds 205 players (measured from the live wire, the current
         reference op block no longer states a page size); iterate ``page`` to
         walk the full division. Apex tiers have no divisions, so ``tier`` must
         be IRON through DIAMOND. The wire does not order a division page by LP
-        (measured: Gold I page 1 arrives unsorted) — sort with
+        (measured: Gold I page 1 arrives unsorted), sort with
         ``LeagueEntry.rank_tuple`` when rank order matters.
         """
         return await self._division_page("/lol/league/v4/entries", queue, tier, division, region, page)
@@ -117,7 +117,7 @@ class LeagueMixin(NexarCore):
         For the LoL ranked queues this serves the same unordered 205-player
         pages in the same order as ``get_league_entries``; individual LP and
         win/loss values drift between the two calls because the ladder keeps
-        moving — each page is its own snapshot. The expanded league exists to
+        moving; each page is its own snapshot. The expanded league exists to
         also cover non-LoL queue types.
         """
         return await self._division_page("/lol/league-exp/v4/entries", queue, tier, division, region, page)
@@ -157,8 +157,8 @@ class LeagueMixin(NexarCore):
     ) -> list[LeagueEntry]:
         """Fetch and parse one division-ladder page under either league root.
 
-        The shared tail of ``get_league_entries`` and ``get_league_exp_entries``
-        — the two routes differ only in the root path. Page 1 sends no query
+        The shared tail of ``get_league_entries`` and ``get_league_exp_entries``:
+        the two routes differ only in the root path. Page 1 sends no query
         parameter, as both public routes always have.
         """
         self._validate_division_ladder(tier, division, page)

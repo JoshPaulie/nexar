@@ -34,7 +34,7 @@ This document describes the internal architecture of Nexar using ASCII flow diag
 
 The [`NexarClient`][nexar.client.NexarClient] is the single entry point. Every API call flows through `_make_api_call()`, which orchestrates caching and rate limiting.
 
-### Request flow — cache enabled
+### Request flow: cache enabled
 
 ```
  CALLER
@@ -76,7 +76,7 @@ The [`NexarClient`][nexar.client.NexarClient] is the single entry point. Every A
  RETURN data (dict parsed into model)
 ```
 
-### Request flow — cache disabled
+### Request flow: cache disabled
 
 ```
  CALLER
@@ -125,11 +125,11 @@ The [`NexarClient`][nexar.client.NexarClient] is the single entry point. Every A
 
 ## Component: RateLimiter
 
-The [`RateLimiter`][nexar.rate_limiter.RateLimiter] mirrors Riot's documented enforcement directly: each application rate window (e.g. 20 per 1s, 100 per 120s) is a sliding window, enforced per region. The limiter records the monotonic timestamp of every admitted request and admits the next one only when every window has a free slot — the same rule the server applies. The full documented quota is therefore usable (20 requests may fire in the first second), while no window is ever exceeded.
+The [`RateLimiter`][nexar.rate_limiter.RateLimiter] mirrors Riot's documented enforcement directly: each application rate window (e.g. 20 per 1s, 100 per 120s) is a sliding window, enforced per region. The limiter records the monotonic timestamp of every admitted request and admits the next one only when every window has a free slot; the same rule the server applies. The full documented quota is therefore usable (20 requests may fire in the first second), while no window is ever exceeded.
 
 Method and service rate limits are deliberately not tracked: the application window always binds first at every key tier (personal: 100/120s app vs. method limits like 2000/10s; production: 50/s app vs. 200/s method), so tracking them cannot change behavior.
 
-On the first fresh response for a region, the client orients the log from the server's own usage ledger: [`RateLimiter.seed_from_counts(region, counts)`][nexar.rate_limiter.RateLimiter.seed_from_counts] pre-fills the window log from `X-App-Rate-Limit-Count` — one synthetic admission per counted request, banded by age at the newest position the counts allow (pessimistic about age: can wait longer than needed, never shorter). This closes the cold-start hole: a rerun within two minutes of a heavy run admits only the slots Riot says remain.
+On the first fresh response for a region, the client orients the log from the server's own usage ledger: [`RateLimiter.seed_from_counts(region, counts)`][nexar.rate_limiter.RateLimiter.seed_from_counts] pre-fills the window log from `X-App-Rate-Limit-Count`, one synthetic admission per counted request, banded by age at the newest position the counts allow (pessimistic about age: can wait longer than needed, never shorter). This closes the cold-start hole: a rerun within two minutes of a heavy run admits only the slots Riot says remain.
 
 ### acquire() flow
 

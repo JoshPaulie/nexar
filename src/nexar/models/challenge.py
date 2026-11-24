@@ -1,7 +1,7 @@
 """LoL challenge system models (lol-challenges-v1).
 
 Distinct from :mod:`nexar.models.match.challenges`, which holds the per-match
-challenge stats inside a match payload — those are ``Challenges``; everything
+challenge stats inside a match payload (those are ``Challenges``); everything
 here is the account-wide challenge system (``ChallengeConfig`` and friends).
 """
 
@@ -16,7 +16,7 @@ class LocalizedChallengeNames:
 
     The locale map carries 28 locales on the live wire (2026-11-21 NA1); the
     long-form ``description`` is usually empty and the client shows the short
-    one — both parse regardless.
+    one, both parse regardless.
     """
 
     name: str
@@ -44,7 +44,7 @@ class ChallengeConfig:
 
     The live wire sends ``id``, ``localizedNames``, ``state``, ``leaderboard``,
     and ``thresholds`` on every entry (measured 2026-11-21 NA1, 405
-    challenges), plus ``endTimestamp`` on exactly one — challenge 600012, a
+    challenges), plus ``endTimestamp`` on exactly one, challenge 600012, a
     launch-window challenge the catalog still serves. The reference DTO
     table's ``tracking`` and ``startTimestamp`` never appear on the wire.
     """
@@ -68,8 +68,8 @@ class ChallengeConfig:
     """
 
     end_timestamp: datetime | None
-    """When a time-limited challenge ends, or None on open-ended challenges —
-    the catalog carries this on exactly one entry (measured 2026-11-21)."""
+    """When a time-limited challenge ends, or None on open-ended challenges.
+    The catalog carries this on exactly one entry (measured 2026-11-21)."""
 
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "ChallengeConfig":
@@ -105,7 +105,7 @@ class ChallengeLeaderboardEntry:
     position: int
     """The player's position in the challenge's ladder.
 
-    Positions are global across the challenge's tiers — the MASTER board for
+    Positions are global across the challenge's tiers; the MASTER board for
     the CRYSTAL challenge starts at 58, with positions 1-57 belonging to the
     tiers above (measured 2026-11-21 NA1). Zero means not placed, when Riot
     omits the field entirely.
@@ -189,7 +189,7 @@ class ChallengeProgress:
 
     The wire sends three key shapes (measured 2026-11-21 NA1): fully placed
     rows carry ``position`` and ``playersInLevel``, progressed rows carry
-    ``achievedTime``, and untouched challenges carry neither — ``level`` is
+    ``achievedTime``, and untouched challenges carry neither; ``level`` is
     'NONE' with a percentile of 1.0.
     """
 

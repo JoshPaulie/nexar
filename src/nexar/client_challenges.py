@@ -6,7 +6,7 @@ from .core import NexarCore
 from .enums import ChallengeLevel, Region
 from .models import ChallengeConfig, ChallengeLeaderboardEntry, PlayerChallengeData
 
-# Challenge leaderboards only serve the apex levels — the other ten legal
+# Challenge leaderboards only serve the apex levels. The other ten legal
 # ChallengeLevel values belong to progress rows and percentile maps, and the
 # leaderboard path answers 400 for them (measured 2026-11-21 on NA1).
 _LEADERBOARD_LEVELS = {
@@ -26,7 +26,7 @@ class ChallengesMixin(NexarCore):
     async def get_all_challenge_configs(self, region: Region | None = None) -> list[ChallengeConfig]:
         """Get every challenge's configuration.
 
-        The full catalog in one call — 405 challenges on NA at recording. The
+        The full catalog in one call, 405 challenges on NA at recording. The
         wire sends id, localizedNames, state, leaderboard, and thresholds on
         every entry plus endTimestamp on exactly one (challenge 600012); the
         DTO table's tracking and startTimestamp never appear.
@@ -59,7 +59,7 @@ class ChallengesMixin(NexarCore):
     async def get_challenge_percentiles(self, challenge_id: int, region: Region | None = None) -> dict[str, float]:
         """Get one challenge's level-to-percentile map.
 
-        Levels that exist as thresholds appear as keys, plus NONE — the share
+        Levels that exist as thresholds appear as keys, plus NONE, the share
         of players with no progress, which measured exactly 1.0 on the
         CRYSTAL challenge.
         """
@@ -77,7 +77,7 @@ class ChallengesMixin(NexarCore):
     ) -> list[ChallengeLeaderboardEntry]:
         """Get a challenge's leaderboard for one level.
 
-        Only the apex levels serve — MASTER, GRANDMASTER and CHALLENGER. The
+        Only the apex levels serve, MASTER, GRANDMASTER and CHALLENGER. The
         other ten legal ``ChallengeLevel`` values belong to progress rows,
         and the leaderboard path answers 400 for them (measured 2026-11-21 on
         NA1), so an enum input for a non-apex level raises ``ValueError``
@@ -85,7 +85,7 @@ class ChallengesMixin(NexarCore):
         optional ``limit`` truncates the board from the front.
 
         Entries arrive sorted by position (measured), and positions are
-        global across the challenge's tiers — the MASTER board for the
+        global across the challenge's tiers; the MASTER board for the
         CRYSTAL challenge starts at 58, with 1-57 sitting in the tiers above.
         """
         if limit is not None and limit < 1:
@@ -103,7 +103,7 @@ class ChallengesMixin(NexarCore):
         """Get a player's challenge system data.
 
         Per-challenge progress, point totals per category and overall, and
-        their challenge customization — the one player-centric op of the
+        their challenge customization, the one player-centric op of the
         family, also reachable as ``Player.get_challenge_data()``.
         """
         resolved_region = self._resolve_region(region)
@@ -116,7 +116,7 @@ class ChallengesMixin(NexarCore):
 
         A ``ChallengeLevel`` input is validated against the apex levels the
         path actually serves, so a non-apex enum value fails before any wire
-        call instead of buying a 400. A raw string passes through as-is —
+        call instead of buying a 400. A raw string passes through as-is.
         Riot's own 400 is the backstop, and ``ChallengeLevel`` covers every
         documented value already.
         """

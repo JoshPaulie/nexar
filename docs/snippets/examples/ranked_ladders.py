@@ -17,10 +17,10 @@ async def main() -> None:
         for item in challenger.entries[:5]:
             games = item.wins + item.losses
             win_rate = item.wins / games if games else 0.0
-            print(f"  {item.league_points} LP — {item.wins}W/{item.losses}L ({win_rate:.0%})")
+            print(f"  {item.league_points} LP - {item.wins}W/{item.losses}L ({win_rate:.0%})")
 
         # Division ladders paginate: each page holds 205 players (the wire does
-        # not sort a page by LP — sort with rank_tuple if you need rank order).
+        # not sort a page by LP; sort with rank_tuple if you need rank order).
         page_one = await client.get_league_entries(
             Queue.RANKED_SOLO_5x5,
             RankTier.GOLD,

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 # (api_name, python_name, default) for every field Riot may omit from a participant.
 # Riot includes only non-empty values, so every stat field carries an explicit
 # default here. Identity fields (puuid, championId, championName, teamId,
-# participantId, win) stay direct reads in ``from_api_response`` — a payload
+# participantId, win) stay direct reads in ``from_api_response``, a payload
 # missing one of those is not a participant at all.
 _DEFAULTED_FIELDS: tuple[tuple[str, str, Any], ...] = (
     # Deprecated name
@@ -238,7 +238,7 @@ class Participant:
     participant_id: int
     """This participant's index in the match's participant list (1-10).
 
-    Not a map position — see ``team_position`` for the played role."""
+    Not a map position, see ``team_position`` for the played role."""
 
     # Basic stats
     kills: int

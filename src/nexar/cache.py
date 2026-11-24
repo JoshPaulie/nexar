@@ -59,7 +59,7 @@ _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/league/v4/entries/by-puuid/*": ttl(minutes=5),
     # Division ladders: this glob needs two literal slashes after /entries/,
     # which by-puuid URLs never have (they carry one), so it cannot shadow the
-    # row above — verified through the library's own url_match, not just
+    # row above, verified through the library's own url_match, not just
     # assumed. The page query parameter is not part of the URL the library
     # matches patterns against.
     "*/lol/league/v4/entries/*/*/*": ttl(minutes=5),
@@ -70,7 +70,7 @@ _SMART_ENDPOINT_TTLS: dict[str, ExpirationTime] = {
     "*/lol/champion-mastery/v4/champion-masteries/by-puuid/*": ttl(minutes=30),
     "*/lol/champion-mastery/v4/scores/by-puuid/*": ttl(minutes=30),
     # Challenge family: the two catalog ops and their by-id twins ride together.
-    # The literal config/percentiles globs cannot shadow the by-id ones — they
+    # The literal config/percentiles globs cannot shadow the by-id ones. They
     # carry no wildcard before their final segment, so the by-id URLs' extra
     # segment cannot be absorbed. (The library's matcher crosses path
     # separators freely, verified through its own url_match.)
@@ -171,7 +171,7 @@ class NexarSQLiteBackend(SQLiteBackend, _KeyNamespacedBackend):
 
     Riot's API responses carry a Cloudflare ``__cf_bm`` Set-Cookie whose ``Partitioned``
     attribute ``http.cookies`` rejects when a cached row is unpickled. aiohttp-client-cache
-    pickles the whole response — cookies included — and its deserialize guard does not catch
+    pickles the whole response, cookies included, and its deserialize guard does not catch
     ``CookieError``, so a single cached cookie made every later read of that row crash.
     Cookies are anti-bot session noise, not API data: they are stripped before the row is
     written, and a row written by an older version that still fails to load is deleted and
@@ -186,7 +186,7 @@ class NexarSQLiteBackend(SQLiteBackend, _KeyNamespacedBackend):
     ) -> None:
         """Save a response with its cookie jar emptied and its credential stripped.
 
-        The jar on the live response is a parsed copy nobody consumes — the session's
+        The jar on the live response is a parsed copy nobody consumes; the session's
         cookie jar was already updated when the response arrived, so nothing is lost.
         The token proxy keeps the API key out of the stored row: newer
         aiohttp-client-cache copies request headers into the row it writes.

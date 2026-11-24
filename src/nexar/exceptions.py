@@ -83,7 +83,7 @@ async def gather_partitioned[K, T](
     This is the batch path behind ``NexarClient.get_players`` and
     ``Player.get_matches``: successes keep ``gather``'s input order, failures
     pair with their key for ``BatchError``. The partition checks
-    ``BaseException``, matching ``BatchError``'s declared error type —
+    ``BaseException``, matching ``BatchError``'s declared error type.
     ``gather(return_exceptions=True)`` captures ``BaseException`` instances
     as results (``KeyboardInterrupt`` and ``SystemExit`` additionally
     re-raise into the caller, so only quieter ``BaseException`` subclasses

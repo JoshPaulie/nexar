@@ -229,7 +229,7 @@ class LeagueItem:
 
     The live apex payloads are puuid-era shaped: entries carry ``puuid`` and no
     ``summonerId``/``summonerName`` (measured 2026-11-21). Unlike
-    :class:`LeagueEntry` there is no ``queueType`` — the queue lives on the
+    :class:`LeagueEntry` there is no ``queueType``; the queue lives on the
     container :class:`LeagueList`.
     """
 
@@ -297,7 +297,7 @@ class LeagueList:
     """An apex league (challenger, grandmaster or master) for one ranked queue.
 
     Riot wraps the apex ladders in this small container; the ladder itself is
-    not paginated — every entry arrives in one response, pre-sorted by league
+    not paginated. Every entry arrives in one response, pre-sorted by league
     points. The live payload carries no ``leagueId`` and no ``name`` (both
     measured absent on every apex queue, 2026-11-21), so both parse as empty
     strings rather than raising.
@@ -328,7 +328,7 @@ class LeagueList:
     def from_api_response(cls, data: dict[str, Any]) -> "LeagueList":
         """Create LeagueList from a league-list API response.
 
-        ``tier`` is a direct identity read — an unknown tier string raises
+        ``tier`` is a direct identity read; an unknown tier string raises
         (deliberate, pinned by a test) rather than degrading the way an unknown
         queue string does.
         """

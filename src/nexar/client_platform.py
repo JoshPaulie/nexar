@@ -64,7 +64,7 @@ class PlatformMixin(NexarCore):
         """Get the platform's champion rotation.
 
         Covers the free Summoner's Rift pool and the extra pool for players
-        under summoner level 11. Not player-centric — no puuid is involved.
+        under summoner level 11. Not player-centric. No puuid is involved.
         """
         resolved_region = self._resolve_region(region)
         endpoint = "/lol/platform/v3/champion-rotations"
@@ -76,7 +76,7 @@ class PlatformMixin(NexarCore):
         """Get the platform's service status.
 
         Covers scheduled and in-progress maintenances plus active incidents.
-        Not player-centric — no puuid is involved.
+        Not player-centric. No puuid is involved.
         """
         resolved_region = self._resolve_region(region)
         endpoint = "/lol/status/v4/platform-data"

@@ -12,7 +12,7 @@ def _parse_timestamp(value: object) -> datetime | None:
     """Parse an ISO-8601 status timestamp; null, absent, or unparsable values become None.
 
     The status op sends explicit nulls (``"updated_at": null``) and ISO strings
-    with a UTC offset — unlike most Riot ops, which omit empty values instead.
+    with a UTC offset, unlike most Riot ops, which omit empty values instead.
     An unparsable string degrades to None with a warning rather than aborting
     the parse; timestamps are display data, not identity.
     """
@@ -27,7 +27,7 @@ def _parse_timestamp(value: object) -> datetime | None:
 
 @dataclass(frozen=True)
 class StatusContent:
-    """A localized status string — used for incident/maintenance titles and update translations."""
+    """A localized status string, used for incident/maintenance titles and update translations."""
 
     locale: str
     """Locale tag for this string (e.g. 'en_US')."""
@@ -74,7 +74,7 @@ class StatusUpdate:
         """Create StatusUpdate from an API response.
 
         This op sends explicit nulls, so every field is guarded against a null
-        value — ``.get(key, default)`` alone would pass the null straight
+        value; ``.get(key, default)`` alone would pass the null straight
         through into a non-optional field.
         """
         return cls(
@@ -146,7 +146,7 @@ class StatusEntry:
 class PlatformStatus:
     """Service status for one platform (lol-status-v4 platform-data).
 
-    ``maintenances`` and ``incidents`` are usually empty — the value of this op
+    ``maintenances`` and ``incidents`` are usually empty; the value of this op
     is checking before a debug session that the platform itself is healthy.
     """
 

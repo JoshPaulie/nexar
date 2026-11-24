@@ -13,7 +13,7 @@ By default, Nexar enforces Riot's personal-key limits:
 - 20 requests per 1 second
 - 100 requests per 2 minutes
 
-These are enforced as sliding windows per region — the same rule Riot's edge applies — so the full quota is usable: 20 requests may fire in the first second, and short batches complete without artificial pacing.
+These are enforced as sliding windows per region, the same rule Riot's edge applies, so the full quota is usable: 20 requests may fire in the first second, and short batches complete without artificial pacing.
 
 ## Basic Usage
 
@@ -53,13 +53,13 @@ Nexar records the timestamp of every admitted request, per region, and admits th
 
 Method and service rate limit headers are deliberately not tracked: the application window always binds first at every key tier (personal: 100/120s app vs. method limits like 2000/10s; production: 50/s app vs. 200/s method), so tracking them cannot change behavior.
 
-The check-and-claim is synchronous, which is atomic on a single event loop — no locks, and concurrent callers never starve each other. Rate limit state is not persisted across restarts. Cached responses do not count against rate limits.
+The check-and-claim is synchronous, which is atomic on a single event loop; no locks, and concurrent callers never starve each other. Rate limit state is not persisted across restarts. Cached responses do not count against rate limits.
 
 ### Restarting a script (orientation)
 
-A fresh client assumes empty windows, but Riot's ledger may be partially spent from a previous run. On the first fresh response for a region, Nexar reads Riot's own usage ledger (`X-App-Rate-Limit-Count`) and pre-fills the window log with the counted requests — so rerunning a script within two minutes cannot re-burst into a partially spent quota. Later responses hand the counts over too, but the limiter only orients once per region.
+A fresh client assumes empty windows, but Riot's ledger may be partially spent from a previous run. On the first fresh response for a region, Nexar reads Riot's own usage ledger (`X-App-Rate-Limit-Count`) and pre-fills the window log with the counted requests, so rerunning a script within two minutes cannot re-burst into a partially spent quota. Later responses hand the counts over too, but the limiter only orients once per region.
 
-The seed cannot know the *age* of the counted requests, so each one is placed at the newest timestamp the counts allow (pessimistic about age): it can hold a slot slightly longer than strictly needed, never shorter. Cached responses never orient — they make no API call.
+The seed cannot know the *age* of the counted requests, so each one is placed at the newest timestamp the counts allow (pessimistic about age): it can hold a slot slightly longer than strictly needed, never shorter. Cached responses never orient, they make no API call.
 
 ## Debugging Rate Limits
 

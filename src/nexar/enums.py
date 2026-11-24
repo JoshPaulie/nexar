@@ -512,7 +512,7 @@ class ChallengeLevel(_LabelEnum):
 
     All thirteen values are the reference op block's legal set for the shared
     ``Level`` string. Only the apex three serve on the leaderboard path
-    (MASTER/GRANDMASTER/CHALLENGER — the rest answer 400, measured 2026-11-21
+    (MASTER/GRANDMASTER/CHALLENGER, the rest answer 400, measured 2026-11-21
     on NA1); the full set appears in per-challenge progress and as the keys of
     percentile and threshold maps.
     """

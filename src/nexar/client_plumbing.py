@@ -47,7 +47,7 @@ HTTP_GATEWAY_TIMEOUT = 504
 DEFAULT_RETRY_AFTER_SECONDS = 5.0
 
 # Riot's edge serves 502/503/504 as transient Cloudflare pages: retried
-# per call with backoff, never through the region ledger — no Retry-After
+# per call with backoff, never through the region ledger; no Retry-After
 # exists on 5xx, and blocking the region would stall every other call for
 # a blip the next attempt clears.
 RETRYABLE_SERVER_ERRORS = (HTTP_BAD_GATEWAY, HTTP_SERVICE_UNAVAILABLE, HTTP_GATEWAY_TIMEOUT)
@@ -65,7 +65,7 @@ def _body_preview(body: str) -> str:
 
     Riot's 5xx responses are Cloudflare HTML pages: the tags carry nothing a
     caller needs, so they are stripped and whitespace collapsed before
-    truncating — the exception text and the log line stay readable and
+    truncating, the exception text and the log line stay readable and
     small instead of carrying the whole page.
     """
     text = " ".join(_HTML_TAG_RE.sub(" ", body).split())
