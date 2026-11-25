@@ -1,0 +1,52 @@
+import asyncio
+import os
+
+from nexar.client import NexarClient
+from nexar.enums import Region
+
+client = NexarClient(
+    riot_api_key=os.getenv("RIOT_API_KEY", ""),
+    default_region=Region.NA1,
+)
+
+
+async def main() -> None:
+    async with client:
+        # Fetch multiple players
+        riot_ids = [
+            "bexli#bex",
+            "mltsimpleton#na1",
+            "roninalex#na1",
+        ]
+        players = await client.get_players(riot_ids)
+
+        # Gather all solo queue league entries
+        league_entries = []
+        for player in players:
+            solo_rank = await player.get_solo_rank()
+            if solo_rank:
+                league_entries.append(solo_rank)
+
+        # is_higher_rank_than: compare two entries
+        if len(league_entries) >= 2:
+            a, b = league_entries[0], league_entries[1]
+            print(f"{a} vs {b}")
+            print(f"First is higher? {a.is_higher_rank_than(b)}")
+
+        # rank_tuple: (tier_division_score, LP) for custom sorting
+        print("\nSorted by rank:")
+        for entry in sorted(league_entries, reverse=True):
+            print(f"  {entry}  winrate: {entry.win_rate:.0%}")
+
+        # rank_tuple off the entry directly
+        for player in players:
+            solo = await player.get_solo_rank()
+            if solo is not None:
+                tier_score, lp = solo.rank_tuple
+                print(f"  {player} -> tier_score={tier_score}, LP={lp}")
+            else:
+                print(f"  {player} -> unranked")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
