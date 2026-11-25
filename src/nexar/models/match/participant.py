@@ -295,7 +295,11 @@ class Participant:
     """Final champion level achieved."""
 
     gold_earned: int
-    """Total gold earned during the match."""
+    """Total gold earned during the match.
+
+    Per-minute rate: [`Challenges.gold_per_minute`][nexar.models.match.challenges.Challenges.gold_per_minute],
+    when the wire includes the challenges block.
+    """
 
     gold_spent: int
     """Total gold spent on items."""
@@ -473,7 +477,11 @@ class Participant:
     """Total damage dealt (all types combined)."""
 
     total_damage_dealt_to_champions: int
-    """Total damage dealt to enemy champions (all types combined)."""
+    """Total damage dealt to enemy champions (all types combined).
+
+    Per-minute rate: [`Challenges.damage_per_minute`][nexar.models.match.challenges.Challenges.damage_per_minute],
+    when the wire includes the challenges block.
+    """
 
     total_damage_shielded_on_teammates: int
     """Total damage shielded on teammates."""
@@ -710,6 +718,10 @@ class Participant:
 
     challenges: Challenges | None
     """Challenge completion data. May be None if not included in the API response.
+
+    None is the old-match case (pre-2022 payloads omit the block), so guard the
+    read. The per-minute rates (gold, damage, vision) live here rather than on
+    the participant totals.
 
     See [Challenges][nexar.models.match.challenges.Challenges] for the full attribute list.
     """

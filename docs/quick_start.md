@@ -35,6 +35,8 @@ The "heavylifter" model is [`Player`][nexar.models.player.Player]. [`Player`][ne
 
 [Read the full `Player` docs here](reference/models/player.md)
 
+The reference pages are also the field index. [`Participant`][nexar.models.match.participant.Participant] lists every per-player stat, [`MatchInfo`][nexar.models.match.match.MatchInfo] every match-level field, and [`TimelineEvent`][nexar.models.match.timeline.TimelineEvent] every timeline field with the event types that carry it. The examples show the calls; these pages show what comes back.
+
 ### Getting players
 
 To start, either import Player and pass it the client, or use [`NexarClient.get_player()`][nexar.client.NexarClient.get_player].

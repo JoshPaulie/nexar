@@ -7,3 +7,5 @@ Use the match's own id: fetch the match first and pass its id to [`get_match_tim
 ```py
 --8<-- "examples/match_timeline.py"
 ```
+
+Fields: [`TimelineEvent`][nexar.models.match.timeline.TimelineEvent]. Each field's own docstring names the event types that carry it, and [`Timeline.frames_for()`][nexar.models.match.timeline.Timeline.frames_for] returns one player's per-minute gold, xp, level, and position.

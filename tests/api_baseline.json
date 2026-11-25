@@ -514,12 +514,16 @@
   },
   "nexar/utils.py": {
    "all": [
+    "cs_per_min",
     "sort_players_by_rank",
-    "team_total_percentage"
+    "team_total_percentage",
+    "to_dict"
    ],
    "defs": [
+    "cs_per_min",
     "sort_players_by_rank",
-    "team_total_percentage"
+    "team_total_percentage",
+    "to_dict"
    ]
   }
  }

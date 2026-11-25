@@ -5,3 +5,5 @@
 ```py
 --8<-- "examples/participant_list_methods.py"
 ```
+
+Fields: [`Participant`][nexar.models.match.participant.Participant].

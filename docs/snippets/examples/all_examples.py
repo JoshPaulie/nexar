@@ -59,7 +59,10 @@ async def main() -> None:
 
         # --8<-- [start:match-history-demo]
         import datetime as dt
+        import json
+
         from nexar.enums import Queue
+        from nexar.utils import to_dict
 
         # Get player
         player = await client.get_player(riot_id="bexli#bex")
@@ -76,6 +79,18 @@ async def main() -> None:
 
         # Get last match
         last_match = await player.get_last_match()
+
+        # Page through a history: count caps at 100 and start is the offset, so
+        # the next page is start + count. allow_partial keeps the matches that
+        # loaded when one id fails.
+        page_one = await player.get_matches(count=100, allow_partial=True)
+        page_two = await player.get_matches(start=100, count=100, allow_partial=True)
+        print(f"{len(page_one)} then {len(page_two)} matches")
+
+        # Persist what you pulled: to_dict() turns the model tree into
+        # JSON-safe values, enums included, so json.dumps takes it as is.
+        row = to_dict(page_one[0])
+        print(f"{row['metadata']['match_id']}: {len(json.dumps(row))} bytes of JSON")
         # --8<-- [end:match-history-demo]
 
         # --8<-- [start:player-performance-demo]

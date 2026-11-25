@@ -1,5 +1,8 @@
 """Tests for utility functions."""
 
+import json
+from datetime import datetime
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -9,8 +12,8 @@ from nexar.models.league import LeagueEntry
 from nexar.models.match.participant import Participant
 from nexar.models.match.participant_list import ParticipantList
 from nexar.models.player import Player
-from nexar.utils import sort_players_by_rank, team_total_percentage
-from tests.helpers import create_test_participant
+from nexar.utils import cs_per_min, sort_players_by_rank, team_total_percentage, to_dict
+from tests.helpers import create_test_match, create_test_participant
 
 
 def _solo_entry(puuid: str, tier: RankTier, division: RankDivision, league_points: int) -> LeagueEntry:
@@ -145,3 +148,40 @@ class TestTeamTotalPercentage:
         result = team_total_percentage(participants, target, stat_selector)
 
         assert result == pytest.approx(expected)
+
+
+class TestCsPerMin:
+    """Test the cs_per_min utility function."""
+
+    def test_cs_per_min(self) -> None:
+        """Lane and neutral minions divided by match minutes."""
+        participant = create_test_participant(total_minions_killed=180, neutral_minions_killed=120)
+
+        assert cs_per_min(participant, 1800.0) == pytest.approx(10.0)
+
+    def test_cs_per_min_non_positive_duration(self) -> None:
+        """A zero-length duration returns 0.0 instead of dividing by zero."""
+        assert cs_per_min(create_test_participant(), 0.0) == 0.0
+
+
+class TestToDict:
+    """Test the to_dict utility function."""
+
+    def test_to_dict_converts_the_whole_match_tree(self) -> None:
+        """Enums land on wire values, datetimes on ISO strings, nested lists survive."""
+        match = create_test_match("NA1_test")
+
+        payload = to_dict(match)
+
+        assert payload["metadata"]["match_id"] == "NA1_test"
+        assert payload["info"]["queue_id"] == 420
+        assert payload["info"]["game_start_timestamp"] == datetime.fromtimestamp(1234567890).isoformat()
+        assert payload["info"]["participants"][0]["team_position"] == "MIDDLE"
+        assert json.dumps(payload)
+
+    def test_to_dict_rejects_non_dataclasses(self) -> None:
+        """A dict or a class object is a caller error, never a silent empty dict."""
+        with pytest.raises(TypeError, match="dataclass instance"):
+            to_dict({"not": "a model"})
+        with pytest.raises(TypeError, match="dataclass instance"):
+            to_dict(Participant)
